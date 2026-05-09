@@ -26,7 +26,7 @@ export function useCategories() {
   });
 }
 
-export function useCreateCategory() {
+export function useCreateCategory(shopId: string) {
   const qc = useQueryClient();
   const supabase = createClient();
 
@@ -34,7 +34,7 @@ export function useCreateCategory() {
     mutationFn: async ({ name, color }: { name: string; color: string }) => {
       const { data, error } = await supabase
         .from("categories")
-        .insert({ name: name.trim(), color })
+        .insert({ name: name.trim(), color, shop_id: shopId })
         .select()
         .single();
       if (error) throw error;

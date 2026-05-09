@@ -12,7 +12,7 @@ export function CategoriesSection() {
   const supabase = createClient();
   const shopId = useAuthStore(selectShopId);
   const { data: categories = [] } = useCategories();
-  const { mutateAsync: createCategory } = useCreateCategory();
+  const { mutateAsync: createCategory } = useCreateCategory(shopId ?? "");
   const { mutateAsync: deleteCategory } = useDeleteCategory();
   const { mutateAsync: updateCategory } = useUpdateCategory();
   const [name, setName] = useState("");

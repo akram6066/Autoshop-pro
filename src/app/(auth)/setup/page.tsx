@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { seedLocalCache } from "@/lib/db/instance";
@@ -10,6 +10,14 @@ import type { Room, Shop, ShopWithRole } from "@/types/app";
 type Step = "shop" | "rooms" | "done";
 
 export default function SetupPage() {
+  return (
+    <Suspense>
+      <SetupContent />
+    </Suspense>
+  );
+}
+
+function SetupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAddingNew = searchParams.get("new") === "1";

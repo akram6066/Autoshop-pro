@@ -86,12 +86,12 @@ export default function ReportsPage() {
 
   const totals = useMemo(() => ({
     revenue: summary.reduce((s, r) => s + r.total_revenue, 0),
-    orders: summary.reduce((s, r) => s + r.order_count, 0),
+    orders: summary.reduce((s, r) => s + Number(r.order_count), 0),
     avgOrder: summary.length
       ? summary.reduce((s, r) => s + r.total_revenue, 0) /
-        Math.max(summary.reduce((s, r) => s + r.order_count, 0), 1)
+        Math.max(summary.reduce((s, r) => s + Number(r.order_count), 0), 1)
       : 0,
-    activeDays: summary.filter((r) => r.order_count > 0).length,
+    activeDays: summary.filter((r) => Number(r.order_count) > 0).length,
   }), [summary]);
 
   // Export CSV
