@@ -173,7 +173,12 @@ export interface SalesSummaryRow {
   total_revenue: number;
   order_count: number | string;
 }
-
+export interface TeamMember {
+  user_id: string;
+  full_name: string;
+  role: UserRole;
+  joined_at: string;
+}
 export interface DashboardKPIs {
   todayRevenue: number;
   todayOrders: number;
