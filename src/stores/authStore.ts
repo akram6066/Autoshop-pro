@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { setSentryUser, clearSentryUser } from "@/lib/monitoring/sentry";
 import { devtools, persist } from "zustand/middleware";
 import type { User } from "@supabase/supabase-js";
 import type { Profile, Shop, ShopWithRole, UserRole } from "@/types/app";
@@ -70,8 +71,9 @@ export const useAuthStore = create<AuthState>()(
           );
         },
 
-        setAll: (user, profile, shop, shops = []) =>
-          set(
+        setAll: (user, profile, shop, shops = []) => {
+          if (user) setSentryUser(user.id); else clearSentryUser();
+          return set(
             {
               user,
               profile,
@@ -82,9 +84,10 @@ export const useAuthStore = create<AuthState>()(
             },
             false,
             "setAll"
-          ),
+          );
+        },
 
-        reset: () => set(initialState, false, "reset"),
+        reset: () => { clearSentryUser(); set(initialState, false, "reset"); },
       }),
       {
         name: "autoshop-auth",

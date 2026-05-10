@@ -22,8 +22,8 @@ export default function SignupPage() {
       setError("Passwords do not match");
       return;
     }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
       return;
     }
 
@@ -43,20 +43,12 @@ export default function SignupPage() {
         return;
       }
 
-      // Update profile — set role to owner and full name
-      // shop_id is null until they complete /setup
-      const { error: profileErr } = await supabase
-        .from("profiles")
-        .update({
-          role: "owner",
-          full_name: fullName.trim(),
-        })
-        .eq("id", authData.user.id);
-
-      if (profileErr) {
-        setError(profileErr.message);
-        return;
-      }
+      // NOTE: We do NOT set role='owner' here. The handle_new_user trigger
+      // creates the profile with role='staff'. The role is promoted to 'owner'
+      // atomically by the setup_owner_shop RPC during /setup.
+      //
+      // full_name is already set via raw_user_meta_data and the trigger.
+      // We only need to confirm signup succeeded.
 
       setDone(true);
     });
@@ -169,7 +161,7 @@ export default function SignupPage() {
               <input
                 className="input"
                 type="password"
-                placeholder="Min. 6 characters"
+                placeholder="Min. 8 characters"
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

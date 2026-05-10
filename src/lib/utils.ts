@@ -10,15 +10,13 @@ export function cn(...inputs: ClassValue[]) {
 
 // ─── Currency ─────────────────────────────────────────────────────────────────
 
-const currencyFormatter = new Intl.NumberFormat("en-KE", {
-  style: "currency",
-  currency: "KES",
+const numberFormatter = new Intl.NumberFormat("en-KE", {
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
 });
 
 export function formatCurrency(amount: number): string {
-  return currencyFormatter.format(amount);
+  return `KES ${numberFormatter.format(amount)}`;
 }
 
 // ─── Dates ────────────────────────────────────────────────────────────────────

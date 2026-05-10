@@ -8,6 +8,8 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { RouteErrorBoundary } from "@/components/ErrorBoundary";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -20,6 +22,7 @@ import {
 import { useSyncQueue } from "@/hooks/useSyncQueue";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { seedLocalCache } from "@/lib/db/instance";
+import { listenForCrossTabSync } from "@/lib/sync/queue";
 import type { Profile, ShopWithRole, Room, Product } from "@/types/app";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -347,6 +350,9 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       init();
     }
 
+    // Cross-tab sync coordination — prevents duplicate queue replay
+    const cleanupCrossTab = shopId ? listenForCrossTabSync(shopId) : () => {};
+
     // Auth state listener — handles sign out from other tabs
     const {
       data: { subscription },
@@ -363,8 +369,11 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [init, reset, router]);
+    return () => {
+      subscription.unsubscribe();
+      cleanupCrossTab();
+    };
+  }, [init, reset, router, shopId]);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -427,6 +436,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
           {/* Right side */}
           <div className="flex items-center gap-3 ml-auto flex-shrink-0">
             <SyncBadge shopId={shopId} />
+            <ThemeToggle />
             <button
               onClick={handleSignOut}
               className="btn btn-ghost btn-sm"
@@ -438,7 +448,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       </header>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
-        {children}
+        <RouteErrorBoundary>{children}</RouteErrorBoundary>
       </main>
     </div>
   );

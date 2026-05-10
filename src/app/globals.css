@@ -250,3 +250,50 @@ body {
 .table-auto-shop tr:last-child td { border-bottom: none; }
 .table-auto-shop tbody tr { transition: background 0.1s; }
 .table-auto-shop tbody tr:hover { background: var(--color-surface-1); }
+/* ─── Dark Mode ─────────────────────────────────────────────────────────────── */
+/* Activated by next-themes adding class="dark" to <html>                       */
+
+.dark {
+  /* Surfaces — dark slate, not pure black */
+  --color-surface-0: oklch(13% 0.008 250);
+  --color-surface-1: oklch(16% 0.009 250);
+  --color-surface-2: oklch(20% 0.01 250);
+  --color-surface-3: oklch(25% 0.012 250);
+
+  /* Ink — near-white text */
+  --color-ink-primary:    oklch(95% 0.005 250);
+  --color-ink-secondary:  oklch(75% 0.008 250);
+  --color-ink-tertiary:   oklch(58% 0.008 250);
+  --color-ink-ghost:      oklch(42% 0.006 250);
+
+  /* Brand — slightly lighter for contrast on dark bg */
+  --color-brand-50:  oklch(22% 0.04 260);
+  --color-brand-100: oklch(28% 0.06 260);
+  --color-brand-400: oklch(68% 0.18 258);
+  --color-brand-500: oklch(62% 0.2 258);
+  --color-brand-600: oklch(70% 0.18 258);
+  --color-brand-700: oklch(78% 0.15 258);
+
+  /* Semantic */
+  --color-success:       #4ade80;
+  --color-success-light: oklch(22% 0.05 145);
+  --color-warning:       #fbbf24;
+  --color-warning-light: oklch(22% 0.05 85);
+  --color-danger:        #f87171;
+  --color-danger-light:  oklch(22% 0.05 25);
+}
+
+/* Dark mode border adjustments */
+.dark .card {
+  border-color: oklch(28% 0.008 250);
+}
+.dark .input {
+  border-color: oklch(30% 0.01 250);
+  background: var(--color-surface-2);
+}
+.dark .table-auto-shop th {
+  border-color: oklch(25% 0.008 250);
+}
+.dark .table-auto-shop td {
+  border-color: oklch(22% 0.006 250);
+}

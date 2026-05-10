@@ -7,6 +7,25 @@ type TableName = keyof Database["public"]["Tables"];
 
 const MAX_ATTEMPTS = 5;
 
+// ─── Concurrency guard ────────────────────────────────────────────────────────
+// Prevents two tabs or two rapid reconnects from replaying the queue
+// simultaneously and double-applying mutations.
+//
+// Uses BroadcastChannel so the lock is shared across all tabs on the same
+// origin. The tab that acquires the lock flushes; others skip and wait for
+// the next trigger.
+
+let _flushing = false;
+let _broadcastChannel: BroadcastChannel | null = null;
+
+function getChannel(): BroadcastChannel | null {
+  if (typeof window === "undefined") return null;
+  if (!_broadcastChannel) {
+    _broadcastChannel = new BroadcastChannel("autoshop_sync");
+  }
+  return _broadcastChannel;
+}
+
 // ─── Enqueue ──────────────────────────────────────────────────────────────────
 
 /**
@@ -33,15 +52,39 @@ export async function enqueue(
     attempts: 0,
     created_at: now,
   });
+
+  // Notify other tabs that new items are queued
+  getChannel()?.postMessage({ type: "QUEUED", shopId });
 }
 
 // ─── Flush Queue ──────────────────────────────────────────────────────────────
 
 /**
  * Replay all pending queue items in creation order.
+ *
+ * Concurrency-safe: uses an in-process flag (_flushing) + BroadcastChannel
+ * to prevent two tabs from replaying the same items simultaneously.
+ *
  * Called on reconnect and on app foreground.
  */
 export async function flushQueue(shopId: string): Promise<void> {
+  // In-process guard (same tab rapid calls)
+  if (_flushing) return;
+  _flushing = true;
+
+  // Tell other tabs we're flushing so they skip
+  const channel = getChannel();
+  channel?.postMessage({ type: "FLUSH_START", shopId });
+
+  try {
+    await _doFlush(shopId);
+  } finally {
+    _flushing = false;
+    channel?.postMessage({ type: "FLUSH_END", shopId });
+  }
+}
+
+async function _doFlush(shopId: string): Promise<void> {
   const db = getDb();
   const supabase = createClient();
 
@@ -51,10 +94,13 @@ export async function flushQueue(shopId: string): Promise<void> {
     .sortBy("created_at");
 
   for (const entry of pending) {
+    // Re-check status — another tab may have already synced this entry
+    const current = await db.sync_queue.get(entry.id);
+    if (!current || current.status !== "pending") continue;
+
     try {
       let error: { message: string } | null = null;
       const payload = entry.payload as Record<string, unknown>;
-      // Table name is dynamic (from queue) — can't be narrowed statically
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const tbl = supabase.from(entry.table_name as TableName) as any;
 
@@ -88,6 +134,37 @@ export async function flushQueue(shopId: string): Promise<void> {
       console.warn("[sync] flush error:", err);
     }
   }
+}
+
+// ─── Cross-tab coordination ───────────────────────────────────────────────────
+
+/**
+ * Listen for flush signals from other tabs.
+ * When another tab starts flushing, we back off.
+ * When they finish, we can flush any newly-queued items.
+ */
+export function listenForCrossTabSync(shopId: string): () => void {
+  const channel = getChannel();
+  if (!channel) return () => {};
+
+  const handler = (event: MessageEvent) => {
+    if (event.data?.shopId !== shopId) return;
+
+    if (event.data.type === "FLUSH_START") {
+      // Another tab is flushing — set our flag so we skip concurrent calls
+      _flushing = true;
+    } else if (event.data.type === "FLUSH_END") {
+      _flushing = false;
+    } else if (event.data.type === "QUEUED") {
+      // Another tab queued something — flush if we're online
+      if (navigator.onLine && !_flushing) {
+        flushQueue(shopId).catch(console.warn);
+      }
+    }
+  };
+
+  channel.addEventListener("message", handler);
+  return () => channel.removeEventListener("message", handler);
 }
 
 // ─── Retry Failed ─────────────────────────────────────────────────────────────

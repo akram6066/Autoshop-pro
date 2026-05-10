@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
+import { liveQuery } from "dexie";
 import { getDb } from "@/lib/db/instance";
 
 interface QueueCounts {
@@ -9,49 +10,34 @@ interface QueueCounts {
   total: number;
 }
 
-// Poll faster when items are queued, slower when idle
-const POLL_ACTIVE_MS = 5_000;
-const POLL_IDLE_MS = 30_000;
+const EMPTY: QueueCounts = { pending: 0, failed: 0, total: 0 };
 
+/**
+ * Reactively tracks the sync queue counts using Dexie liveQuery.
+ *
+ * liveQuery() creates an observable that re-runs whenever any of the
+ * IndexedDB records it touches change — no polling required. Battery-friendly
+ * and always accurate: the badge updates the instant a mutation is enqueued
+ * or flushed, without any setTimeout overhead.
+ */
 export function useSyncQueue(shopId: string | null): QueueCounts {
-  const [counts, setCounts] = useState<QueueCounts>({
-    pending: 0,
-    failed: 0,
-    total: 0,
-  });
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [counts, setCounts] = useState<QueueCounts>(EMPTY);
 
   useEffect(() => {
-    if (!shopId) return;
-    const id = shopId; // narrow string | null → string for the closure
-    let cancelled = false;
+    const subscription = liveQuery(async () => {
+      if (!shopId) return EMPTY;
+      const db = getDb();
+      const [pending, failed] = await Promise.all([
+        db.sync_queue.where("[shop_id+status]").equals([shopId, "pending"]).count(),
+        db.sync_queue.where("[shop_id+status]").equals([shopId, "failed"]).count(),
+      ]);
+      return { pending, failed, total: pending + failed };
+    }).subscribe({
+      next: (result) => setCounts(result),
+      error: (err) => console.warn("[useSyncQueue] liveQuery error:", err),
+    });
 
-    async function poll() {
-      if (cancelled) return;
-      try {
-        const db = getDb();
-        const [pending, failed] = await Promise.all([
-          db.sync_queue.where("[shop_id+status]").equals([id, "pending"]).count(),
-          db.sync_queue.where("[shop_id+status]").equals([id, "failed"]).count(),
-        ]);
-        if (!cancelled) {
-          const next = { pending, failed, total: pending + failed };
-          setCounts(next);
-          timerRef.current = setTimeout(poll, next.total > 0 ? POLL_ACTIVE_MS : POLL_IDLE_MS);
-        }
-      } catch {
-        if (!cancelled) {
-          timerRef.current = setTimeout(poll, POLL_IDLE_MS);
-        }
-      }
-    }
-
-    poll();
-
-    return () => {
-      cancelled = true;
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
+    return () => subscription.unsubscribe();
   }, [shopId]);
 
   return counts;

@@ -67,6 +67,7 @@ export interface Database {
         Update: { id?: string; shop_id?: string; table_name?: string; operation?: "INSERT" | "UPDATE" | "DELETE"; payload?: Json; status?: "pending" | "synced" | "failed"; error?: string | null; attempts?: number; created_at?: string };
         Relationships: [];
       };
+      
       purchase_orders: {
         Row: { id: string; shop_id: string; supplier_name: string; status: "draft" | "received" | "partial"; received_by: string | null; received_at: string | null; synced: boolean; created_at: string };
         Insert: { id?: string; shop_id: string; supplier_name: string; status?: "draft" | "received" | "partial"; received_by?: string | null; received_at?: string | null; synced?: boolean; created_at?: string };
@@ -80,7 +81,7 @@ export interface Database {
         Relationships: [];
       };
     };
-    Functions: {
+   Functions: {
       setup_owner_shop: {
         Args: { p_user_id: string; p_shop_name: string; p_shop_address: string | null; p_full_name: string };
         Returns: string;
@@ -131,6 +132,10 @@ export interface Database {
       };
       switch_active_shop: {
         Args: { p_shop_id: string };
+        Returns: undefined;
+      };
+      refresh_sales_summary: {
+        Args: Record<string, never>;
         Returns: undefined;
       };
     };

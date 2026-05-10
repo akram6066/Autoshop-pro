@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "next-themes";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -25,15 +26,12 @@ function getQueryClient() {
 function requestSync() {
   if (!("serviceWorker" in navigator)) return;
   navigator.serviceWorker.ready.then((reg) => {
-    // Chrome: use Background Sync API
     if ("sync" in reg) {
       (reg as unknown as { sync: { register: (tag: string) => Promise<void> } })
         .sync.register("sync-queue").catch(() => {
-          // Fallback: post directly to SW
           navigator.serviceWorker.controller?.postMessage({ type: "SYNC_REQUESTED" });
         });
     } else {
-      // Safari / Firefox fallback
       navigator.serviceWorker.controller?.postMessage({ type: "SYNC_REQUESTED" });
     }
   });
@@ -51,7 +49,7 @@ export function Providers({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Sync on reconnect and tab focus — works on all browsers
+  // Sync on reconnect and tab focus
   useEffect(() => {
     const handleOnline = () => requestSync();
     const handleVisibility = () => {
@@ -77,8 +75,15 @@ export function Providers({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }

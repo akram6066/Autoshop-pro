@@ -1,15 +1,51 @@
 import type { Metadata, Viewport } from "next";
+import { DM_Sans, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 
+// ─── Fonts ────────────────────────────────────────────────────────────────────
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  axes: ["opsz"],
+  style: ["normal", "italic"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
+// ─── Metadata ─────────────────────────────────────────────────────────────────
+
 export const metadata: Metadata = {
-  title: "AutoShop Pro",
-  description: "Offline-first automotive parts shop management",
+  title: {
+    default: "AutoShop Pro",
+    template: "%s | AutoShop Pro",
+  },
+  description:
+    "Offline-first inventory and point of sale for automotive parts shops — built for the African market.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "AutoShop Pro",
+  },
+  robots: {
+    index: false,
+    follow: false,
   },
 };
 
@@ -19,17 +55,15 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+// ─── Layout ───────────────────────────────────────────────────────────────────
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..600;1,9..40,300..600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap"
-        />
-      </head>
+    <html
+      lang="en"
+      className={`${dmSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
+    >
       <body>
         <Providers>{children}</Providers>
       </body>

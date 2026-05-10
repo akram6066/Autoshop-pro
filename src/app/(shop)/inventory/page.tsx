@@ -38,11 +38,6 @@ export default function InventoryPage() {
   const [categoryFilter, setCategoryFilter] = useState<Category | "all">("all");
   const [sortBy, setSortBy] = useState<"name" | "qty" | "price">("name");
 
-  const roomMap = useMemo(
-    () => Object.fromEntries(rooms.map((r) => [r.id, r.name])),
-    [rooms]
-  );
-
   // ─── Filter + sort ──────────────────────────────────────────────────────────
 
   const filtered = useMemo(() => {

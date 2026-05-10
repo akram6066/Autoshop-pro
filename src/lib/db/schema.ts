@@ -1,9 +1,6 @@
 import Dexie, { type Table } from "dexie";
 import type { Product, Room, Shop, Sale, SaleItem, StockMovement, SyncQueueEntry, PurchaseOrder, POItem } from "@/types/app";
 
-// ─── Database Version ─────────────────────────────────────────────────────────
-const DB_VERSION = 3; // ← bumped from 2 to 3
-
 // ─── AutoShop Database ────────────────────────────────────────────────────────
 
 export class AutoShopDatabase extends Dexie {
