@@ -6,10 +6,12 @@ import {
   useQueryClient,
   type UseQueryResult,
 } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { getDb, getLocalProducts, seedProducts } from "@/lib/db/instance";
 import { enqueue } from "@/lib/sync/queue";
 import { getDeviceId } from "@/lib/utils";
+import { useAuthStore } from "@/stores/authStore";
 import type { Product } from "@/types/app";
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
@@ -31,7 +33,10 @@ async function fetchProducts(shopId: string): Promise<Product[]> {
 
   if (error) {
     // Network/RLS failure — fall back to local cache
-    console.warn("[useProducts] Supabase fetch failed, using IndexedDB:", error.message);
+    console.warn(
+      "[useProducts] Supabase fetch failed, using IndexedDB:",
+      error.message,
+    );
     return getLocalProducts(shopId);
   }
 
@@ -48,8 +53,8 @@ export function useProducts(shopId: string | null): UseQueryResult<Product[]> {
     queryKey: shopId ? productKeys.all(shopId) : ["products-disabled"],
     queryFn: () => fetchProducts(shopId!),
     enabled: !!shopId,
-    staleTime: 1000 * 60 * 2,     // 2 minutes — don't refetch on every focus
-    gcTime: 1000 * 60 * 10,        // 10 minutes cache
+    staleTime: 1000 * 60 * 2, // 2 minutes — don't refetch on every focus
+    gcTime: 1000 * 60 * 10, // 10 minutes cache
     placeholderData: [],
   });
 }
@@ -63,7 +68,6 @@ export function useProduct(shopId: string | null, productId: string | null) {
 
 interface CreateProductInput {
   shopId: string;
-  userId: string;
   data: Omit<Product, "id" | "shop_id" | "updated_at">;
 }
 
@@ -83,9 +87,12 @@ export function useCreateProduct() {
 
       const { error } = await supabase.from("products").insert(payload);
       if (error) {
-        // Offline: enqueue for later sync
-        await enqueue(shopId, "products", "INSERT", payload as unknown as Record<string, unknown>);
-        // Optimistic write to IndexedDB
+        await enqueue(
+          shopId,
+          "products",
+          "INSERT",
+          payload as unknown as Record<string, unknown>,
+        );
         await getDb().products.put(payload);
       }
       return payload;
@@ -93,23 +100,29 @@ export function useCreateProduct() {
     onSuccess: (product) => {
       qc.invalidateQueries({ queryKey: productKeys.all(product.shop_id) });
     },
+    onError: () => toast.error("Failed to create product — saved offline."),
   });
 }
 
 interface UpdateProductInput {
   shopId: string;
   productId: string;
-  userId: string;
   changes: Partial<Omit<Product, "id" | "shop_id">>;
-  quantityDelta?: number; // signed delta for stock movement
+  quantityDelta?: number;
 }
 
 export function useUpdateProduct() {
   const qc = useQueryClient();
   const supabase = createClient();
+  const userId = useAuthStore((s) => s.user?.id ?? "");
 
   return useMutation({
-    mutationFn: async ({ shopId, productId, changes, quantityDelta, userId }: UpdateProductInput) => {
+    mutationFn: async ({
+      shopId,
+      productId,
+      changes,
+      quantityDelta,
+    }: UpdateProductInput) => {
       const now = new Date().toISOString();
       const payload = { ...changes, updated_at: now };
 
@@ -119,6 +132,14 @@ export function useUpdateProduct() {
         .eq("id", productId)
         .eq("shop_id", shopId);
 
+      if (error) {
+        await enqueue(shopId, "products", "UPDATE", {
+          id: productId,
+          ...payload,
+        } as Record<string, unknown>);
+      }
+
+      // Enqueue stock movement only after we know whether the update succeeded
       if (quantityDelta !== undefined && quantityDelta !== 0) {
         const movementPayload = {
           id: crypto.randomUUID(),
@@ -126,7 +147,7 @@ export function useUpdateProduct() {
           product_id: productId,
           type: quantityDelta > 0 ? "IN" : "OUT",
           delta: Math.abs(quantityDelta),
-          snapshot_qty: (changes.quantity ?? 0),
+          snapshot_qty: changes.quantity ?? 0,
           seq: Date.now(),
           device_id: getDeviceId(),
           reason: "adjustment",
@@ -138,16 +159,12 @@ export function useUpdateProduct() {
         await enqueue(shopId, "stock_movements", "INSERT", movementPayload);
       }
 
-      if (error) {
-        await enqueue(shopId, "products", "UPDATE", { id: productId, ...payload } as Record<string, unknown>);
-      }
-
-      // Always update IndexedDB immediately
       await getDb().products.update(productId, payload);
     },
     onSuccess: (_, { shopId }) => {
       qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
     },
+    onError: () => toast.error("Failed to update product — saved offline."),
   });
 }
 
@@ -156,7 +173,13 @@ export function useDeleteProduct() {
   const supabase = createClient();
 
   return useMutation({
-    mutationFn: async ({ shopId, productId }: { shopId: string; productId: string }) => {
+    mutationFn: async ({
+      shopId,
+      productId,
+    }: {
+      shopId: string;
+      productId: string;
+    }) => {
       const { error } = await supabase
         .from("products")
         .delete()
@@ -164,7 +187,10 @@ export function useDeleteProduct() {
         .eq("shop_id", shopId);
 
       if (error) {
-        await enqueue(shopId, "products", "DELETE", { id: productId } as Record<string, unknown>);
+        await enqueue(shopId, "products", "DELETE", { id: productId } as Record<
+          string,
+          unknown
+        >);
       }
 
       await getDb().products.delete(productId);
@@ -172,5 +198,6 @@ export function useDeleteProduct() {
     onSuccess: (_, { shopId }) => {
       qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
     },
+    onError: () => toast.error("Failed to delete product — saved offline."),
   });
 }

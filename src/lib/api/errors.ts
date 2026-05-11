@@ -14,19 +14,87 @@ interface SanitizeOptions {
   fallback?: string;
 }
 
-const KNOWN_PATTERNS: Array<{ pattern: RegExp; message: string; status: number }> = [
-  { pattern: /already (been )?registered|already exists/i, message: "An account with this email already exists", status: 409 },
-  { pattern: /invalid.*credentials|invalid.*password/i, message: "Invalid email or password", status: 401 },
-  { pattern: /email.*not.*confirmed/i, message: "Please confirm your email before signing in", status: 401 },
-  { pattern: /rate limit|too many requests/i, message: "Too many attempts. Please wait a few minutes.", status: 429 },
-  { pattern: /jwt.*expired|invalid.*jwt/i, message: "Your session has expired. Please sign in again.", status: 401 },
-  { pattern: /insufficient stock/i, message: "Not enough stock for this sale", status: 409 },
-  { pattern: /duplicate key|unique.*constraint/i, message: "This record already exists", status: 409 },
-  { pattern: /foreign key/i, message: "Cannot complete this action — related records exist", status: 409 },
-  { pattern: /permission denied|not authorized|42501/i, message: "You do not have permission to do that", status: 403 },
+const KNOWN_PATTERNS: Array<{
+  pattern: RegExp;
+  message: string;
+  status: number;
+}> = [
+  {
+    pattern: /already (been )?registered|already exists/i,
+    message: "An account with this email already exists",
+    status: 409,
+  },
+  {
+    pattern: /invalid.*credentials|invalid.*password/i,
+    message: "Invalid email or password",
+    status: 401,
+  },
+  {
+    pattern: /email.*not.*confirmed/i,
+    message: "Please confirm your email before signing in",
+    status: 401,
+  },
+  {
+    pattern: /rate limit|too many requests/i,
+    message: "Too many attempts. Please wait a few minutes.",
+    status: 429,
+  },
+  {
+    pattern: /jwt.*expired|invalid.*jwt/i,
+    message: "Your session has expired. Please sign in again.",
+    status: 401,
+  },
+  {
+    pattern: /insufficient stock/i,
+    message: "Not enough stock for this sale",
+    status: 409,
+  },
+  {
+    pattern: /duplicate key|unique.*constraint/i,
+    message: "This record already exists",
+    status: 409,
+  },
+  {
+    pattern: /foreign key/i,
+    message: "Cannot complete this action — related records exist",
+    status: 409,
+  },
+  {
+    pattern: /permission denied|not authorized|42501/i,
+    message: "You do not have permission to do that",
+    status: 403,
+  },
+  {
+    pattern: /limit reached|over limit|maximum.*exceeded/i,
+    message: "You have reached the limit for your plan",
+    status: 403,
+  },
+  {
+    pattern: /product limit/i,
+    message: "Product limit reached. Free plan allows 500 products.",
+    status: 403,
+  },
+  {
+    pattern: /room limit/i,
+    message: "Room limit reached. Free plan allows 5 rooms.",
+    status: 403,
+  },
+  {
+    pattern: /category limit/i,
+    message: "Category limit reached. Free plan allows 10 categories.",
+    status: 403,
+  },
+  {
+    pattern: /staff limit/i,
+    message: "Staff limit reached. Free plan allows 3 staff members.",
+    status: 403,
+  },
 ];
 
-export function sanitizeError(err: unknown, opts: SanitizeOptions = {}): { message: string; status: number } {
+export function sanitizeError(
+  err: unknown,
+  opts: SanitizeOptions = {},
+): { message: string; status: number } {
   const fallback = opts.fallback ?? "Something went wrong. Please try again.";
 
   // Always log the real error server-side

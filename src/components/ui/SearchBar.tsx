@@ -23,16 +23,15 @@ export function SearchBar({
   const isLg = size === "lg";
 
   return (
-    <div
-      className={`relative flex items-center w-full ${className}`}
-    >
-      {/* Search icon */}
+    <div className={`relative flex items-center w-full ${className}`}>
+      {/* Search icon — uses currentColor so it inherits the ink-ghost token */}
       <span
         className="absolute left-0 flex items-center justify-center pointer-events-none"
         style={{
           width: isLg ? "2.75rem" : "2.375rem",
           height: "100%",
-          color: "#9ca3af",
+          /* Was: hardcoded #9ca3af — now adapts to dark mode */
+          color: "var(--color-ink-ghost)",
         }}
         aria-hidden="true"
       >
@@ -59,7 +58,7 @@ export function SearchBar({
         </svg>
       </span>
 
-      {/* Input */}
+      {/* Input — all inline colors now use CSS variables */}
       <input
         ref={inputRef}
         type="search"
@@ -76,37 +75,42 @@ export function SearchBar({
           paddingBottom: 0,
           fontSize: isLg ? "0.9375rem" : "0.875rem",
           lineHeight: 1.5,
-          color: "#111827",
-          background: "#ffffff",
-          border: "1px solid #e5e7eb",
-          borderRadius: "0.5rem",
+          /* Was: hardcoded #111827 / #ffffff / #e5e7eb */
+          color: "var(--color-ink-primary)",
+          background: "var(--color-surface-0)",
+          border: "1px solid var(--color-border-input)",
+          borderRadius: "var(--radius-md)",
           outline: "none",
-          transition: "border-color 150ms ease, box-shadow 150ms ease",
+          /* Transitions now include background so dark mode switching is smooth */
+          transition:
+            "border-color 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth), background-color 0.2s var(--ease-smooth)",
           appearance: "none",
           WebkitAppearance: "none",
           fontFamily: "inherit",
         }}
         onFocus={(e) => {
-          e.currentTarget.style.borderColor = "#6366f1";
-          e.currentTarget.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.12)";
+          /* Was: hardcoded #6366f1 / rgba(99,102,241,0.12) */
+          e.currentTarget.style.borderColor = "var(--color-brand-500)";
+          e.currentTarget.style.boxShadow = "0 0 0 3px var(--color-focus-ring)";
         }}
         onBlur={(e) => {
-          e.currentTarget.style.borderColor = "#e5e7eb";
+          e.currentTarget.style.borderColor = "var(--color-border-input)";
           e.currentTarget.style.boxShadow = "none";
         }}
         onMouseEnter={(e) => {
           if (document.activeElement !== e.currentTarget) {
-            e.currentTarget.style.borderColor = "#d1d5db";
+            /* Was: hardcoded #d1d5db */
+            e.currentTarget.style.borderColor = "var(--color-border-hover)";
           }
         }}
         onMouseLeave={(e) => {
           if (document.activeElement !== e.currentTarget) {
-            e.currentTarget.style.borderColor = "#e5e7eb";
+            e.currentTarget.style.borderColor = "var(--color-border-input)";
           }
         }}
       />
 
-      {/* Clear button */}
+      {/* Clear button — all colors via CSS variables */}
       {value && (
         <button
           type="button"
@@ -126,17 +130,20 @@ export function SearchBar({
             borderRadius: "50%",
             border: "none",
             background: "transparent",
-            color: "#9ca3af",
+            /* Was: hardcoded #9ca3af */
+            color: "var(--color-ink-ghost)",
             cursor: "pointer",
             padding: 0,
-            transition: "color 120ms ease, background 120ms ease",
+            transition:
+              "color 0.15s var(--ease-smooth), background-color 0.15s var(--ease-smooth)",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = "#374151";
-            e.currentTarget.style.background = "#f3f4f6";
+            /* Was: hardcoded #374151 / #f3f4f6 */
+            e.currentTarget.style.color = "var(--color-ink-primary)";
+            e.currentTarget.style.background = "var(--color-surface-2)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = "#9ca3af";
+            e.currentTarget.style.color = "var(--color-ink-ghost)";
             e.currentTarget.style.background = "transparent";
           }}
         >

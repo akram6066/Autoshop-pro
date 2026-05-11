@@ -2,7 +2,8 @@
 
 import { useEffect, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "next-themes";
+import { ThemeProvider, useTheme } from "next-themes";
+import { Toaster } from "sonner";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -27,14 +28,32 @@ function requestSync() {
   if (!("serviceWorker" in navigator)) return;
   navigator.serviceWorker.ready.then((reg) => {
     if ("sync" in reg) {
-      (reg as unknown as { sync: { register: (tag: string) => Promise<void> } })
-        .sync.register("sync-queue").catch(() => {
-          navigator.serviceWorker.controller?.postMessage({ type: "SYNC_REQUESTED" });
+      (
+        reg as unknown as { sync: { register: (tag: string) => Promise<void> } }
+      ).sync
+        .register("sync-queue")
+        .catch(() => {
+          navigator.serviceWorker.controller?.postMessage({
+            type: "SYNC_REQUESTED",
+          });
         });
     } else {
-      navigator.serviceWorker.controller?.postMessage({ type: "SYNC_REQUESTED" });
+      navigator.serviceWorker.controller?.postMessage({
+        type: "SYNC_REQUESTED",
+      });
     }
   });
+}
+
+function ThemedToaster() {
+  const { resolvedTheme } = useTheme();
+  return (
+    <Toaster
+      richColors
+      position="top-right"
+      theme={(resolvedTheme ?? "system") as "light" | "dark" | "system"}
+    />
+  );
 }
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -79,10 +98,11 @@ export function Providers({ children }: { children: ReactNode }) {
       attribute="class"
       defaultTheme="system"
       enableSystem
-      disableTransitionOnChange
+      /* Removed disableTransitionOnChange — body transition handles smooth theme switching */
     >
       <QueryClientProvider client={queryClient}>
         {children}
+        <ThemedToaster />
       </QueryClientProvider>
     </ThemeProvider>
   );

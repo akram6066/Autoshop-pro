@@ -16,7 +16,25 @@ const MAX_ATTEMPTS = 5;
 // the next trigger.
 
 let _flushing = false;
+let _flushTimeout: ReturnType<typeof setTimeout> | null = null;
 let _broadcastChannel: BroadcastChannel | null = null;
+
+// Release the lock after 30 s in case the tab that acquired it crashes mid-flush
+function _acquireFlushLock() {
+  _flushing = true;
+  if (_flushTimeout) clearTimeout(_flushTimeout);
+  _flushTimeout = setTimeout(() => {
+    _flushing = false;
+  }, 30_000);
+}
+
+function _releaseFlushLock() {
+  _flushing = false;
+  if (_flushTimeout) {
+    clearTimeout(_flushTimeout);
+    _flushTimeout = null;
+  }
+}
 
 function getChannel(): BroadcastChannel | null {
   if (typeof window === "undefined") return null;
@@ -36,7 +54,7 @@ export async function enqueue(
   shopId: string,
   tableName: string,
   operation: SyncOperation,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
 ): Promise<void> {
   const db = getDb();
   const now = new Date().toISOString();
@@ -68,18 +86,16 @@ export async function enqueue(
  * Called on reconnect and on app foreground.
  */
 export async function flushQueue(shopId: string): Promise<void> {
-  // In-process guard (same tab rapid calls)
   if (_flushing) return;
-  _flushing = true;
+  _acquireFlushLock();
 
-  // Tell other tabs we're flushing so they skip
   const channel = getChannel();
   channel?.postMessage({ type: "FLUSH_START", shopId });
 
   try {
     await _doFlush(shopId);
   } finally {
-    _flushing = false;
+    _releaseFlushLock();
     channel?.postMessage({ type: "FLUSH_END", shopId });
   }
 }
@@ -151,10 +167,9 @@ export function listenForCrossTabSync(shopId: string): () => void {
     if (event.data?.shopId !== shopId) return;
 
     if (event.data.type === "FLUSH_START") {
-      // Another tab is flushing — set our flag so we skip concurrent calls
-      _flushing = true;
+      _acquireFlushLock();
     } else if (event.data.type === "FLUSH_END") {
-      _flushing = false;
+      _releaseFlushLock();
     } else if (event.data.type === "QUEUED") {
       // Another tab queued something — flush if we're online
       if (navigator.onLine && !_flushing) {
@@ -185,14 +200,16 @@ export async function retryFailed(shopId: string): Promise<void> {
         status: "pending",
         attempts: 0,
         error: null,
-      })
-    )
+      }),
+    ),
   );
 }
 
 // ─── Get Counts ───────────────────────────────────────────────────────────────
 
-export async function getQueueCounts(shopId: string): Promise<{ pending: number; failed: number }> {
+export async function getQueueCounts(
+  shopId: string,
+): Promise<{ pending: number; failed: number }> {
   const db = getDb();
   const [pending, failed] = await Promise.all([
     db.sync_queue.where("[shop_id+status]").equals([shopId, "pending"]).count(),

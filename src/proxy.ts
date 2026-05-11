@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // /setup is auth-required but no shop required; handled separately below.
-const PUBLIC_PATHS = ["/login", "/signup", "/api/auth/callback"];
+const PUBLIC_PATHS = ["/login", "/signup", "/api/auth/callback", "/offline"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -39,13 +39,16 @@ export async function proxy(request: NextRequest) {
           });
         },
       },
-    }
+    },
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // Not authenticated → login (preserve target URL)
+  // Not authenticated → landing page is public; everything else → login
   if (!user) {
+    if (pathname === "/") return response;
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);

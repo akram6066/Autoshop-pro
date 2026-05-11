@@ -35,8 +35,17 @@ export default function NewProductPage() {
     setError("");
     try {
       await createProduct({
-        shopId, userId: "",
-        data: { room_id: effectiveRoomId, name: name.trim(), sku: sku.trim(), category: effectiveCategory, quantity, min_stock: minStock, price, size: size.trim() || null },
+        shopId,
+        data: {
+          room_id: effectiveRoomId,
+          name: name.trim(),
+          sku: sku.trim(),
+          category: effectiveCategory,
+          quantity,
+          min_stock: minStock,
+          price,
+          size: size.trim() || null,
+        },
       });
       router.push("/inventory");
     } catch (err: unknown) {
@@ -46,15 +55,27 @@ export default function NewProductPage() {
 
   return (
     <div className="max-w-xl">
-      <button onClick={() => router.back()} className="btn btn-ghost btn-sm mb-6"
-        style={{ color: "var(--color-ink-tertiary)" }}>
+      <button
+        onClick={() => router.back()}
+        className="btn btn-ghost btn-sm mb-6"
+        style={{ color: "var(--color-ink-tertiary)" }}
+      >
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-          <path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+          <path
+            d="M19 12H5M12 5l-7 7 7 7"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
         Back to inventory
       </button>
 
-      <h1 className="font-display text-3xl mb-6" style={{ color: "var(--color-ink-primary)" }}>
+      <h1
+        className="font-display text-3xl mb-6"
+        style={{ color: "var(--color-ink-primary)" }}
+      >
         Add product
       </h1>
 
@@ -62,32 +83,54 @@ export default function NewProductPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium mb-1.5">
-              Product name <span style={{ color: "var(--color-danger)" }}>*</span>
+              Product name{" "}
+              <span style={{ color: "var(--color-danger)" }}>*</span>
             </label>
-            <input className="input" type="text" value={name}
-              onChange={(e) => setName(e.target.value)} required autoFocus
-              placeholder="e.g. Michelin Pilot Sport 4S" />
+            <input
+              className="input"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              autoFocus
+              placeholder="e.g. Michelin Pilot Sport 4S"
+            />
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-1.5">
               SKU <span style={{ color: "var(--color-danger)" }}>*</span>
             </label>
-            <input className="input" type="text" value={sku}
-              onChange={(e) => setSku(e.target.value)} required
+            <input
+              className="input"
+              type="text"
+              value={sku}
+              onChange={(e) => setSku(e.target.value)}
+              required
               placeholder="e.g. TYR-MPS4S-245-40-18"
-              style={{ fontFamily: "var(--font-mono)", fontSize: 13 }} />
+              style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1.5">Category</label>
+              <label className="block text-sm font-medium mb-1.5">
+                Category
+              </label>
               {categories.length === 0 ? (
-                <div className="input flex items-center text-sm" style={{ color: "var(--color-ink-tertiary)" }}>
+                <div
+                  className="input flex items-center text-sm"
+                  style={{ color: "var(--color-ink-tertiary)" }}
+                >
                   No categories — create in Settings
                 </div>
               ) : (
-                <select className="input" value={effectiveCategory} onChange={(e) => setCategory(e.target.value)} required>
+                <select
+                  className="input"
+                  value={effectiveCategory}
+                  onChange={(e) => setCategory(e.target.value)}
+                  required
+                >
                   {categories.map((c) => (
                     <option key={c.id} value={c.name}>
                       {c.name}
@@ -98,23 +141,98 @@ export default function NewProductPage() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1.5">Room</label>
-              <select className="input" value={effectiveRoomId} onChange={(e) => setRoomId(e.target.value)} required>
-                {rooms.length === 0 && <option value="">No rooms — create in Settings</option>}
-                {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              <select
+                className="input"
+                value={effectiveRoomId}
+                onChange={(e) => setRoomId(e.target.value)}
+                required
+              >
+                {rooms.length === 0 && (
+                  <option value="">No rooms — create in Settings</option>
+                )}
+                {rooms.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-1.5">
-              Size <span style={{ color: "var(--color-ink-ghost)", fontWeight: 400 }}>(optional)</span>
+              Size{" "}
+              <span
+                style={{ color: "var(--color-ink-ghost)", fontWeight: 400 }}
+              >
+                (optional)
+              </span>
             </label>
-            <input
-              className="input" list="size-options" type="text"
-              placeholder="e.g. L, XL, 245/40R18, 16in"
-              value={size} onChange={(e) => setSize(e.target.value)} />
+            <div className="relative">
+              <input
+                className="input"
+                list="size-options"
+                type="text"
+                placeholder="e.g. L, XL, 245/40R18, 16in"
+                value={size}
+                onChange={(e) => setSize(e.target.value)}
+              />
+              {size && (
+                <button
+                  type="button"
+                  onClick={() => setSize("")}
+                  aria-label="Clear size"
+                  style={{
+                    position: "absolute",
+                    right: "0.5rem",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "1.25rem",
+                    height: "1.25rem",
+                    borderRadius: "50%",
+                    border: "none",
+                    background: "transparent",
+                    color: "var(--color-ink-ghost)",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                >
+                  <svg
+                    width="10"
+                    height="10"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M18 6L6 18M6 6l12 12"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
             <datalist id="size-options">
-              {["S","M","L","XL","XXL","14in","15in","16in","17in","18in","19in","20in"].map(s => (
+              {[
+                "S",
+                "M",
+                "L",
+                "XL",
+                "XXL",
+                "14in",
+                "15in",
+                "16in",
+                "17in",
+                "18in",
+                "19in",
+                "20in",
+              ].map((s) => (
                 <option key={s} value={s} />
               ))}
             </datalist>
@@ -122,30 +240,68 @@ export default function NewProductPage() {
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1.5">Initial qty</label>
-              <input className="input" type="number" min={0}
-                value={quantity} onChange={(e) => setQuantity(e.target.valueAsNumber)} />
+              <label className="block text-sm font-medium mb-1.5">
+                Initial qty
+              </label>
+              <input
+                className="input"
+                type="number"
+                min={0}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.valueAsNumber)}
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5">Min stock</label>
-              <input className="input" type="number" min={0}
-                value={minStock} onChange={(e) => setMinStock(e.target.valueAsNumber)} />
+              <label className="block text-sm font-medium mb-1.5">
+                Min stock
+              </label>
+              <input
+                className="input"
+                type="number"
+                min={0}
+                value={minStock}
+                onChange={(e) => setMinStock(e.target.valueAsNumber)}
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5">Price (KES)</label>
-              <input className="input" type="number" min={0}
-                value={price} onChange={(e) => setPrice(e.target.valueAsNumber)} />
+              <label className="block text-sm font-medium mb-1.5">
+                Price (KES)
+              </label>
+              <input
+                className="input"
+                type="number"
+                min={0}
+                value={price}
+                onChange={(e) => setPrice(e.target.valueAsNumber)}
+              />
             </div>
           </div>
 
-          {error && <p className="text-sm" style={{ color: "var(--color-danger)" }}>{error}</p>}
+          {error && (
+            <p className="text-sm" style={{ color: "var(--color-danger)" }}>
+              {error}
+            </p>
+          )}
 
           <div className="flex gap-3 pt-2">
-            <button type="submit" className="btn btn-primary"
-              disabled={isPending || !name.trim() || !sku.trim() || !effectiveRoomId || !effectiveCategory}>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={
+                isPending ||
+                !name.trim() ||
+                !sku.trim() ||
+                !effectiveRoomId ||
+                !effectiveCategory
+              }
+            >
               {isPending ? "Saving…" : "Save product"}
             </button>
-            <button type="button" onClick={() => router.back()} className="btn btn-secondary">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="btn btn-secondary"
+            >
               Cancel
             </button>
           </div>

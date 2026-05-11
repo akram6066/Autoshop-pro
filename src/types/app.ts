@@ -17,6 +17,7 @@ export interface Shop {
   name: string;
   address: string | null;
   created_at: string;
+  plan?: string;
 }
 
 export interface TeamMember {
@@ -74,12 +75,44 @@ export interface Product {
   updated_at: string;
 }
 
+export type PaymentMethod = "cash" | "mpesa" | "credit" | "partial";
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  cash: "Cash",
+  mpesa: "M-Pesa",
+  credit: "Credit",
+  partial: "Partial",
+};
+
 export interface Sale {
   id: string;
   shop_id: string;
   user_id: string;
   total_amount: number;
+  payment_method: PaymentMethod;
+  customer_id: string | null;
+  amount_paid: number;
+  delivery_address: string | null;
   synced: boolean;
+  created_at: string;
+}
+
+export interface Customer {
+  id: string;
+  shop_id: string;
+  name: string;
+  phone: string | null;
+  balance: number;
+  created_at: string;
+}
+
+export interface CustomerPayment {
+  id: string;
+  shop_id: string;
+  customer_id: string;
+  amount: number;
+  note: string | null;
+  user_id: string;
   created_at: string;
 }
 
@@ -143,6 +176,7 @@ export interface CartItem {
   product: Product;
   quantity: number;
   unit_price: number;
+  overrideReason?: string;
 }
 
 export interface Cart {
@@ -169,7 +203,7 @@ export interface LowStockProduct {
 }
 
 export interface SalesSummaryRow {
-   date: string;
+  date: string;
   total_revenue: number;
   order_count: number | string;
 }
@@ -196,5 +230,5 @@ export const MOVEMENT_REASON_LABELS: Record<MovementReason, string> = {
 // Handles legacy lowercase enum values and new free-text category names.
 export const CATEGORY_LABELS: Record<string, string> = new Proxy(
   { tire: "Tire", battery: "Battery", rim: "Rim" } as Record<string, string>,
-  { get: (target, prop: string) => target[prop] ?? prop }
+  { get: (target, prop: string) => target[prop] ?? prop },
 );

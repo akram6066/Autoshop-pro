@@ -20,7 +20,7 @@
 -- Speeds up both the matview refresh and the fallback RPC.
 
 CREATE INDEX IF NOT EXISTS idx_sales_shop_date
-  ON public.sales (shop_id, (created_at::date));
+  ON public.sales (shop_id, created_at);
 
 -- ─── 2. Materialized view ─────────────────────────────────────────────────────
 

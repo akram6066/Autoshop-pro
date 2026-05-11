@@ -47,8 +47,16 @@ function EditForm({
       await updateProduct({
         shopId,
         productId: product.id,
-        userId: user.id,
-        changes: { name, sku, category, room_id: roomId, quantity, min_stock: minStock, price, size: size.trim() || null },
+        changes: {
+          name,
+          sku,
+          category,
+          room_id: roomId,
+          quantity,
+          min_stock: minStock,
+          price,
+          size: size.trim() || null,
+        },
         quantityDelta,
       });
       onSaved();
@@ -61,69 +69,190 @@ function EditForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
-          <label className="block text-sm font-medium mb-1.5">Product name</label>
-          <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
+          <label className="block text-sm font-medium mb-1.5">
+            Product name
+          </label>
+          <input
+            className="input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1.5">SKU</label>
-          <input className="input" value={sku} onChange={(e) => setSku(e.target.value)}
-            style={{ fontFamily: "var(--font-mono)", fontSize: 13 }} required />
+          <input
+            className="input"
+            value={sku}
+            onChange={(e) => setSku(e.target.value)}
+            style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}
+            required
+          />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1.5">Category</label>
-          <select className="input" value={category} onChange={(e) => setCategory(e.target.value as Category)}>
-            {categories.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+          <select
+            className="input"
+            value={category}
+            onChange={(e) => setCategory(e.target.value as Category)}
+          >
+            {categories.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name}
+              </option>
+            ))}
           </select>
         </div>
         <div>
           <label className="block text-sm font-medium mb-1.5">Size</label>
-          <input className="input" list="size-options-edit" type="text"
-            placeholder="e.g. L, XL, 245/40R18"
-            value={size} onChange={(e) => setSize(e.target.value)} />
+          <div className="relative">
+            <input
+              className="input"
+              list="size-options-edit"
+              type="text"
+              placeholder="e.g. L, XL, 245/40R18"
+              value={size}
+              onChange={(e) => setSize(e.target.value)}
+            />
+            {size && (
+              <button
+                type="button"
+                onClick={() => setSize("")}
+                aria-label="Clear size"
+                style={{
+                  position: "absolute",
+                  right: "0.5rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "1.25rem",
+                  height: "1.25rem",
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "transparent",
+                  color: "var(--color-ink-ghost)",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                <svg
+                  width="10"
+                  height="10"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M18 6L6 18M6 6l12 12"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
           <datalist id="size-options-edit">
-            {["S","M","L","XL","XXL","14in","15in","16in","17in","18in","19in","20in"].map(s => (
+            {[
+              "S",
+              "M",
+              "L",
+              "XL",
+              "XXL",
+              "14in",
+              "15in",
+              "16in",
+              "17in",
+              "18in",
+              "19in",
+              "20in",
+            ].map((s) => (
               <option key={s} value={s} />
             ))}
           </datalist>
         </div>
         <div>
           <label className="block text-sm font-medium mb-1.5">Room</label>
-          <select className="input" value={roomId} onChange={(e) => setRoomId(e.target.value)}>
-            {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+          <select
+            className="input"
+            value={roomId}
+            onChange={(e) => setRoomId(e.target.value)}
+          >
+            {rooms.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1.5">Price (KES)</label>
-          <input className="input" type="number" min={0} value={price}
-            onChange={(e) => setPrice(e.target.valueAsNumber)} />
+          <label className="block text-sm font-medium mb-1.5">
+            Price (KES)
+          </label>
+          <input
+            className="input"
+            type="number"
+            min={0}
+            value={price}
+            onChange={(e) => setPrice(e.target.valueAsNumber)}
+          />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1.5">
             Quantity
             {quantity !== product.quantity && (
-              <span className="ml-2 text-xs font-normal"
-                style={{ color: quantity > product.quantity ? "var(--color-success)" : "var(--color-danger)" }}>
-                {quantity > product.quantity ? `+${quantity - product.quantity}` : quantity - product.quantity} delta
+              <span
+                className="ml-2 text-xs font-normal"
+                style={{
+                  color:
+                    quantity > product.quantity
+                      ? "var(--color-success)"
+                      : "var(--color-danger)",
+                }}
+              >
+                {quantity > product.quantity
+                  ? `+${quantity - product.quantity}`
+                  : quantity - product.quantity}{" "}
+                delta
               </span>
             )}
           </label>
-          <input className="input" type="number" min={0} value={quantity}
-            onChange={(e) => setQuantity(e.target.valueAsNumber)} />
+          <input
+            className="input"
+            type="number"
+            min={0}
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.valueAsNumber)}
+          />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1.5">Min stock</label>
-          <input className="input" type="number" min={0} value={minStock}
-            onChange={(e) => setMinStock(e.target.valueAsNumber)} />
+          <input
+            className="input"
+            type="number"
+            min={0}
+            value={minStock}
+            onChange={(e) => setMinStock(e.target.valueAsNumber)}
+          />
         </div>
       </div>
 
-      {error && <p className="text-sm" style={{ color: "var(--color-danger)" }}>{error}</p>}
+      {error && (
+        <p className="text-sm" style={{ color: "var(--color-danger)" }}>
+          {error}
+        </p>
+      )}
 
       <div className="flex gap-3 pt-2">
         <button type="submit" className="btn btn-primary" disabled={isPending}>
           {isPending ? "Saving…" : "Save changes"}
         </button>
-        <button type="button" onClick={onSaved} className="btn btn-secondary">Cancel</button>
+        <button type="button" onClick={onSaved} className="btn btn-secondary">
+          Cancel
+        </button>
       </div>
     </form>
   );
@@ -131,7 +260,11 @@ function EditForm({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function ProductDetailPage({ params }: { params: { id: string } }) {
+export default function ProductDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
   const shopId = useAuthStore(selectShopId);
   const product = useProduct(shopId, params.id);
   const { data: rooms = [] } = useRooms(shopId);
@@ -140,7 +273,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
   const roomMap = useMemo(
     () => Object.fromEntries(rooms.map((r) => [r.id, r.name])),
-    [rooms]
+    [rooms],
   );
 
   useEffect(() => {
@@ -165,10 +298,19 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   return (
     <div className="max-w-2xl">
       {/* Back */}
-      <Link href="/inventory" className="btn btn-ghost btn-sm mb-6"
-        style={{ color: "var(--color-ink-tertiary)" }}>
+      <Link
+        href="/inventory"
+        className="btn btn-ghost btn-sm mb-6"
+        style={{ color: "var(--color-ink-tertiary)" }}
+      >
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-          <path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+          <path
+            d="M19 12H5M12 5l-7 7 7 7"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
         Inventory
       </Link>
@@ -176,15 +318,24 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       {/* Product header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="font-display text-3xl mb-1" style={{ color: "var(--color-ink-primary)" }}>
+          <h1
+            className="font-display text-3xl mb-1"
+            style={{ color: "var(--color-ink-primary)" }}
+          >
             {product.name}
           </h1>
-          <p className="text-sm font-mono" style={{ color: "var(--color-ink-tertiary)" }}>
+          <p
+            className="text-sm font-mono"
+            style={{ color: "var(--color-ink-tertiary)" }}
+          >
             {product.sku}
           </p>
         </div>
         {!editing && (
-          <button onClick={() => setEditing(true)} className="btn btn-secondary btn-sm">
+          <button
+            onClick={() => setEditing(true)}
+            className="btn btn-secondary btn-sm"
+          >
             Edit
           </button>
         )}
@@ -199,8 +350,12 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             { label: "Min stock", value: String(product.min_stock) },
           ].map((stat) => (
             <div key={stat.label} className="card p-4">
-              <p className="text-xs uppercase tracking-wider mb-1"
-                style={{ color: "var(--color-ink-tertiary)" }}>{stat.label}</p>
+              <p
+                className="text-xs uppercase tracking-wider mb-1"
+                style={{ color: "var(--color-ink-tertiary)" }}
+              >
+                {stat.label}
+              </p>
               <p className="text-xl font-semibold">{stat.value}</p>
             </div>
           ))}
@@ -210,14 +365,21 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       {/* Details / Edit form */}
       <div className="card p-5 mb-6 animate-fade-in">
         {editing ? (
-          <EditForm product={product} rooms={rooms} onSaved={() => setEditing(false)} />
+          <EditForm
+            product={product}
+            rooms={rooms}
+            onSaved={() => setEditing(false)}
+          />
         ) : (
           <dl className="space-y-3 text-sm">
             {[
               { label: "Category", value: categoryLabel(product.category) },
               { label: "Size", value: product.size || "—" },
               { label: "Room", value: roomMap[product.room_id] ?? "—" },
-              { label: "Last updated", value: formatDateTime(product.updated_at) },
+              {
+                label: "Last updated",
+                value: formatDateTime(product.updated_at),
+              },
             ].map(({ label, value }) => (
               <div key={label} className="flex justify-between">
                 <dt style={{ color: "var(--color-ink-tertiary)" }}>{label}</dt>
@@ -230,13 +392,22 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
       {/* Movement history */}
       {!editing && (
-        <div className="card overflow-hidden animate-fade-in-up" style={{ animationDelay: "100ms" }}>
-          <div className="px-5 py-4" style={{ borderBottom: "1px solid oklch(91% 0.004 250)" }}>
+        <div
+          className="card overflow-hidden animate-fade-in-up"
+          style={{ animationDelay: "100ms" }}
+        >
+          <div
+            className="px-5 py-4"
+            style={{ borderBottom: "1px solid var(--color-border)" }}
+          >
             <h2 className="font-medium text-sm">Movement history</h2>
           </div>
 
           {movements.length === 0 ? (
-            <p className="p-5 text-sm" style={{ color: "var(--color-ink-tertiary)" }}>
+            <p
+              className="p-5 text-sm"
+              style={{ color: "var(--color-ink-tertiary)" }}
+            >
               No movements recorded yet.
             </p>
           ) : (
@@ -253,22 +424,48 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               <tbody>
                 {movements.map((m) => (
                   <tr key={m.id}>
-                    <td style={{ fontSize: 12, color: "var(--color-ink-tertiary)" }}>
+                    <td
+                      style={{
+                        fontSize: 12,
+                        color: "var(--color-ink-tertiary)",
+                      }}
+                    >
                       {formatDateTime(m.created_at)}
                     </td>
                     <td>
-                      <span className={`badge ${m.type === "IN" ? "badge-success" : "badge-danger"}`}>
+                      <span
+                        className={`badge ${m.type === "IN" ? "badge-success" : "badge-danger"}`}
+                      >
                         {m.type}
                       </span>
                     </td>
-                    <td style={{ color: "var(--color-ink-secondary)", fontSize: 13 }}>
+                    <td
+                      style={{
+                        color: "var(--color-ink-secondary)",
+                        fontSize: 13,
+                      }}
+                    >
                       {m.reason}
                     </td>
-                    <td style={{ textAlign: "right", fontWeight: 500,
-                      color: m.type === "IN" ? "var(--color-success)" : "var(--color-danger)" }}>
-                      {m.type === "IN" ? "+" : "−"}{m.delta}
+                    <td
+                      style={{
+                        textAlign: "right",
+                        fontWeight: 500,
+                        color:
+                          m.type === "IN"
+                            ? "var(--color-success)"
+                            : "var(--color-danger)",
+                      }}
+                    >
+                      {m.type === "IN" ? "+" : "−"}
+                      {m.delta}
                     </td>
-                    <td style={{ textAlign: "right", color: "var(--color-ink-tertiary)" }}>
+                    <td
+                      style={{
+                        textAlign: "right",
+                        color: "var(--color-ink-tertiary)",
+                      }}
+                    >
                       {m.snapshot_qty}
                     </td>
                   </tr>

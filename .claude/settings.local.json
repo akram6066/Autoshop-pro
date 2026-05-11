@@ -1,7 +1,5 @@
 {
   "permissions": {
-    "allow": [
-      "Bash(Remove-Item *)"
-    ]
+    "allow": ["Bash(Remove-Item *)", "Bash(npm run *)"]
   }
 }

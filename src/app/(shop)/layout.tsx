@@ -11,6 +11,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { RouteErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import {
   useAuthStore,
@@ -47,10 +48,42 @@ const NAV = [
     ownerOnly: false,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-        <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.75" />
-        <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.75" />
-        <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.75" />
-        <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.75" />
+        <rect
+          x="3"
+          y="3"
+          width="7"
+          height="7"
+          rx="1.5"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+        <rect
+          x="14"
+          y="3"
+          width="7"
+          height="7"
+          rx="1.5"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+        <rect
+          x="3"
+          y="14"
+          width="7"
+          height="7"
+          rx="1.5"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+        <rect
+          x="14"
+          y="14"
+          width="7"
+          height="7"
+          rx="1.5"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
       </svg>
     ),
   },
@@ -60,8 +93,21 @@ const NAV = [
     ownerOnly: false,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-        <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="1.75" />
-        <path d="M8 10h8M8 14h4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+        <rect
+          x="2"
+          y="4"
+          width="20"
+          height="16"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+        <path
+          d="M8 10h8M8 14h4"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
       </svg>
     ),
   },
@@ -71,9 +117,22 @@ const NAV = [
     ownerOnly: false,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-        <path d="M20 7H4a1 1 0 00-1 1v11a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1z" stroke="currentColor" strokeWidth="1.75" />
-        <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" stroke="currentColor" strokeWidth="1.75" />
-        <path d="M12 12v4M10 14h4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+        <path
+          d="M20 7H4a1 1 0 00-1 1v11a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1z"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+        <path
+          d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+        <path
+          d="M12 12v4M10 14h4"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
       </svg>
     ),
   },
@@ -83,8 +142,66 @@ const NAV = [
     ownerOnly: false,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-        <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.75" />
-        <path d="M20 20l-3-3" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+        <circle
+          cx="11"
+          cy="11"
+          r="7"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+        <path
+          d="M20 20l-3-3"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    href: "/sales",
+    label: "Sales",
+    ownerOnly: false,
+    icon: (
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
+        <rect
+          x="9"
+          y="3"
+          width="6"
+          height="4"
+          rx="1"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+        <path
+          d="M9 12h6M9 16h4"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    href: "/customers",
+    label: "Customers",
+    ownerOnly: false,
+    icon: (
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="1.75" />
       </svg>
     ),
   },
@@ -94,7 +211,12 @@ const NAV = [
     ownerOnly: true,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-        <path d="M18 20V10M12 20V4M6 20v-6" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+        <path
+          d="M18 20V10M12 20V4M6 20v-6"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
       </svg>
     ),
   },
@@ -104,7 +226,13 @@ const NAV = [
     ownerOnly: true,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.75" />
+        <circle
+          cx="12"
+          cy="12"
+          r="3"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
         <path
           d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
           stroke="currentColor"
@@ -125,8 +253,15 @@ function SyncBadge({ shopId }: { shopId: string | null }) {
     return (
       <div
         className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-        style={{ background: "var(--color-warning-light)", color: "var(--color-warning)" }}>
-        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--color-warning)" }} />
+        style={{
+          background: "var(--color-warning-light)",
+          color: "var(--color-warning)",
+        }}
+      >
+        <span
+          className="w-1.5 h-1.5 rounded-full"
+          style={{ background: "var(--color-warning)" }}
+        />
         Offline
       </div>
     );
@@ -135,8 +270,15 @@ function SyncBadge({ shopId }: { shopId: string | null }) {
     return (
       <div
         className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-        style={{ background: "var(--color-danger-light)", color: "var(--color-danger)" }}>
-        <span className="w-1.5 h-1.5 rounded-full animate-pulse-soft" style={{ background: "var(--color-danger)" }} />
+        style={{
+          background: "var(--color-danger-light)",
+          color: "var(--color-danger)",
+        }}
+      >
+        <span
+          className="w-1.5 h-1.5 rounded-full animate-pulse-soft"
+          style={{ background: "var(--color-danger)" }}
+        />
         {failed} failed
       </div>
     );
@@ -145,8 +287,15 @@ function SyncBadge({ shopId }: { shopId: string | null }) {
     return (
       <div
         className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-        style={{ background: "var(--color-brand-50)", color: "var(--color-brand-600)" }}>
-        <span className="w-1.5 h-1.5 rounded-full animate-pulse-soft" style={{ background: "var(--color-brand-400)" }} />
+        style={{
+          background: "var(--color-brand-50)",
+          color: "var(--color-brand-600)",
+        }}
+      >
+        <span
+          className="w-1.5 h-1.5 rounded-full animate-pulse-soft"
+          style={{ background: "var(--color-brand-400)" }}
+        />
         Syncing
       </div>
     );
@@ -154,8 +303,15 @@ function SyncBadge({ shopId }: { shopId: string | null }) {
   return (
     <div
       className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-      style={{ background: "oklch(96% 0.01 145)", color: "var(--color-success)" }}>
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--color-success)" }} />
+      style={{
+        background: "var(--color-success-light)",
+        color: "var(--color-success)",
+      }}
+    >
+      <span
+        className="w-1.5 h-1.5 rounded-full"
+        style={{ background: "var(--color-success)" }}
+      />
       Synced
     </div>
   );
@@ -171,99 +327,176 @@ function ShopSwitcher() {
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // Close on outside click
+  const ownerShops = shops.filter((s) => s.role === "owner");
+
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      if (ref.current && !ref.current.contains(e.target as Node))
         setOpen(false);
-      }
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Single shop — just show name, no dropdown
-  if (shops.length <= 1) {
-    return (
-      <span
-        className="font-medium text-sm hidden sm:block"
-        style={{ color: "var(--color-ink-primary)" }}>
-        {shop?.name ?? "AutoShop Pro"}
-      </span>
-    );
-  }
+  const displayName = shop
+    ? shop.name.length > 20
+      ? `${shop.name.slice(0, 20)}…`
+      : shop.name
+    : "—";
 
   return (
     <div ref={ref} className="relative">
+      {/* Trigger — sm+: name + chevron pill; mobile: icon + chevron only */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 font-medium text-sm px-2 py-1 rounded-lg transition-colors"
+        className="flex items-center gap-1.5"
         style={{
+          background: "var(--color-surface-2)",
+          border: "1px solid var(--color-border)",
+          borderRadius: "var(--radius-md)",
+          padding: "6px 12px",
+          fontSize: 13,
           color: "var(--color-ink-primary)",
-          background: open ? "var(--color-surface-2)" : "transparent",
-        }}>
-        <span className="hidden sm:block max-w-32 truncate">
-          {shop?.name ?? "AutoShop Pro"}
+        }}
+      >
+        <span
+          className="hidden sm:block"
+          style={{
+            maxWidth: 160,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {displayName}
         </span>
+        {/* Store icon — mobile only */}
         <svg
-          width="14"
-          height="14"
+          className="sm:hidden"
+          width="15"
+          height="15"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M9 22V12h6v10"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <svg
+          width="12"
+          height="12"
           fill="none"
           viewBox="0 0 24 24"
           style={{
+            flexShrink: 0,
             color: "var(--color-ink-tertiary)",
             transform: open ? "rotate(180deg)" : "none",
             transition: "transform 0.15s",
-          }}>
-          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          }}
+        >
+          <path
+            d="M6 9l6 6 6-6"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </button>
 
+      {/* Dropdown */}
       {open && (
         <div
-          className="absolute top-full left-0 mt-1 min-w-48 card py-1 z-50 animate-scale-in"
-          style={{ boxShadow: "0 8px 24px oklch(0% 0 0 / 12%)" }}>
-          <p className="px-3 py-1.5 text-xs font-medium" style={{ color: "var(--color-ink-tertiary)" }}>
-            Your shops
-          </p>
-          {shops.map((s) => (
-            <button
-              key={s.id}
-              onClick={async () => {
-                switchShop(s);
-                setOpen(false);
-                const supabase = createClient();
-                await supabase.rpc("switch_active_shop", { p_shop_id: s.id });
-                router.refresh();
-              }}
-              className="w-full text-left px-3 py-2 text-sm flex items-center justify-between gap-3 transition-colors"
-              style={{
-                background: s.id === shop?.id ? "var(--color-brand-50)" : "transparent",
-                color: s.id === shop?.id ? "var(--color-brand-700)" : "var(--color-ink-primary)",
-              }}>
-              <span className="truncate">{s.name}</span>
-              <span
-                className="badge flex-shrink-0"
+          className="absolute top-full right-0 mt-1 z-50 animate-scale-in"
+          style={{
+            background: "var(--color-surface-0)",
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius-lg)",
+            boxShadow: "var(--shadow-dropdown)",
+            minWidth: 200,
+          }}
+        >
+          {ownerShops.map((s) => {
+            const isActive = s.id === shop?.id;
+            return (
+              <button
+                key={s.id}
+                onClick={async () => {
+                  await switchShop(s);
+                  setOpen(false);
+                  router.refresh();
+                }}
+                className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-2.5 transition-colors"
                 style={{
-                  background: s.id === shop?.id ? "var(--color-brand-100)" : "var(--color-surface-3)",
-                  color: s.id === shop?.id ? "var(--color-brand-700)" : "var(--color-ink-tertiary)",
-                }}>
-                {s.role}
-              </span>
-            </button>
-
-          ))}
-          <div style={{ borderTop: "1px solid oklch(91% 0.004 250)", marginTop: 4, paddingTop: 4 }}>
-            <a
-              href="/setup?new=1"
-              className="flex items-center gap-2 px-3 py-2 text-sm transition-colors"
-              style={{ color: "var(--color-brand-600)" }}>
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-              Add new shop
-            </a>
-          </div>
+                  color: "var(--color-ink-primary)",
+                  background: "transparent",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--color-surface-2)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                }}
+              >
+                <span
+                  style={{
+                    width: 16,
+                    flexShrink: 0,
+                    color: "var(--color-brand-500)",
+                  }}
+                >
+                  {isActive && (
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+                      <path
+                        d="M20 6L9 17l-5-5"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </span>
+                <span className="truncate flex-1">{s.name}</span>
+              </button>
+            );
+          })}
+          <div
+            style={{
+              borderTop: "1px solid var(--color-border)",
+              margin: "4px 0",
+            }}
+          />
+          <Link
+            href="/settings"
+            onClick={() => setOpen(false)}
+            className="flex items-center px-3 py-2.5 text-sm transition-colors"
+            style={{
+              color: "var(--color-ink-secondary)",
+              background: "transparent",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.background =
+                "var(--color-surface-2)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.background =
+                "transparent";
+            }}
+          >
+            Manage shops
+          </Link>
         </div>
       )}
     </div>
@@ -279,6 +512,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
   const shopId = useAuthStore(selectShopId);
   const setAll = useAuthStore((s) => s.setAll);
   const reset = useAuthStore((s) => s.reset);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // Track if we've already initialised this session
   // so navigating between pages doesn't re-fetch everything
@@ -288,7 +522,10 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
     const supabase = createClient();
 
     // getUser() validates JWT with Supabase Auth server — use instead of getSession()
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
     if (userError || !user) {
       router.replace("/login");
       return;
@@ -316,7 +553,8 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       role: m.role,
     }));
 
-    const activeShop = shops.find((s) => s.id === profile.shop_id) ?? shops[0] ?? null;
+    const activeShop =
+      shops.find((s) => s.id === profile.shop_id) ?? shops[0] ?? null;
 
     // Seed IndexedDB in background — don't await, don't block render
     if (activeShop) {
@@ -327,7 +565,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
         seedLocalCache(
           activeShop,
           (roomsRes.data as Room[]) ?? [],
-          (productsRes.data as Product[]) ?? []
+          (productsRes.data as Product[]) ?? [],
         ).catch(console.error);
       });
     }
@@ -336,7 +574,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       user,
       { ...profile, role: activeShop?.role ?? profile.role },
       activeShop,
-      shops
+      shops,
     );
 
     initialised.current = true;
@@ -386,65 +624,157 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
   const visibleNav = NAV.filter((n) => !n.ownerOnly || role === "owner");
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "var(--color-surface-1)" }}>
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: "var(--color-surface-1)" }}
+    >
       <header
         style={{
           background: "var(--color-surface-0)",
-          borderBottom: "1px solid oklch(91% 0.004 250)",
+          borderBottom: "1px solid var(--color-border)",
           position: "sticky",
           top: 0,
           zIndex: 40,
-        }}>
+        }}
+      >
+        {/* ── Top bar ── */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
-          {/* Logo + shop switcher */}
-          <div className="flex items-center gap-3 mr-2 flex-shrink-0">
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: "var(--color-brand-500)" }}>
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
-                <path
-                  d="M3 7h18M3 12h18M3 17h18"
-                  stroke="white"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
-            <ShopSwitcher />
-          </div>
+          {/* Product logo */}
+          <Link href="/dashboard" className="flex-shrink-0">
+            <Image
+              src="/logo.png"
+              alt="AutoShop Pro"
+              width={160}
+              height={32}
+              className="h-8 w-auto dark:brightness-0 dark:invert"
+              priority
+            />
+          </Link>
 
-          {/* Nav */}
-          <nav className="flex items-center gap-0.5 flex-1 overflow-x-auto">
+          {/* Desktop nav — hidden on mobile */}
+          <nav className="hidden sm:flex items-center gap-0.5 flex-1 overflow-x-auto">
             {visibleNav.map((item) => {
               const active = pathname.startsWith(item.href);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-center gap-1.5 px-3 h-9 rounded-lg text-sm font-medium transition-all duration-150 flex-shrink-0"
-                  style={{
-                    color: active ? "var(--color-brand-600)" : "var(--color-ink-secondary)",
-                    background: active ? "var(--color-brand-50)" : "transparent",
-                  }}>
-                  {item.icon}
-                  <span className="hidden md:block">{item.label}</span>
+                  className={`px-3 h-9 rounded-lg text-sm font-medium transition-all duration-150 flex-shrink-0 flex items-center${active ? " nav-item-active" : ""}`}
+                  style={
+                    active
+                      ? undefined
+                      : {
+                          color: "var(--color-ink-secondary)",
+                          background: "transparent",
+                        }
+                  }
+                >
+                  {item.label}
                 </Link>
               );
             })}
           </nav>
 
           {/* Right side */}
-          <div className="flex items-center gap-3 ml-auto flex-shrink-0">
+          <div className="flex items-center gap-2 ml-auto flex-shrink-0">
             <SyncBadge shopId={shopId} />
+            <ShopSwitcher />
             <ThemeToggle />
+            {/* Sign out — desktop only; mobile shows in drawer */}
             <button
               onClick={handleSignOut}
-              className="btn btn-ghost btn-sm"
-              style={{ color: "var(--color-ink-tertiary)" }}>
+              className="hidden sm:flex btn btn-ghost btn-sm"
+              style={{ color: "var(--color-ink-tertiary)" }}
+            >
               Sign out
+            </button>
+
+            {/* Hamburger — mobile only */}
+            <button
+              onClick={() => setMobileOpen((o) => !o)}
+              className="sm:hidden btn btn-ghost btn-icon"
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
+            >
+              {mobileOpen ? (
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+                  <path
+                    d="M18 6L6 18M6 6l12 12"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              ) : (
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+                  <path
+                    d="M4 6h16M4 12h16M4 18h16"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              )}
             </button>
           </div>
         </div>
+
+        {/* ── Mobile drawer — sm:hidden ── */}
+        {mobileOpen && (
+          <nav
+            className="sm:hidden border-t"
+            style={{
+              borderColor: "var(--color-border)",
+              background: "var(--color-surface-0)",
+            }}
+          >
+            <div className="px-4 py-3 flex flex-col gap-1">
+              {visibleNav.map((item) => {
+                const active = pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all${active ? " nav-item-active" : ""}`}
+                    style={
+                      active
+                        ? undefined
+                        : {
+                            color: "var(--color-ink-primary)",
+                            background: "transparent",
+                          }
+                    }
+                  >
+                    {item.icon}
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+            <div
+              className="px-4 pb-4"
+              style={{ borderTop: "1px solid var(--color-border-subtle)" }}
+            >
+              <button
+                onClick={handleSignOut}
+                className="w-full mt-3 btn btn-ghost btn-sm justify-start gap-3"
+                style={{ color: "var(--color-ink-tertiary)" }}
+              >
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                  <path
+                    d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Sign out
+              </button>
+            </div>
+          </nav>
+        )}
       </header>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">

@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useAuthStore, selectShops, selectShopId } from "@/stores/authStore";
+import {
+  useAuthStore,
+  selectShops,
+  selectShopId,
+  selectShop,
+} from "@/stores/authStore";
 import { formatCurrency } from "@/lib/utils";
 import type { ShopWithRole } from "@/types/app";
 
@@ -38,13 +43,16 @@ function ShopCard({
       style={{
         borderColor: isActive ? "var(--color-brand-300)" : undefined,
         outline: isActive ? "2px solid var(--color-brand-100)" : "none",
-      }}>
-
+      }}
+    >
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <h2 className="font-medium truncate" style={{ color: "var(--color-ink-primary)" }}>
+            <h2
+              className="font-medium truncate"
+              style={{ color: "var(--color-ink-primary)" }}
+            >
               {shop.name}
             </h2>
             {isActive && (
@@ -52,17 +60,25 @@ function ShopCard({
             )}
           </div>
           {shop.address && (
-            <p className="text-xs truncate" style={{ color: "var(--color-ink-tertiary)" }}>
+            <p
+              className="text-xs truncate"
+              style={{ color: "var(--color-ink-tertiary)" }}
+            >
               {shop.address}
             </p>
           )}
         </div>
-        <span className="badge badge-neutral ml-3 flex-shrink-0">{shop.role}</span>
+        <span className="badge badge-neutral ml-3 flex-shrink-0">
+          {shop.role}
+        </span>
       </div>
 
       {/* KPIs */}
       {kpis.error ? (
-        <p className="text-sm py-4 text-center" style={{ color: "var(--color-danger)" }}>
+        <p
+          className="text-sm py-4 text-center"
+          style={{ color: "var(--color-danger)" }}
+        >
           Failed to load data
         </p>
       ) : kpis.loading ? (
@@ -91,7 +107,10 @@ function ShopCard({
             {
               label: "Low stock",
               value: String(kpis.lowStockCount),
-              accent: kpis.lowStockCount > 0 ? "var(--color-warning)" : "var(--color-success)",
+              accent:
+                kpis.lowStockCount > 0
+                  ? "var(--color-warning)"
+                  : "var(--color-success)",
             },
             {
               label: "Total products",
@@ -102,15 +121,18 @@ function ShopCard({
             <div
               key={kpi.label}
               className="p-3 rounded-lg"
-              style={{ background: "var(--color-surface-1)" }}>
+              style={{ background: "var(--color-surface-1)" }}
+            >
               <p
                 className="text-xs mb-1"
-                style={{ color: "var(--color-ink-tertiary)" }}>
+                style={{ color: "var(--color-ink-tertiary)" }}
+              >
                 {kpi.label}
               </p>
               <p
                 className="text-xl font-semibold leading-none"
-                style={{ color: kpi.accent ?? "var(--color-ink-primary)" }}>
+                style={{ color: kpi.accent ?? "var(--color-ink-primary)" }}
+              >
                 {kpi.value}
               </p>
             </div>
@@ -132,7 +154,11 @@ export default function OverviewPage() {
   const router = useRouter();
   const shops = useAuthStore(selectShops);
   const activeShopId = useAuthStore(selectShopId);
+  const shop = useAuthStore(selectShop);
   const switchShop = useAuthStore((s) => s.switchShop);
+
+  const plan = shop?.plan === "pro" ? "pro" : "free";
+  const atShopLimit = plan === "free" && shops.length >= 1;
 
   const [kpisMap, setKpisMap] = useState<Record<string, ShopKPIs>>({});
 
@@ -171,7 +197,11 @@ export default function OverviewPage() {
             .eq("shop_id", shop.id),
         ]);
 
-        const summary = (summaryRes.data as { total_revenue: number; order_count: number }[] | null)?.[0];
+        const summary = (
+          summaryRes.data as
+            | { total_revenue: number; order_count: number }[]
+            | null
+        )?.[0];
 
         setKpisMap((prev) => ({
           ...prev,
@@ -216,13 +246,14 @@ export default function OverviewPage() {
       lowStock: acc.lowStock + k.lowStockCount,
       products: acc.products + k.totalProducts,
     }),
-    { revenue: 0, orders: 0, lowStock: 0, products: 0 }
+    { revenue: 0, orders: 0, lowStock: 0, products: 0 },
   );
 
   const allLoaded = Object.values(kpisMap).every((k) => !k.loading);
 
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   if (shops.length === 0) return null;
 
@@ -230,10 +261,16 @@ export default function OverviewPage() {
     <div>
       {/* Header */}
       <div className="mb-8">
-        <p className="text-sm mb-1" style={{ color: "var(--color-ink-tertiary)" }}>
+        <p
+          className="text-sm mb-1"
+          style={{ color: "var(--color-ink-tertiary)" }}
+        >
           {greeting}
         </p>
-        <h1 className="font-display text-3xl mb-1" style={{ color: "var(--color-ink-primary)" }}>
+        <h1
+          className="font-display text-3xl mb-1"
+          style={{ color: "var(--color-ink-primary)" }}
+        >
           All Shops
         </h1>
         <p className="text-sm" style={{ color: "var(--color-ink-tertiary)" }}>
@@ -245,9 +282,15 @@ export default function OverviewPage() {
       {allLoaded && shops.length > 1 && (
         <div
           className="card p-4 mb-8 animate-fade-in"
-          style={{ background: "var(--color-brand-50)", borderColor: "var(--color-brand-100)" }}>
-          <p className="text-xs font-medium uppercase tracking-widest mb-3"
-            style={{ color: "var(--color-brand-600)" }}>
+          style={{
+            background: "var(--color-brand-50)",
+            borderColor: "var(--color-brand-100)",
+          }}
+        >
+          <p
+            className="text-xs font-medium uppercase tracking-widest mb-3"
+            style={{ color: "var(--color-brand-600)" }}
+          >
             Combined today
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -258,10 +301,16 @@ export default function OverviewPage() {
               { label: "Total products", value: String(totals.products) },
             ].map((t) => (
               <div key={t.label}>
-                <p className="text-xs mb-0.5" style={{ color: "var(--color-brand-500)" }}>
+                <p
+                  className="text-xs mb-0.5"
+                  style={{ color: "var(--color-brand-500)" }}
+                >
                   {t.label}
                 </p>
-                <p className="text-2xl font-semibold" style={{ color: "var(--color-brand-700)" }}>
+                <p
+                  className="text-2xl font-semibold"
+                  style={{ color: "var(--color-brand-700)" }}
+                >
                   {t.value}
                 </p>
               </div>
@@ -276,15 +325,17 @@ export default function OverviewPage() {
           <ShopCard
             key={shop.id}
             shop={shop}
-            kpis={kpisMap[shop.id] ?? {
-              shopId: shop.id,
-              todayRevenue: 0,
-              todayOrders: 0,
-              lowStockCount: 0,
-              totalProducts: 0,
-              loading: true,
-              error: false,
-            }}
+            kpis={
+              kpisMap[shop.id] ?? {
+                shopId: shop.id,
+                todayRevenue: 0,
+                todayOrders: 0,
+                lowStockCount: 0,
+                totalProducts: 0,
+                loading: true,
+                error: false,
+              }
+            }
             isActive={shop.id === activeShopId}
             onOpen={() => handleOpenShop(shop)}
           />
@@ -293,14 +344,23 @@ export default function OverviewPage() {
 
       {/* Add new shop */}
       <div className="mt-8 text-center">
-          <a
-            href="/setup?new=1"
-            className="btn btn-secondary">
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          Add another shop
-        </a>
+        {atShopLimit ? (
+          <button className="btn btn-secondary" disabled>
+            Upgrade to Pro to add more shops
+          </button>
+        ) : (
+          <a href="/setup?new=1" className="btn btn-secondary">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
+              <path
+                d="M12 5v14M5 12h14"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+            Add another shop
+          </a>
+        )}
       </div>
     </div>
   );
