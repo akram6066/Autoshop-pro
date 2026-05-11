@@ -46,12 +46,10 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Not authenticated → landing page is public; everything else → login
+  // Not authenticated → send visitors to the public landing page first.
   if (!user) {
     if (pathname === "/") return response;
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   // /setup is auth-required but doesn't require an existing shop — allow through.
