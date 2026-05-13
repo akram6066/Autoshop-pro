@@ -36,7 +36,7 @@ function LandingNav() {
         >
           <Link href="/">
             <Image
-              src="/logo.png"
+              src="/logo.svg"
               alt="AutoShop Pro"
               width={160}
               height={32}

@@ -44,7 +44,7 @@ function FooterSection() {
         >
           <div className="col-span-2 lg:col-span-1">
             <Image
-              src="/logo.png"
+              src="/logo.svg"
               alt="AutoShop Pro"
               width={160}
               height={32}

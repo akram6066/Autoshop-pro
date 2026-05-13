@@ -200,7 +200,7 @@ export default function SignupForm() {
         {/* Mobile logo */}
         <div className="lg:hidden text-center mb-8">
           <Image
-            src="/logo.png"
+            src="/logo.svg"
             alt="AutoShop Pro"
             width={160}
             height={32}

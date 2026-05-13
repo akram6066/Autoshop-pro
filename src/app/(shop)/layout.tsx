@@ -642,11 +642,11 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
           {/* Product logo */}
           <Link href="/dashboard" className="flex-shrink-0">
             <Image
-              src="/logo.png"
+              src="/logo.svg"
               alt="AutoShop Pro"
               width={160}
               height={32}
-              className="h-8 w-auto dark:brightness-0 dark:invert"
+              className="h-8 w-auto"
               priority
             />
           </Link>
