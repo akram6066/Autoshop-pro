@@ -646,13 +646,21 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
               alt="AutoShop Pro"
               width={160}
               height={32}
-              className="h-8 w-auto"
-              priority
+              className="h-8 w-auto dark:hidden"
+              fetchPriority="high"
+            />
+            <Image
+              src="/logo-dark.svg"
+              alt="AutoShop Pro"
+              width={160}
+              height={32}
+              className="hidden h-8 w-auto dark:block"
+              fetchPriority="high"
             />
           </Link>
 
           {/* Desktop nav — hidden on mobile */}
-          <nav className="hidden sm:flex items-center gap-0.5 flex-1 overflow-x-auto">
+          <nav className="hidden sm:ml-2 lg:ml-4 sm:flex items-center gap-0.5 flex-1 overflow-x-auto">
             {visibleNav.map((item) => {
               const active = pathname.startsWith(item.href);
               return (
