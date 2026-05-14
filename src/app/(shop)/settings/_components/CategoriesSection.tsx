@@ -28,7 +28,7 @@ export function CategoriesSection() {
   const supabase = createClient();
   const shopId = useAuthStore(selectShopId);
   const { data: categories = [] } = useCategories();
-  const { mutateAsync: createCategory } = useCreateCategory(shopId ?? "");
+  const { mutateAsync: createCategory } = useCreateCategory();
   const { mutateAsync: deleteCategory } = useDeleteCategory();
   const { mutateAsync: updateCategory } = useUpdateCategory();
   const [name, setName] = useState("");
@@ -38,7 +38,7 @@ export function CategoriesSection() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !shopId) return;
+    if (!name.trim()) return;
     setMsg("");
     try {
       if (editing) {

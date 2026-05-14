@@ -38,16 +38,16 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
           <Image
             src="/logo.svg"
             alt="AutoShop Pro"
-            width={160}
-            height={32}
+            width={260}
+            height={60}
             className="h-8 w-auto dark:hidden"
             fetchPriority="high"
           />
           <Image
             src="/logo-dark.svg"
             alt="AutoShop Pro"
-            width={160}
-            height={32}
+            width={260}
+            height={60}
             className="hidden h-8 w-auto dark:block"
             fetchPriority="high"
           />

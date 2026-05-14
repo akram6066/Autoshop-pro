@@ -2,6 +2,7 @@
 
 import { useState, useTransition, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { seedLocalCache } from "@/lib/db/instance";
 import { useAuthStore, selectShops } from "@/stores/authStore";
@@ -120,11 +121,9 @@ function SetupContent() {
       // Seed IndexedDB + default categories in parallel
       await Promise.all([
         seedLocalCache(createdShop!, createdRooms as Room[], []),
-        supabase
-          .rpc("seed_default_categories", { p_shop_id: createdShop!.id })
-          .then(({ error: e }) => {
-            if (e) console.error("[setup] seed categories:", e);
-          }),
+        supabase.rpc("seed_default_categories").then(({ error: e }) => {
+          if (e) console.error("[setup] seed categories:", e);
+        }),
       ]);
 
       // Fetch fresh profile
@@ -189,19 +188,13 @@ function SetupContent() {
     >
       {/* Header */}
       <div className="mb-10 text-center animate-fade-in-up">
-        <div
-          className="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-4"
-          style={{ background: "var(--color-brand-500)" }}
-        >
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
-            <path
-              d="M3 7h18M3 12h18M3 17h18"
-              stroke="white"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-        </div>
+        <Image
+          src="/logo.svg"
+          alt="AutoShop Pro"
+          width={260}
+          height={60}
+          className="h-10 w-auto mx-auto mb-6 dark:brightness-0 dark:invert"
+        />
         <h1 className="font-display text-3xl mb-1">AutoShop Pro</h1>
         <p className="text-sm" style={{ color: "var(--color-ink-tertiary)" }}>
           {isAddingNew

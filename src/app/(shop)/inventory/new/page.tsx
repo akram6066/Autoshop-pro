@@ -248,7 +248,11 @@ export default function NewProductPage() {
                 type="number"
                 min={0}
                 value={quantity}
-                onChange={(e) => setQuantity(e.target.valueAsNumber)}
+                onChange={(e) =>
+                  setQuantity(
+                    isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber,
+                  )
+                }
               />
             </div>
             <div>
@@ -260,7 +264,11 @@ export default function NewProductPage() {
                 type="number"
                 min={0}
                 value={minStock}
-                onChange={(e) => setMinStock(e.target.valueAsNumber)}
+                onChange={(e) =>
+                  setMinStock(
+                    isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber,
+                  )
+                }
               />
             </div>
             <div>
@@ -272,7 +280,11 @@ export default function NewProductPage() {
                 type="number"
                 min={0}
                 value={price}
-                onChange={(e) => setPrice(e.target.valueAsNumber)}
+                onChange={(e) =>
+                  setPrice(
+                    isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber,
+                  )
+                }
               />
             </div>
           </div>

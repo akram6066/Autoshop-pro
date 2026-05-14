@@ -250,8 +250,8 @@ export default function SignupForm() {
           <Image
             src="/logo.svg"
             alt="AutoShop Pro"
-            width={160}
-            height={32}
+            width={260}
+            height={60}
             className="h-9 w-auto mx-auto dark:brightness-0 dark:invert"
           />
         </div>

@@ -70,21 +70,21 @@ export interface Database {
       categories: {
         Row: {
           id: string;
-          shop_id: string;
+          owner_id: string;
           name: string;
           color: string;
           created_at: string;
         };
         Insert: {
           id?: string;
-          shop_id: string;
+          owner_id?: string;
           name: string;
           color?: string;
           created_at?: string;
         };
         Update: {
           id?: string;
-          shop_id?: string;
+          owner_id?: string;
           name?: string;
           color?: string;
           created_at?: string;

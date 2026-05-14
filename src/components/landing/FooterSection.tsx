@@ -46,8 +46,8 @@ function FooterSection() {
             <Image
               src="/logo.svg"
               alt="AutoShop Pro"
-              width={160}
-              height={32}
+              width={260}
+              height={60}
               style={{ marginBottom: 16 }}
               className="h-8 w-auto dark:brightness-0 dark:invert"
             />

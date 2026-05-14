@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, use } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
@@ -263,10 +263,11 @@ function EditForm({
 export default function ProductDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = use(params);
   const shopId = useAuthStore(selectShopId);
-  const product = useProduct(shopId, params.id);
+  const product = useProduct(shopId, id);
   const { data: rooms = [] } = useRooms(shopId);
   const [editing, setEditing] = useState(false);
   const [movements, setMovements] = useState<StockMovement[]>([]);
@@ -281,11 +282,11 @@ export default function ProductDetailPage({
     createClient()
       .from("stock_movements")
       .select("*")
-      .eq("product_id", params.id)
+      .eq("product_id", id)
       .order("created_at", { ascending: false })
       .limit(20)
       .then(({ data }) => setMovements((data as StockMovement[]) ?? []));
-  }, [shopId, params.id]);
+  }, [shopId, id]);
 
   if (!product) {
     return (

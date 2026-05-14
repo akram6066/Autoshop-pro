@@ -57,12 +57,17 @@ export const viewport: Viewport = {
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
       className={`${dmSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
+      data-scroll-behavior="smooth"
     >
       <body>
         <Providers>{children}</Providers>

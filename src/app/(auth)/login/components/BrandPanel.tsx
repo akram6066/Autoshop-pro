@@ -44,8 +44,8 @@ export default function BrandPanel() {
         <Image
           src="/logo.svg"
           alt="AutoShop Pro"
-          width={160}
-          height={32}
+          width={260}
+          height={60}
           className="h-9 w-auto brightness-0 invert mb-12"
         />
 

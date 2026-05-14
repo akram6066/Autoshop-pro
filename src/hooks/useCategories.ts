@@ -26,7 +26,7 @@ export function useCategories() {
   });
 }
 
-export function useCreateCategory(shopId: string) {
+export function useCreateCategory() {
   const qc = useQueryClient();
   const supabase = createClient();
 
@@ -34,7 +34,7 @@ export function useCreateCategory(shopId: string) {
     mutationFn: async ({ name, color }: { name: string; color: string }) => {
       const { data, error } = await supabase
         .from("categories")
-        .insert({ name: name.trim(), color, shop_id: shopId })
+        .insert({ name: name.trim(), color })
         .select()
         .single();
       if (error) throw error;
@@ -52,7 +52,10 @@ export function useDeleteCategory() {
 
   return useMutation({
     mutationFn: async ({ categoryId }: { categoryId: string }) => {
-      const { error } = await supabase.from("categories").delete().eq("id", categoryId);
+      const { error } = await supabase
+        .from("categories")
+        .delete()
+        .eq("id", categoryId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -66,8 +69,14 @@ export function useUpdateCategory() {
   const supabase = createClient();
 
   return useMutation({
-    mutationFn: async ({ categoryId, name, color }: {
-      categoryId: string; name: string; color: string;
+    mutationFn: async ({
+      categoryId,
+      name,
+      color,
+    }: {
+      categoryId: string;
+      name: string;
+      color: string;
     }) => {
       const { error } = await supabase
         .from("categories")
