@@ -1,7 +1,7 @@
 /**
  * Sync queue tests.
  *
- * We mock IndexedDB (Dexie) and Supabase client to test the queue logic
+ * We mock IndexedDB (Dexie) and fetch to test the queue logic
  * in isolation, without real network or storage calls.
  */
 
@@ -14,13 +14,15 @@ vi.mock("@/lib/db/instance", () => ({
   getDb: vi.fn(),
 }));
 
-// Mock the supabase client
+// Mock the supabase client (no longer used in flushQueue but kept for other tests)
 vi.mock("@/lib/supabase/client", () => ({
   createClient: vi.fn(),
 }));
 
+// Mock fetch globally
+global.fetch = vi.fn();
+
 import { getDb } from "@/lib/db/instance";
-import { createClient } from "@/lib/supabase/client";
 
 // ─── getQueueCounts ───────────────────────────────────────────────────────────
 
@@ -106,9 +108,13 @@ describe("retryFailed", () => {
   });
 });
 
-// ─── flushQueue — concurrency guard ──────────────────────────────────────────
+// ─── flushQueue ──────────────────────────────────────────────────────────────
 
-describe("flushQueue concurrency", () => {
+describe("flushQueue", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("does not run two flushes simultaneously", async () => {
     // Set up a slow flush
     let flushCount = 0;
@@ -123,12 +129,9 @@ describe("flushQueue concurrency", () => {
             }),
           }),
         }),
-        get: vi.fn().mockResolvedValue(null),
-        update: vi.fn().mockResolvedValue(undefined),
       },
     };
     vi.mocked(getDb).mockReturnValue(mockDb as never);
-    vi.mocked(createClient).mockReturnValue({} as never);
 
     const { flushQueue } = await import("@/lib/sync/queue");
 
@@ -137,5 +140,69 @@ describe("flushQueue concurrency", () => {
 
     // Only one actual flush should have run (second call sees _flushing=true)
     expect(flushCount).toBe(1);
+  });
+
+  it("processes chunks and updates status correctly", async () => {
+    const mockUpdate = vi.fn().mockResolvedValue(undefined);
+    const pendingItems = [
+      {
+        id: "1",
+        command: "RECORD_SALE",
+        payload: {},
+        attempts: 0,
+        created_at: "2026-01-01",
+      },
+      {
+        id: "2",
+        command: "RECORD_SALE",
+        payload: {},
+        attempts: 0,
+        created_at: "2026-01-01",
+      },
+    ];
+
+    const mockDb = {
+      sync_queue: {
+        where: vi.fn().mockReturnValue({
+          equals: vi.fn().mockReturnValue({
+            sortBy: vi.fn().mockResolvedValue(pendingItems),
+          }),
+        }),
+        update: mockUpdate,
+      },
+    };
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
+
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        results: [
+          { id: "1", success: true },
+          { id: "2", success: false, error: "Failed" },
+        ],
+      }),
+    } as Response);
+
+    const { flushQueue } = await import("@/lib/sync/queue");
+    await flushQueue("shop-1");
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(mockUpdate).toHaveBeenCalledTimes(2);
+
+    // Check successful update
+    expect(mockUpdate).toHaveBeenCalledWith("1", {
+      status: "synced",
+      error: null,
+    });
+
+    // Check failed update (increments attempts, stays pending if < MAX)
+    expect(mockUpdate).toHaveBeenCalledWith(
+      "2",
+      expect.objectContaining({
+        status: "pending",
+        error: "Failed",
+        attempts: 1,
+      }),
+    );
   });
 });

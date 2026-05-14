@@ -1,9 +1,5 @@
 import { getDb } from "@/lib/db/instance";
-import { createClient } from "@/lib/supabase/client";
-import type { Database } from "@/types/database";
-import type { SyncOperation } from "@/types/app";
-
-type TableName = keyof Database["public"]["Tables"];
+import type { SyncCommandType } from "@/types/app";
 
 const MAX_ATTEMPTS = 5;
 
@@ -52,18 +48,16 @@ function getChannel(): BroadcastChannel | null {
  */
 export async function enqueue(
   shopId: string,
-  tableName: string,
-  operation: SyncOperation,
+  command: SyncCommandType,
   payload: Record<string, unknown>,
 ): Promise<void> {
   const db = getDb();
   const now = new Date().toISOString();
 
   await db.sync_queue.put({
-    id: crypto.randomUUID(),
+    id: crypto.randomUUID(), // Idempotency key
     shop_id: shopId,
-    table_name: tableName,
-    operation,
+    command,
     payload,
     status: "pending",
     error: null,
@@ -73,6 +67,11 @@ export async function enqueue(
 
   // Notify other tabs that new items are queued
   getChannel()?.postMessage({ type: "QUEUED", shopId });
+
+  // If online, trigger an immediate flush to reduce latency
+  if (typeof navigator !== "undefined" && navigator.onLine) {
+    flushQueue(shopId).catch(console.warn);
+  }
 }
 
 // ─── Flush Queue ──────────────────────────────────────────────────────────────
@@ -102,52 +101,65 @@ export async function flushQueue(shopId: string): Promise<void> {
 
 async function _doFlush(shopId: string): Promise<void> {
   const db = getDb();
-  const supabase = createClient();
 
   const pending = await db.sync_queue
     .where("[shop_id+status]")
     .equals([shopId, "pending"])
     .sortBy("created_at");
 
-  for (const entry of pending) {
-    // Re-check status — another tab may have already synced this entry
-    const current = await db.sync_queue.get(entry.id);
-    if (!current || current.status !== "pending") continue;
+  if (pending.length === 0) return;
+
+  // Chunk the queue to avoid hitting payload limits (max 50 as per schema)
+  const CHUNK_SIZE = 40;
+  for (let i = 0; i < pending.length; i += CHUNK_SIZE) {
+    const chunk = pending.slice(i, i + CHUNK_SIZE);
 
     try {
-      let error: { message: string } | null = null;
-      const payload = entry.payload as Record<string, unknown>;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tbl = supabase.from(entry.table_name as TableName) as any;
+      const response = await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shop_id: shopId,
+          commands: chunk.map((c) => ({
+            id: c.id,
+            command: c.command,
+            payload: c.payload,
+            created_at: c.created_at,
+          })),
+        }),
+      });
 
-      if (entry.operation === "INSERT") {
-        const res = await tbl.insert(payload);
-        error = res.error;
-      } else if (entry.operation === "UPDATE") {
-        const { id, ...rest } = payload;
-        const res = await tbl.update(rest).eq("id", id);
-        error = res.error;
-      } else if (entry.operation === "DELETE") {
-        const res = await tbl.delete().eq("id", payload.id);
-        error = res.error;
+      if (!response.ok) {
+        throw new Error(`Sync failed with status: ${response.status}`);
       }
 
-      if (error) {
-        const attempts = entry.attempts + 1;
-        await db.sync_queue.update(entry.id, {
-          attempts,
-          status: attempts >= MAX_ATTEMPTS ? "failed" : "pending",
-          error: error.message,
-        });
-      } else {
-        await db.sync_queue.update(entry.id, {
-          status: "synced",
-          error: null,
-        });
+      const { results } = (await response.json()) as {
+        results: Array<{ id: string; success: boolean; error?: string }>;
+      };
+
+      // Update local state based on server results
+      for (const res of results) {
+        const entry = chunk.find((c) => c.id === res.id);
+        if (!entry) continue;
+
+        if (res.success) {
+          await db.sync_queue.update(res.id, {
+            status: "synced",
+            error: null,
+          });
+        } else {
+          const attempts = entry.attempts + 1;
+          await db.sync_queue.update(res.id, {
+            attempts,
+            status: attempts >= MAX_ATTEMPTS ? "failed" : "pending",
+            error: res.error || "Unknown server error",
+          });
+        }
       }
     } catch (err) {
-      // Network failure — leave as pending, will retry
-      console.warn("[sync] flush error:", err);
+      console.warn("[sync] chunk flush error:", err);
+      // Stop processing further chunks if we hit a network/server error
+      break;
     }
   }
 }

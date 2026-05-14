@@ -140,11 +140,20 @@ export interface StockMovement {
   created_at: string;
 }
 
-export interface SyncQueueEntry {
-  id: string;
+export type SyncCommandType =
+  | "RECORD_SALE"
+  | "RECORD_CUSTOMER_PAYMENT"
+  | "RECORD_STOCK_MOVEMENT"
+  | "MANAGE_PRODUCT"
+  | "MANAGE_CUSTOMER"
+  | "LEGACY_INSERT"
+  | "LEGACY_UPDATE"
+  | "LEGACY_DELETE";
+
+export interface SyncCommand {
+  id: string; // Used as the primary Idempotency Key
   shop_id: string;
-  table_name: string;
-  operation: SyncOperation;
+  command: SyncCommandType;
   payload: Record<string, unknown>;
   status: SyncStatus;
   error: string | null;

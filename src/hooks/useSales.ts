@@ -1,21 +1,67 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  useInfiniteQuery,
+} from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { getDb } from "@/lib/db/instance";
 import { enqueue } from "@/lib/sync/queue";
 import { getDeviceId } from "@/lib/utils";
-import type { CartItem, PaymentMethod, SalesSummaryRow } from "@/types/app";
+import type {
+  CartItem,
+  PaymentMethod,
+  SalesSummaryRow,
+  Sale,
+} from "@/types/app";
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
 
 export const saleKeys = {
   all: (shopId: string) => ["sales", shopId] as const,
+  list: (shopId: string, filters?: Record<string, unknown>) =>
+    ["sales-list", shopId, filters] as const,
   summary: (shopId: string, from: string, to: string) =>
     ["sales-summary", shopId, from, to] as const,
 };
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
+
+export function useSales(shopId: string | null, pageSize = 50) {
+  const supabase = createClient();
+
+  return useInfiniteQuery({
+    queryKey: shopId ? saleKeys.list(shopId) : ["sales-disabled"],
+    queryFn: async ({
+      pageParam,
+    }: {
+      pageParam: string | null;
+    }): Promise<Sale[]> => {
+      let query = supabase
+        .from("sales")
+        .select("*")
+        .eq("shop_id", shopId!)
+        .order("created_at", { ascending: false })
+        .limit(pageSize);
+
+      if (pageParam) {
+        query = query.lt("created_at", pageParam);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as Sale[];
+    },
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) =>
+      lastPage.length === pageSize
+        ? lastPage[lastPage.length - 1].created_at
+        : null,
+    enabled: !!shopId,
+  });
+}
 
 export function useSalesSummary(
   shopId: string | null,
@@ -160,24 +206,11 @@ export function useRecordSale() {
               ),
             );
 
-            // Enqueue: sale header + each line item separately so the server gets
-            // full data when replaying (not just the sale total)
-            await enqueue(
-              shopId,
-              "sales",
-              "INSERT",
-              salePayload as unknown as Record<string, unknown>,
-            );
-            await Promise.all(
-              itemsPayload.map((item) =>
-                enqueue(
-                  shopId,
-                  "sale_items",
-                  "INSERT",
-                  item as unknown as Record<string, unknown>,
-                ),
-              ),
-            );
+            // Enqueue: sale header + items as a bundle for the record_sale RPC
+            await enqueue(shopId, "RECORD_SALE", {
+              sale: salePayload,
+              items: itemsPayload,
+            } as Record<string, unknown>);
           },
         );
       } else {

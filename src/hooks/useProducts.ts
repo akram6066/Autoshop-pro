@@ -13,6 +13,7 @@ import { enqueue } from "@/lib/sync/queue";
 import { getDeviceId } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 import type { Product } from "@/types/app";
+import type { Json } from "@/types/database";
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
 
@@ -85,14 +86,16 @@ export function useCreateProduct() {
         ...data,
       };
 
-      const { error } = await supabase.from("products").insert(payload);
+      const { error } = await supabase.rpc("manage_product", {
+        p_op: "INSERT",
+        p_product: payload as unknown as Json,
+      });
+
       if (error) {
-        await enqueue(
-          shopId,
-          "products",
-          "INSERT",
-          payload as unknown as Record<string, unknown>,
-        );
+        await enqueue(shopId, "MANAGE_PRODUCT", {
+          op: "INSERT",
+          product: payload as unknown as Record<string, unknown>,
+        });
         await getDb().products.put(payload);
       }
       return payload;
@@ -124,22 +127,31 @@ export function useUpdateProduct() {
       quantityDelta,
     }: UpdateProductInput) => {
       const now = new Date().toISOString();
-      const payload = { ...changes, updated_at: now };
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { quantity, ...otherChanges } = changes;
+      const payload = { ...otherChanges, updated_at: now };
 
-      const { error } = await supabase
-        .from("products")
-        .update(payload)
-        .eq("id", productId)
-        .eq("shop_id", shopId);
+      const { error } = await supabase.rpc("manage_product", {
+        p_op: "UPDATE",
+        p_product: {
+          id: productId,
+          shop_id: shopId,
+          ...payload,
+        } as unknown as Json,
+      });
 
       if (error) {
-        await enqueue(shopId, "products", "UPDATE", {
-          id: productId,
-          ...payload,
-        } as Record<string, unknown>);
+        await enqueue(shopId, "MANAGE_PRODUCT", {
+          op: "UPDATE",
+          product: {
+            id: productId,
+            shop_id: shopId,
+            ...payload,
+          } as unknown as Record<string, unknown>,
+        });
       }
 
-      // Enqueue stock movement only after we know whether the update succeeded
+      // Enqueue stock movement and update local quantity via delta
       if (quantityDelta !== undefined && quantityDelta !== 0) {
         const movementPayload = {
           id: crypto.randomUUID(),
@@ -147,7 +159,7 @@ export function useUpdateProduct() {
           product_id: productId,
           type: quantityDelta > 0 ? "IN" : "OUT",
           delta: Math.abs(quantityDelta),
-          snapshot_qty: changes.quantity ?? 0,
+          snapshot_qty: 0, // Server will calculate the true snapshot
           seq: Date.now(),
           device_id: getDeviceId(),
           reason: "adjustment",
@@ -156,9 +168,21 @@ export function useUpdateProduct() {
           conflict_flag: false,
           created_at: now,
         };
-        await enqueue(shopId, "stock_movements", "INSERT", movementPayload);
+        await enqueue(shopId, "RECORD_STOCK_MOVEMENT", {
+          movement: movementPayload,
+        });
+
+        // Apply delta to local IndexedDB atomically
+        await getDb()
+          .products.where("id")
+          .equals(productId)
+          .modify((p) => {
+            p.quantity = Math.max(0, p.quantity + quantityDelta);
+            p.updated_at = now;
+          });
       }
 
+      // Update other fields in local IndexedDB
       await getDb().products.update(productId, payload);
     },
     onSuccess: (_, { shopId }) => {
@@ -180,17 +204,19 @@ export function useDeleteProduct() {
       shopId: string;
       productId: string;
     }) => {
-      const { error } = await supabase
-        .from("products")
-        .delete()
-        .eq("id", productId)
-        .eq("shop_id", shopId);
+      const { error } = await supabase.rpc("manage_product", {
+        p_op: "DELETE",
+        p_product: { id: productId, shop_id: shopId } as unknown as Json,
+      });
 
       if (error) {
-        await enqueue(shopId, "products", "DELETE", { id: productId } as Record<
-          string,
-          unknown
-        >);
+        await enqueue(shopId, "MANAGE_PRODUCT", {
+          op: "DELETE",
+          product: { id: productId, shop_id: shopId } as unknown as Record<
+            string,
+            unknown
+          >,
+        });
       }
 
       await getDb().products.delete(productId);

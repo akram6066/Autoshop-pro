@@ -2,7 +2,9 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { enqueue } from "@/lib/sync/queue";
 import type { Customer } from "@/types/app";
+import type { Json } from "@/types/database";
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
 
@@ -128,17 +130,28 @@ export function useCreateCustomer() {
       name: string;
       phone?: string;
     }): Promise<Customer> => {
-      const { data, error } = await supabase
-        .from("customers")
-        .insert({
-          shop_id: shopId,
-          name: name.trim(),
-          phone: phone?.trim() || null,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data as Customer;
+      const payload: Customer = {
+        id: crypto.randomUUID(),
+        shop_id: shopId,
+        name: name.trim(),
+        phone: phone?.trim() || null,
+        balance: 0,
+        created_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.rpc("manage_customer", {
+        p_op: "INSERT",
+        p_customer: payload as unknown as Json,
+      });
+
+      if (error) {
+        await enqueue(shopId, "MANAGE_CUSTOMER", {
+          op: "INSERT",
+          customer: payload as unknown as Record<string, unknown>,
+        });
+      }
+
+      return payload;
     },
     onSuccess: (_, { shopId }) => {
       qc.invalidateQueries({ queryKey: customerKeys.all(shopId) });
@@ -160,12 +173,18 @@ export function useUpdateCustomer() {
       customerId: string;
       changes: { name?: string; phone?: string | null };
     }) => {
-      const { error } = await supabase
-        .from("customers")
-        .update(changes)
-        .eq("id", customerId)
-        .eq("shop_id", shopId);
-      if (error) throw error;
+      const payload = { id: customerId, shop_id: shopId, ...changes };
+      const { error } = await supabase.rpc("manage_customer", {
+        p_op: "UPDATE",
+        p_customer: payload as unknown as Json,
+      });
+
+      if (error) {
+        await enqueue(shopId, "MANAGE_CUSTOMER", {
+          op: "UPDATE",
+          customer: payload,
+        });
+      }
     },
     onSuccess: (_, { shopId, customerId }) => {
       qc.invalidateQueries({ queryKey: customerKeys.all(shopId) });
@@ -194,16 +213,23 @@ export function useRecordCustomerPayment() {
       amount: number;
       note?: string;
     }) => {
+      const payload = {
+        id: crypto.randomUUID(),
+        shop_id: shopId,
+        customer_id: customerId,
+        user_id: userId,
+        amount,
+        note: note?.trim() || null,
+        created_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase.rpc("record_customer_payment", {
-        p_payment: {
-          shop_id: shopId,
-          customer_id: customerId,
-          user_id: userId,
-          amount,
-          note: note?.trim() || null,
-        },
+        p_payment: payload as unknown as Json,
       });
-      if (error) throw error;
+
+      if (error) {
+        await enqueue(shopId, "RECORD_CUSTOMER_PAYMENT", { payment: payload });
+      }
     },
     onSuccess: (_, { shopId, customerId }) => {
       qc.invalidateQueries({ queryKey: customerKeys.all(shopId) });

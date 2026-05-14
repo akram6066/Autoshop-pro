@@ -1,16 +1,47 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
+import { loadAuthSessionState, withAuthTimeout } from "@/lib/auth/session";
+import {
+  getZodFieldErrors,
+  signupSchema,
+  type AuthFieldErrors,
+  type SignupFormValues,
+} from "@/lib/validations/auth";
+import { useAuthStore } from "@/stores/authStore";
 import PasswordStrengthBar, { getStrength } from "./PasswordStrengthBar";
 import EyeButton from "./EyeButton";
 import ErrorBox from "./ErrorBox";
 import FieldError from "./FieldError";
 
+function friendlySignupError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("supabase") && m.includes("missing"))
+    return "Auth is not configured on this deployment. Check the Vercel Supabase environment variables.";
+  if (
+    m.includes("already registered") ||
+    m.includes("already exists") ||
+    m.includes("email already")
+  )
+    return "An account with this email already exists. Try signing in instead.";
+  if (m.includes("invalid email")) return "Please enter a valid email address.";
+  if (m.includes("weak password")) return "Please choose a stronger password.";
+  if (m.includes("timed out"))
+    return "Signup is taking too long. Check your connection and Vercel Supabase environment variables, then try again.";
+  if (m.includes("network") || m.includes("fetch"))
+    return "Connection failed. Check your internet and try again.";
+  return message || "Signup failed. Please try again.";
+}
+
 export default function SignupForm() {
-  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const setAll = useAuthStore((s) => s.setAll);
+
+  const [isLoading, setIsLoading] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,6 +50,12 @@ export default function SignupForm() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  const [doneMessage, setDoneMessage] = useState(
+    "Welcome to AutoShop Pro. Taking you to setup.",
+  );
+  const [fieldErrors, setFieldErrors] = useState<
+    AuthFieldErrors<SignupFormValues>
+  >({});
   const [touched, setTouched] = useState({
     fullName: false,
     email: false,
@@ -36,22 +73,6 @@ export default function SignupForm() {
   const passwordsMismatch =
     confirmPassword.length > 0 && password !== confirmPassword;
 
-  const fieldErrors = {
-    fullName:
-      touched.fullName && !fullName.trim() ? "Full name is required" : "",
-    email: touched.email && !email.trim() ? "Email is required" : "",
-    password:
-      touched.password && password.length > 0 && password.length < 8
-        ? "Password must be at least 8 characters"
-        : touched.password && !password
-          ? "Password is required"
-          : "",
-    confirmPassword:
-      touched.confirmPassword && passwordsMismatch
-        ? "Passwords do not match"
-        : "",
-  };
-
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     setTouched({
@@ -61,39 +82,67 @@ export default function SignupForm() {
       confirmPassword: true,
     });
     setError("");
-    if (
-      !fullName.trim() ||
-      !email.trim() ||
-      password.length < 8 ||
-      password !== confirmPassword
-    )
-      return;
 
-    startTransition(async () => {
+    const parsed = signupSchema.safeParse({
+      fullName,
+      email,
+      password,
+      confirmPassword,
+    });
+
+    if (!parsed.success) {
+      setFieldErrors(getZodFieldErrors(parsed.error));
+      return;
+    }
+
+    setFieldErrors({});
+    setIsLoading(true);
+    try {
       const supabase = createClient();
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
-        options: { data: { full_name: fullName.trim() } },
-      });
+      const { data: authData, error: authError } = await withAuthTimeout(
+        supabase.auth.signUp({
+          email: parsed.data.email,
+          password: parsed.data.password,
+          options: { data: { full_name: parsed.data.fullName } },
+        }),
+        "Signup",
+      );
 
       if (authError || !authData.user) {
-        const m = (authError?.message ?? "").toLowerCase();
-        if (
-          m.includes("already registered") ||
-          m.includes("already exists") ||
-          m.includes("email already")
-        )
-          setError(
-            "An account with this email already exists. Try signing in instead.",
-          );
-        else if (m.includes("invalid email"))
-          setError("Please enter a valid email address.");
-        else setError(authError?.message || "Signup failed. Please try again.");
+        setError(friendlySignupError(authError?.message ?? "Signup failed."));
         return;
       }
+
+      if (!authData.session) {
+        setDoneMessage(
+          "Check your email to confirm your account, then sign in to continue.",
+        );
+        setDone(true);
+        return;
+      }
+
+      const sessionState = await withAuthTimeout(
+        loadAuthSessionState(supabase, authData.user),
+        "Loading your account",
+      );
+      setAll(
+        sessionState.user,
+        sessionState.profile,
+        sessionState.activeShop,
+        sessionState.shops,
+      );
       setDone(true);
-    });
+      router.replace(sessionState.destination);
+      router.refresh();
+    } catch (err) {
+      setError(
+        friendlySignupError(
+          err instanceof Error ? err.message : "Something went wrong.",
+        ),
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   if (done) {
@@ -152,8 +201,7 @@ export default function SignupForm() {
               marginBottom: 28,
             }}
           >
-            Welcome to AutoShop Pro. Sign in to set up your first shop and start
-            managing inventory.
+            {doneMessage}
           </p>
           <Link
             href="/login"
@@ -254,17 +302,22 @@ export default function SignupForm() {
                 placeholder="e.g. Felix Odhiambo"
                 autoComplete="name"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                onChange={(e) => {
+                  setFullName(e.target.value);
+                  if (error) setError("");
+                  if (fieldErrors.fullName)
+                    setFieldErrors((prev) => ({ ...prev, fullName: "" }));
+                }}
                 onBlur={() => touch("fullName")}
-                disabled={isPending}
+                disabled={isLoading}
                 autoFocus
                 style={
-                  fieldErrors.fullName
+                  touched.fullName && fieldErrors.fullName
                     ? { borderColor: "var(--color-danger)" }
                     : {}
                 }
               />
-              {fieldErrors.fullName && (
+              {touched.fullName && fieldErrors.fullName && (
                 <FieldError message={fieldErrors.fullName} />
               )}
             </div>
@@ -288,16 +341,23 @@ export default function SignupForm() {
                 placeholder="you@example.com"
                 autoComplete="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) setError("");
+                  if (fieldErrors.email)
+                    setFieldErrors((prev) => ({ ...prev, email: "" }));
+                }}
                 onBlur={() => touch("email")}
-                disabled={isPending}
+                disabled={isLoading}
                 style={
-                  fieldErrors.email
+                  touched.email && fieldErrors.email
                     ? { borderColor: "var(--color-danger)" }
                     : {}
                 }
               />
-              {fieldErrors.email && <FieldError message={fieldErrors.email} />}
+              {touched.email && fieldErrors.email && (
+                <FieldError message={fieldErrors.email} />
+              )}
             </div>
 
             {/* Password */}
@@ -320,12 +380,22 @@ export default function SignupForm() {
                   placeholder="Min. 8 characters"
                   autoComplete="new-password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError("");
+                    if (fieldErrors.password || fieldErrors.confirmPassword) {
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        password: "",
+                        confirmPassword: "",
+                      }));
+                    }
+                  }}
                   onBlur={() => touch("password")}
-                  disabled={isPending}
+                  disabled={isLoading}
                   style={{
                     paddingRight: 44,
-                    ...(fieldErrors.password
+                    ...(touched.password && fieldErrors.password
                       ? { borderColor: "var(--color-danger)" }
                       : {}),
                     ...(touched.password && passwordStrength >= 3
@@ -338,7 +408,7 @@ export default function SignupForm() {
                   onToggle={() => setShowPassword((v) => !v)}
                 />
               </div>
-              {fieldErrors.password ? (
+              {touched.password && fieldErrors.password ? (
                 <FieldError message={fieldErrors.password} />
               ) : (
                 <PasswordStrengthBar password={password} />
@@ -365,12 +435,21 @@ export default function SignupForm() {
                   placeholder="Repeat your password"
                   autoComplete="new-password"
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    if (error) setError("");
+                    if (fieldErrors.confirmPassword)
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        confirmPassword: "",
+                      }));
+                  }}
                   onBlur={() => touch("confirmPassword")}
-                  disabled={isPending}
+                  disabled={isLoading}
                   style={{
                     paddingRight: 44,
-                    ...(passwordsMismatch
+                    ...(touched.confirmPassword &&
+                    (fieldErrors.confirmPassword || passwordsMismatch)
                       ? { borderColor: "var(--color-danger)" }
                       : {}),
                     ...(passwordsMatch
@@ -383,17 +462,18 @@ export default function SignupForm() {
                   onToggle={() => setShowConfirm((v) => !v)}
                 />
               </div>
-              {passwordsMismatch && (
-                <p
-                  style={{
-                    marginTop: 5,
-                    fontSize: "0.8125rem",
-                    color: "var(--color-danger)",
-                  }}
-                >
-                  Passwords do not match
-                </p>
-              )}
+              {touched.confirmPassword &&
+                (fieldErrors.confirmPassword || passwordsMismatch) && (
+                  <p
+                    style={{
+                      marginTop: 5,
+                      fontSize: "0.8125rem",
+                      color: "var(--color-danger)",
+                    }}
+                  >
+                    {fieldErrors.confirmPassword || "Passwords do not match"}
+                  </p>
+                )}
               {passwordsMatch && (
                 <p
                   style={{
@@ -424,7 +504,7 @@ export default function SignupForm() {
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={isPending}
+              disabled={isLoading}
               style={{
                 width: "100%",
                 justifyContent: "center",
@@ -432,7 +512,7 @@ export default function SignupForm() {
                 fontSize: "0.9375rem",
               }}
             >
-              {isPending ? (
+              {isLoading ? (
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <svg
                     className="animate-spin"

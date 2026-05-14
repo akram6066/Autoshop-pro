@@ -39,7 +39,6 @@ export function useRemoveStaff() {
   };
 }
 
-// useAddStaff calls the API route — only server can create auth users
 export function useAddStaff() {
   const qc = useQueryClient();
 
@@ -47,25 +46,68 @@ export function useAddStaff() {
     shopId: string,
     email: string,
     password: string,
-    fullName: string
+    fullName: string,
   ): Promise<void> => {
     const res = await fetch("/api/admin/create-staff", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         shop_id: shopId,
-        email: email.trim().toLowerCase(),
+        email,
         password,
-        full_name: fullName.trim(),
+        full_name: fullName,
       }),
     });
 
-    const json = await res.json();
-
-    if (!res.ok) {
-      throw new Error(json.error ?? "Failed to create staff account");
-    }
+    const data = await res.json();
+    if (!res.ok)
+      throw new Error(data.error || "Failed to create staff account");
 
     qc.invalidateQueries({ queryKey: teamKeys.all(shopId) });
+  };
+}
+
+// ─── Invitation Hooks ─────────────────────────────────────────────────────────
+
+export function useInvites() {
+  const supabase = createClient();
+
+  return useQuery({
+    queryKey: ["shop-invites"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("shop_invites")
+        .select("*, shop:shops(name)")
+        .eq("status", "pending");
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useAcceptInvite() {
+  const qc = useQueryClient();
+  const supabase = createClient();
+
+  return async (inviteId: string) => {
+    const { error } = await supabase.rpc("accept_shop_invite", {
+      p_invite_id: inviteId,
+    });
+    if (error) throw error;
+    qc.invalidateQueries({ queryKey: ["shop-invites"] });
+    qc.invalidateQueries({ queryKey: ["shops"] }); // Refresh shop list
+  };
+}
+
+export function useRejectInvite() {
+  const qc = useQueryClient();
+  const supabase = createClient();
+
+  return async (inviteId: string) => {
+    const { error } = await supabase.rpc("reject_shop_invite", {
+      p_invite_id: inviteId,
+    });
+    if (error) throw error;
+    qc.invalidateQueries({ queryKey: ["shop-invites"] });
   };
 }

@@ -5,31 +5,31 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
+import { logger } from "@/lib/api/logger";
+import {
+  getZodFieldErrors,
+  loginSchema,
+  type AuthFieldErrors,
+  type LoginFormValues,
+} from "@/lib/validations/auth";
+import { loadAuthSessionState, withAuthTimeout } from "@/lib/auth/session";
 import { useAuthStore } from "@/stores/authStore";
-import type { Shop, Profile, ShopWithRole } from "@/types/app";
 import EyeButton from "./EyeButton";
 import ErrorBox from "./ErrorBox";
 import FieldError from "./FieldError";
 
-interface ShopMemberRow {
-  shop_id: string;
-  role: "owner" | "staff";
-  shops: {
-    id: string;
-    name: string;
-    address: string | null;
-    created_at: string;
-  };
-}
-
 function friendlyAuthError(message: string): string {
   const m = message.toLowerCase();
+  if (m.includes("supabase") && m.includes("missing"))
+    return "Auth is not configured on this deployment. Check the Vercel Supabase environment variables.";
   if (m.includes("invalid login") || m.includes("invalid credentials"))
     return "Incorrect email or password. Please try again.";
   if (m.includes("email not confirmed"))
     return "Please confirm your email address before signing in.";
   if (m.includes("too many") || m.includes("rate limit"))
     return "Too many attempts — wait a few minutes and try again.";
+  if (m.includes("timed out"))
+    return "Login is taking too long. Check your connection and Vercel Supabase environment variables, then try again.";
   if (m.includes("network") || m.includes("fetch"))
     return "Connection failed. Check your internet and try again.";
   return message;
@@ -44,6 +44,9 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<
+    AuthFieldErrors<LoginFormValues>
+  >({});
   const [isLoading, setIsLoading] = useState(false);
   const [touched, setTouched] = useState({ email: false, password: false });
 
@@ -68,56 +71,54 @@ export default function LoginForm() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setTouched({ email: true, password: true });
-    if (!email.trim() || !password) {
-      setError("Please enter your email and password.");
+    setError("");
+
+    const parsed = loginSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      setFieldErrors(getZodFieldErrors(parsed.error));
       return;
     }
-    setError("");
+
+    setFieldErrors({});
     setIsLoading(true);
     try {
       const supabase = createClient();
-      const { data: authData, error: authError } =
-        await supabase.auth.signInWithPassword({
-          email: email.trim().toLowerCase(),
-          password,
-        });
+      const { data: authData, error: authError } = await withAuthTimeout(
+        supabase.auth.signInWithPassword({
+          email: parsed.data.email,
+          password: parsed.data.password,
+        }),
+        "Login",
+      );
       if (authError || !authData.user) {
+        // Log failed auth attempt
+        logger.security(supabase, {
+          event_type: "AUTH_FAILURE",
+          payload: { email: parsed.data.email, error: authError?.message },
+          severity: "warning",
+        });
         setError(friendlyAuthError(authError?.message ?? "Sign-in failed"));
         return;
       }
-      const user = authData.user;
-      const [profileRes, membershipsRes] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single<Profile>(),
-        supabase
-          .from("shop_members")
-          .select("shop_id, role, shops(*)")
-          .eq("user_id", user.id),
-      ]);
-      const profile = profileRes.data;
-      if (!profile) {
-        setError("Account setup incomplete. Contact your administrator.");
-        return;
-      }
-      if (!profile.shop_id) {
-        setAll(user, profile, null, []);
-        router.replace("/setup");
-        return;
-      }
-      const rows = (membershipsRes.data ?? []) as ShopMemberRow[];
-      const shops: ShopWithRole[] = rows.map((m) => ({
-        ...m.shops,
-        role: m.role,
-      }));
-      const activeShop =
-        (shops.find((s) => s.id === profile.shop_id) as Shop) ?? null;
-      setAll(user, profile, activeShop, shops);
-      router.replace(profile.role === "owner" ? "/dashboard" : "/pos");
-    } catch {
-      setError("Something went wrong. Please try again.");
+
+      const sessionState = await withAuthTimeout(
+        loadAuthSessionState(supabase, authData.user),
+        "Loading your account",
+      );
+      setAll(
+        sessionState.user,
+        sessionState.profile,
+        sessionState.activeShop,
+        sessionState.shops,
+      );
+      router.replace(sessionState.destination);
+      router.refresh();
+    } catch (err) {
+      setError(
+        friendlyAuthError(
+          err instanceof Error ? err.message : "Something went wrong.",
+        ),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -130,8 +131,9 @@ export default function LoginForm() {
     setResetError("");
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.resetPasswordForEmail(
-        resetEmail.trim().toLowerCase(),
+      const { error } = await withAuthTimeout(
+        supabase.auth.resetPasswordForEmail(resetEmail.trim().toLowerCase()),
+        "Password reset",
       );
       if (error) {
         setResetError(error.message);
@@ -411,18 +413,20 @@ export default function LoginForm() {
                     onChange={(e) => {
                       setEmail(e.target.value);
                       if (error) setError("");
+                      if (fieldErrors.email)
+                        setFieldErrors((prev) => ({ ...prev, email: "" }));
                     }}
                     onBlur={() => touch("email")}
                     disabled={isLoading}
                     autoFocus
                     style={
-                      touched.email && !email.trim()
+                      fieldErrors.email
                         ? { borderColor: "var(--color-danger)" }
                         : {}
                     }
                   />
-                  {touched.email && !email.trim() && (
-                    <FieldError message="Email is required" />
+                  {touched.email && fieldErrors.email && (
+                    <FieldError message={fieldErrors.email} />
                   )}
                 </div>
 
@@ -470,12 +474,17 @@ export default function LoginForm() {
                       onChange={(e) => {
                         setPassword(e.target.value);
                         if (error) setError("");
+                        if (fieldErrors.password)
+                          setFieldErrors((prev) => ({
+                            ...prev,
+                            password: "",
+                          }));
                       }}
                       onBlur={() => touch("password")}
                       disabled={isLoading}
                       style={{
                         paddingRight: 44,
-                        ...(touched.password && !password
+                        ...(fieldErrors.password
                           ? { borderColor: "var(--color-danger)" }
                           : {}),
                       }}
@@ -485,8 +494,8 @@ export default function LoginForm() {
                       onToggle={() => setShowPassword((v) => !v)}
                     />
                   </div>
-                  {touched.password && !password && (
-                    <FieldError message="Password is required" />
+                  {touched.password && fieldErrors.password && (
+                    <FieldError message={fieldErrors.password} />
                   )}
                 </div>
 

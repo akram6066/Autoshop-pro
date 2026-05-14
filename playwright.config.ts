@@ -21,8 +21,6 @@ export default defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "on-first-retry",
-    // Persist auth state across tests in the same suite
-    storageState: "e2e/.auth/user.json",
   },
 
   projects: [
@@ -30,13 +28,15 @@ export default defineConfig({
     {
       name: "setup",
       testMatch: "**/auth.setup.ts",
-      use: { storageState: undefined }, // no saved state for setup
     },
 
     // ── Main suite: uses saved auth ──
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: "e2e/.auth/user.json",
+      },
       dependencies: ["setup"],
     },
 

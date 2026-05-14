@@ -4,48 +4,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { sanitizeError } from "@/lib/api/errors";
 import { checkLimit } from "@/lib/api/limit-check";
+import { logRequest } from "@/lib/api/logger";
+import { staffInviteSchema } from "@/lib/validations/api";
 import type { Plan } from "@/lib/limits";
-
-interface StaffInput {
-  shop_id: string;
-  email: string;
-  password: string;
-  full_name: string;
-}
 
 interface AdminApiExtended {
   getUserByEmail: (email: string) => Promise<{
     data: { user: { id: string; email: string } } | null;
     error: Error | null;
   }>;
-}
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function validateInput(body: unknown): StaffInput | null {
-  if (typeof body !== "object" || body === null) return null;
-  const b = body as Record<string, unknown>;
-  if (
-    typeof b.shop_id !== "string" ||
-    !UUID_RE.test(b.shop_id) ||
-    typeof b.email !== "string" ||
-    !EMAIL_RE.test(b.email) ||
-    typeof b.password !== "string" ||
-    b.password.length < 8 ||
-    b.password.length > 128 ||
-    typeof b.full_name !== "string" ||
-    !b.full_name.trim() ||
-    b.full_name.length > 200
-  )
-    return null;
-  return {
-    shop_id: b.shop_id,
-    email: b.email.trim().toLowerCase(),
-    password: b.password,
-    full_name: b.full_name.trim(),
-  };
 }
 
 function getAdminClient() {
@@ -68,6 +35,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    logRequest(request, user.id);
+
     const limited = await enforceRateLimit(
       request,
       { name: "create-staff", limit: 10, windowSec: 3600 },
@@ -76,16 +45,15 @@ export async function POST(request: NextRequest) {
     if (limited) return limited;
 
     const body = await request.json().catch(() => null);
-    const input = validateInput(body);
-    if (!input) {
+    const result = staffInviteSchema.safeParse(body);
+
+    if (!result.success) {
       return NextResponse.json(
-        {
-          error:
-            "Invalid input. Required: shop_id (uuid), email, password (8–128 chars), full_name",
-        },
+        { error: result.error.issues[0].message },
         { status: 400 },
       );
     }
+    const input = result.data;
 
     const { data: membership, error: memberError } = await supabase
       .from("shop_members")
@@ -146,33 +114,28 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const userId = existingUser.user.id;
+      // Use the new invite system instead of direct insertion
+      const { error: inviteError } = await supabase.rpc("create_shop_invite", {
+        p_shop_id: input.shop_id,
+        p_email: input.email,
+        p_role: "staff",
+      });
 
-      const { error: insertError } = await adminClient
-        .from("shop_members")
-        .insert({ shop_id: input.shop_id, user_id: userId, role: "staff" });
-
-      if (insertError?.code === "23505") {
-        return NextResponse.json(
-          { error: "This person is already a member of this shop" },
-          { status: 409 },
-        );
-      }
-
-      if (insertError) {
-        const { message, status } = sanitizeError(insertError, {
-          log: (e) => console.error("[create-staff] shop_members insert:", e),
+      if (inviteError) {
+        if (inviteError.message.includes("unique constraint")) {
+          return NextResponse.json(
+            { error: "A pending invitation already exists for this email" },
+            { status: 409 },
+          );
+        }
+        const { message, status } = sanitizeError(inviteError, {
+          log: (e) =>
+            console.error("[create-staff] create_shop_invite error:", e),
         });
         return NextResponse.json({ error: message }, { status });
       }
 
-      await adminClient
-        .from("profiles")
-        .update({ shop_id: input.shop_id, role: "staff" })
-        .eq("id", userId)
-        .is("shop_id", null);
-
-      return NextResponse.json({ ok: true, created: false });
+      return NextResponse.json({ ok: true, created: false, invited: true });
     }
 
     if (createError || !newUser?.user) {
@@ -185,34 +148,26 @@ export async function POST(request: NextRequest) {
 
     const staffUserId = newUser.user.id;
 
-    const { error: upsertError } = await adminClient.from("profiles").upsert({
+    // We still create the profile so they have a name when they log in
+    await adminClient.from("profiles").upsert({
       id: staffUserId,
       full_name: input.full_name,
-      shop_id: input.shop_id,
       role: "staff",
     });
 
-    if (upsertError) {
-      await adminClient.auth.admin.deleteUser(staffUserId);
-      const { message, status } = sanitizeError(upsertError, {
-        log: (e) => console.error("[create-staff] profile upsert:", e),
-      });
-      return NextResponse.json({ error: message }, { status });
+    // Create the invite for the newly created user
+    const { error: inviteError } = await supabase.rpc("create_shop_invite", {
+      p_shop_id: input.shop_id,
+      p_email: input.email,
+      p_role: "staff",
+    });
+
+    if (inviteError) {
+      // If invite fails after user creation, we keep the user but report the error
+      console.error("[create-staff] invite failed for new user:", inviteError);
     }
 
-    const { error: memberInsertError } = await adminClient
-      .from("shop_members")
-      .insert({ shop_id: input.shop_id, user_id: staffUserId, role: "staff" });
-
-    if (memberInsertError) {
-      await adminClient.auth.admin.deleteUser(staffUserId);
-      const { message, status } = sanitizeError(memberInsertError, {
-        log: (e) => console.error("[create-staff] shop_members insert:", e),
-      });
-      return NextResponse.json({ error: message }, { status });
-    }
-
-    return NextResponse.json({ ok: true, created: true });
+    return NextResponse.json({ ok: true, created: true, invited: true });
   } catch (err) {
     const { message, status } = sanitizeError(err, {
       log: (e) => console.error("[create-staff] unexpected error:", e),

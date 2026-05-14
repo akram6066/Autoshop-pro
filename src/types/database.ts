@@ -107,6 +107,113 @@ export interface Database {
         };
         Relationships: [];
       };
+      shop_invites: {
+        Row: {
+          id: string;
+          shop_id: string;
+          email: string;
+          role: "owner" | "staff";
+          status: "pending" | "accepted" | "rejected";
+          invited_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          shop_id: string;
+          email: string;
+          role: "owner" | "staff";
+          status?: "pending" | "accepted" | "rejected";
+          invited_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          shop_id?: string;
+          email?: string;
+          role?: "owner" | "staff";
+          status?: "pending" | "accepted" | "rejected";
+          invited_by?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "shop_invites_shop_id_fkey";
+            columns: ["shop_id"];
+            isOneToOne: false;
+            referencedRelation: "shops";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      audit_logs: {
+        Row: {
+          id: string;
+          shop_id: string | null;
+          user_id: string | null;
+          event_type: string;
+          entity_type: string;
+          entity_id: string;
+          payload: Json;
+          severity: string;
+          ip_address: string | null;
+          user_agent: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          shop_id?: string | null;
+          user_id?: string | null;
+          event_type: string;
+          entity_type: string;
+          entity_id: string;
+          payload?: Json;
+          severity?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          shop_id?: string | null;
+          user_id?: string | null;
+          event_type?: string;
+          entity_type?: string;
+          entity_id?: string;
+          payload?: Json;
+          severity?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      system_health: {
+        Row: {
+          id: string;
+          component: string;
+          status: string;
+          latency_ms: number | null;
+          message: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          component: string;
+          status: string;
+          latency_ms?: number | null;
+          message?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          component?: string;
+          status?: string;
+          latency_ms?: number | null;
+          message?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;
@@ -516,6 +623,45 @@ export interface Database {
       };
       refresh_sales_summary: {
         Args: Record<string, never>;
+        Returns: undefined;
+      };
+      create_shop_invite: {
+        Args: { p_shop_id: string; p_email: string; p_role: "owner" | "staff" };
+        Returns: string;
+      };
+      manage_customer: {
+        Args: { p_op: string; p_customer: Json };
+        Returns: string;
+      };
+      manage_product: {
+        Args: { p_op: string; p_product: Json };
+        Returns: string;
+      };
+      record_stock_movement: {
+        Args: { p_movement: Json };
+        Returns: string;
+      };
+      log_audit_event: {
+        Args: {
+          p_shop_id: string | null;
+          p_event_type: string;
+          p_entity_type: string;
+          p_entity_id: string;
+          p_payload: Json;
+          p_severity: string;
+        };
+        Returns: undefined;
+      };
+      log_security_event: {
+        Args: { p_event_type: string; p_payload: Json; p_severity: string };
+        Returns: undefined;
+      };
+      accept_shop_invite: {
+        Args: { p_invite_id: string };
+        Returns: string;
+      };
+      reject_shop_invite: {
+        Args: { p_invite_id: string };
         Returns: undefined;
       };
     };
