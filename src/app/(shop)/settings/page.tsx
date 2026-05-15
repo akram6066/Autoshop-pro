@@ -289,17 +289,30 @@ function MyShopsSection() {
 function Section({
   title,
   children,
+  danger = false,
 }: {
   title: string;
   children: React.ReactNode;
+  danger?: boolean;
 }) {
   return (
-    <div className="card overflow-hidden mb-6 animate-fade-in-up">
+    <div
+      className="card overflow-hidden mb-6 animate-fade-in-up"
+      style={danger ? { borderColor: "var(--color-danger)" } : undefined}
+    >
       <div
         className="px-5 py-4"
-        style={{ borderBottom: "1px solid var(--color-border)" }}
+        style={{
+          borderBottom: "1px solid var(--color-border)",
+          ...(danger ? { background: "var(--color-danger-light)" } : {}),
+        }}
       >
-        <h2 className="font-medium">{title}</h2>
+        <h2
+          className="font-medium"
+          style={danger ? { color: "var(--color-danger)" } : undefined}
+        >
+          {title}
+        </h2>
       </div>
       <div className="p-5">{children}</div>
     </div>
@@ -337,7 +350,7 @@ export default function SettingsPage() {
     <div className="max-w-2xl">
       <div className="mb-8">
         <h1
-          className="font-display text-3xl mb-1"
+          className="text-2xl font-semibold mb-1"
           style={{ color: "var(--color-ink-primary)" }}
         >
           Settings
@@ -362,7 +375,7 @@ export default function SettingsPage() {
         <TeamSection />
       </Section>
 
-      <Section title="Danger zone">
+      <Section title="Danger zone" danger>
         <p
           className="text-sm mb-4"
           style={{ color: "var(--color-ink-secondary)" }}

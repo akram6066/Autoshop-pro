@@ -664,6 +664,10 @@ export interface Database {
         Args: { p_invite_id: string };
         Returns: undefined;
       };
+      check_is_owner_by_email: {
+        Args: { p_email: string };
+        Returns: boolean;
+      };
     };
     Enums: {
       user_role: "owner" | "staff";

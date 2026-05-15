@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { LowStockProduct, SalesSummaryRow } from "@/types/app";
@@ -90,25 +91,35 @@ async function DashboardContent() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-8">
-        <p
-          className="text-sm mb-1"
-          style={{ color: "var(--color-ink-tertiary)" }}
-        >
-          {greeting}, {firstName}
-        </p>
-        <h1
-          className="font-display text-3xl"
-          style={{ color: "var(--color-ink-primary)" }}
-        >
-          Dashboard
-        </h1>
-        <p
-          className="text-sm mt-1"
-          style={{ color: "var(--color-ink-tertiary)" }}
-        >
-          {formatDate(now.toISOString())}
-        </p>
+      <div className="flex items-start justify-between mb-8">
+        <div>
+          <p
+            className="text-sm mb-1"
+            style={{ color: "var(--color-ink-tertiary)" }}
+          >
+            {greeting}, {firstName}
+          </p>
+          <h1
+            className="text-2xl font-semibold"
+            style={{ color: "var(--color-ink-primary)" }}
+          >
+            Dashboard
+          </h1>
+          <p
+            className="text-sm mt-1"
+            style={{ color: "var(--color-ink-tertiary)" }}
+          >
+            {formatDate(now.toISOString())}
+          </p>
+        </div>
+        <div className="flex gap-2 flex-shrink-0">
+          <Link href="/pos" className="btn btn-primary btn-sm">
+            New Sale
+          </Link>
+          <Link href="/inventory/new" className="btn btn-secondary btn-sm">
+            Add Product
+          </Link>
+        </div>
       </div>
 
       {/* All shops — only shown when user has more than one */}
@@ -242,6 +253,13 @@ async function DashboardContent() {
             <span className="badge badge-warning ml-auto">
               {lowStock.length}
             </span>
+            <Link
+              href="/inventory"
+              className="text-xs ml-2 font-medium"
+              style={{ color: "var(--color-brand-600)" }}
+            >
+              View all →
+            </Link>
           </div>
           <table className="table-auto-shop">
             <thead>

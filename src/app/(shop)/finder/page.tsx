@@ -25,7 +25,7 @@ export default function FinderPage() {
 
   const roomMap = useMemo(
     () => Object.fromEntries(rooms.map((r) => [r.id, r.name])),
-    [rooms]
+    [rooms],
   );
 
   const results = useMemo(() => {
@@ -35,7 +35,7 @@ export default function FinderPage() {
       (p) =>
         p.name.toLowerCase().includes(q) ||
         p.sku.toLowerCase().includes(q) ||
-        p.category.includes(q)
+        p.category.includes(q),
     );
   }, [products, query]);
 
@@ -43,7 +43,10 @@ export default function FinderPage() {
     <div className="max-w-2xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="font-display text-3xl mb-1" style={{ color: "var(--color-ink-primary)" }}>
+        <h1
+          className="text-2xl font-semibold mb-1"
+          style={{ color: "var(--color-ink-primary)" }}
+        >
           Part Finder
         </h1>
         <p className="text-sm" style={{ color: "var(--color-ink-tertiary)" }}>
@@ -63,7 +66,10 @@ export default function FinderPage() {
 
       {/* Results */}
       {isLoading && (
-        <div className="text-center py-12" style={{ color: "var(--color-ink-tertiary)" }}>
+        <div
+          className="text-center py-12"
+          style={{ color: "var(--color-ink-tertiary)" }}
+        >
           Loading inventory…
         </div>
       )}
@@ -79,10 +85,30 @@ export default function FinderPage() {
       )}
 
       {!isLoading && !query && (
-        <div className="text-center py-16" style={{ color: "var(--color-ink-ghost)" }}>
-          <svg width="40" height="40" fill="none" viewBox="0 0 24 24" className="mx-auto mb-3">
-            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5"/>
-            <path d="M20 20l-3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <div
+          className="text-center py-16"
+          style={{ color: "var(--color-ink-ghost)" }}
+        >
+          <svg
+            width="40"
+            height="40"
+            fill="none"
+            viewBox="0 0 24 24"
+            className="mx-auto mb-3"
+          >
+            <circle
+              cx="11"
+              cy="11"
+              r="7"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+            <path
+              d="M20 20l-3-3"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
           </svg>
           <p className="text-sm">Start typing to find a part</p>
         </div>
@@ -93,15 +119,16 @@ export default function FinderPage() {
           {results.map((product) => (
             <div
               key={product.id}
-              className="card p-4 animate-fade-in-up flex items-center gap-4">
-
+              className="card p-4 animate-fade-in-up flex items-center gap-4"
+            >
               {/* Room indicator */}
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-lg font-medium"
                 style={{
                   background: "var(--color-brand-50)",
                   color: "var(--color-brand-600)",
-                }}>
+                }}
+              >
                 {(roomMap[product.room_id] ?? "?").slice(0, 2).toUpperCase()}
               </div>
 
@@ -109,12 +136,19 @@ export default function FinderPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-medium" style={{ color: "var(--color-ink-primary)" }}>
+                    <p
+                      className="font-medium"
+                      style={{ color: "var(--color-ink-primary)" }}
+                    >
                       {product.name}
                     </p>
                     <p
                       className="text-xs mt-0.5"
-                      style={{ fontFamily: "var(--font-mono)", color: "var(--color-ink-tertiary)" }}>
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        color: "var(--color-ink-tertiary)",
+                      }}
+                    >
                       {product.sku}
                     </p>
                   </div>
@@ -126,21 +160,52 @@ export default function FinderPage() {
                 <div className="flex items-center gap-4 mt-2 text-sm">
                   {/* Room */}
                   <div className="flex items-center gap-1.5">
-                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24"
-                      style={{ color: "var(--color-ink-tertiary)" }}>
-                      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"
-                        stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-                      <polyline points="9,22 9,12 15,12 15,22"
-                        stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                    <svg
+                      width="13"
+                      height="13"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      style={{ color: "var(--color-ink-tertiary)" }}
+                    >
+                      <path
+                        d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+                        stroke="currentColor"
+                        strokeWidth="1.75"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <polyline
+                        points="9,22 9,12 15,12 15,22"
+                        stroke="currentColor"
+                        strokeWidth="1.75"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
-                    <span style={{ color: "var(--color-ink-secondary)", fontWeight: 500 }}>
+                    <span
+                      style={{
+                        color: "var(--color-ink-secondary)",
+                        fontWeight: 500,
+                      }}
+                    >
                       {roomMap[product.room_id] ?? "Unknown room"}
                     </span>
                   </div>
 
                   {/* Qty */}
-                  <span style={{ color: product.quantity === 0 ? "var(--color-danger)" : product.quantity <= product.min_stock ? "var(--color-warning)" : "var(--color-success)" }}>
-                    {product.quantity === 0 ? "Out of stock" : `${product.quantity} in stock`}
+                  <span
+                    style={{
+                      color:
+                        product.quantity === 0
+                          ? "var(--color-danger)"
+                          : product.quantity <= product.min_stock
+                            ? "var(--color-warning)"
+                            : "var(--color-success)",
+                    }}
+                  >
+                    {product.quantity === 0
+                      ? "Out of stock"
+                      : `${product.quantity} in stock`}
                   </span>
 
                   {/* Price */}

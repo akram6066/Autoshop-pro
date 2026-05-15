@@ -29,13 +29,14 @@ export function ProductCard({
     <button
       onClick={onAdd}
       disabled={outOfStock}
-      className="card w-full h-full text-left p-4 rounded-xl transition-all duration-150 flex flex-col"
+      className="card w-full h-full text-left rounded-xl transition-all duration-150 flex flex-col overflow-hidden"
       style={{
         background: outOfStock
           ? "var(--color-surface-2)"
           : "var(--color-surface-0)",
         opacity: outOfStock ? 0.55 : 1,
         cursor: outOfStock ? "not-allowed" : "pointer",
+        borderTop: `3px solid ${getCategoryColor(product.category)}`,
       }}
       onMouseEnter={(e) => {
         if (!outOfStock) {
@@ -53,74 +54,75 @@ export function ProductCard({
         (e.currentTarget as HTMLButtonElement).style.transform = "";
       }}
     >
-      {/* Category + stock status */}
-      <div className="flex items-start justify-between gap-1 mb-2">
-        <span
-          className="text-xs px-2 py-0.5 rounded-full font-medium leading-tight"
+      <div className="p-4 flex flex-col flex-1">
+        <div className="flex items-start justify-between gap-1 mb-2">
+          <span
+            className="text-xs px-2 py-0.5 rounded-full font-medium leading-tight"
+            style={{
+              background: getCategoryColor(product.category),
+              color: "var(--color-ink-secondary)",
+            }}
+          >
+            {product.category}
+          </span>
+          {lowStock && (
+            <span
+              className="text-xs font-semibold flex-shrink-0"
+              style={{ color: "var(--color-warning)" }}
+            >
+              Low
+            </span>
+          )}
+          {outOfStock && (
+            <span
+              className="text-xs font-semibold flex-shrink-0"
+              style={{ color: "var(--color-danger)" }}
+            >
+              Out
+            </span>
+          )}
+        </div>
+
+        {/* Name — flex-1 pushes price to bottom so all cards align */}
+        <p
+          className="text-sm font-semibold leading-snug flex-1 mb-2"
+          style={{ color: "var(--color-ink-primary)" }}
+        >
+          {product.name}
+        </p>
+
+        {/* SKU */}
+        <p
+          className="text-xs mb-3"
           style={{
-            background: getCategoryColor(product.category),
-            color: "var(--color-ink-secondary)",
+            color: "var(--color-ink-ghost)",
+            fontFamily: "var(--font-mono)",
           }}
         >
-          {product.category}
-        </span>
-        {lowStock && (
+          {product.sku}
+        </p>
+
+        {/* Price + qty */}
+        <div className="flex items-center justify-between">
           <span
-            className="text-xs font-semibold flex-shrink-0"
-            style={{ color: "var(--color-warning)" }}
+            className="text-base font-bold"
+            style={{ color: "var(--color-brand-600)" }}
           >
-            Low
+            {formatCurrency(product.price)}
           </span>
-        )}
-        {outOfStock && (
           <span
-            className="text-xs font-semibold flex-shrink-0"
-            style={{ color: "var(--color-danger)" }}
+            className="text-xs font-medium px-1.5 py-0.5 rounded-md"
+            style={{
+              background: "var(--color-surface-2)",
+              color:
+                product.quantity === 0
+                  ? "var(--color-danger)"
+                  : "var(--color-ink-secondary)",
+            }}
           >
-            Out
+            {product.quantity}
           </span>
-        )}
-      </div>
-
-      {/* Name — flex-1 pushes price to bottom so all cards align */}
-      <p
-        className="text-sm font-semibold leading-snug flex-1 mb-2"
-        style={{ color: "var(--color-ink-primary)" }}
-      >
-        {product.name}
-      </p>
-
-      {/* SKU */}
-      <p
-        className="text-xs mb-3"
-        style={{
-          color: "var(--color-ink-ghost)",
-          fontFamily: "var(--font-mono)",
-        }}
-      >
-        {product.sku}
-      </p>
-
-      {/* Price + qty */}
-      <div className="flex items-center justify-between">
-        <span
-          className="text-base font-bold"
-          style={{ color: "var(--color-brand-600)" }}
-        >
-          {formatCurrency(product.price)}
-        </span>
-        <span
-          className="text-xs font-medium px-1.5 py-0.5 rounded-md"
-          style={{
-            background: "var(--color-surface-2)",
-            color:
-              product.quantity === 0
-                ? "var(--color-danger)"
-                : "var(--color-ink-secondary)",
-          }}
-        >
-          {product.quantity}
-        </span>
+        </div>
       </div>
     </button>
   );

@@ -1,18 +1,42 @@
 "use client";
 import { useState } from "react";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
-import { useTeam, useAddStaff, useRemoveStaff } from "@/hooks/useTeam";
+import {
+  useTeam,
+  useAddStaff,
+  useResetStaffPassword,
+  useDeleteStaff,
+} from "@/hooks/useTeam";
+import type { TeamMember } from "@/types/app";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Modal } from "@/components/ui/Modal";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Users } from "lucide-react";
+import { toast } from "sonner";
 
 export function TeamSection() {
   const shopId = useAuthStore(selectShopId);
-  const { data: teamMembers = [], isError: teamError } = useTeam(shopId);
+  const {
+    data: teamMembers = [],
+    isError: teamError,
+    isLoading: teamLoading,
+  } = useTeam(shopId);
+
   const addStaff = useAddStaff();
-  const removeStaff = useRemoveStaff();
+  const resetStaffPassword = useResetStaffPassword();
+  const deleteStaff = useDeleteStaff();
+
   const [staffEmail, setStaffEmail] = useState("");
   const [staffName, setStaffName] = useState("");
   const [staffPassword, setStaffPassword] = useState("");
-  const [msg, setMsg] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+
+  // Management Modal State
+  const [managingMember, setManagingMember] = useState<TeamMember | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [isManaging, setIsManaging] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -23,17 +47,15 @@ export function TeamSection() {
       !shopId
     )
       return;
-    setMsg("");
     setIsAdding(true);
     try {
       await addStaff(shopId, staffEmail, staffPassword, staffName);
-      setMsg("Staff account created successfully.");
+      toast.success("Staff account created successfully.");
       setStaffEmail("");
       setStaffPassword("");
       setStaffName("");
-      setTimeout(() => setMsg(""), 4000);
     } catch (err: unknown) {
-      setMsg(
+      toast.error(
         (err as { message?: string })?.message ??
           "Failed to create staff account",
       );
@@ -42,31 +64,76 @@ export function TeamSection() {
     }
   }
 
-  async function handleRemove(userId: string) {
-    if (!shopId) return;
-    setMsg("");
+  async function handleResetPassword() {
+    if (!shopId || !managingMember || newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters.");
+      return;
+    }
+    setIsManaging(true);
     try {
-      await removeStaff(shopId, userId);
+      await resetStaffPassword(shopId, managingMember.user_id, newPassword);
+      toast.success("Password reset successfully.");
+      setNewPassword("");
     } catch (err: unknown) {
-      setMsg(
-        (err as { message?: string })?.message ?? "Failed to remove staff",
+      toast.error(
+        (err as { message?: string })?.message ?? "Failed to reset password.",
       );
+    } finally {
+      setIsManaging(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!shopId || !managingMember) return;
+
+    setIsManaging(true);
+    try {
+      await deleteStaff(shopId, managingMember.user_id);
+      toast.success("Account deleted successfully.");
+      setManagingMember(null);
+      setShowDeleteConfirm(false);
+      setDeleteConfirmationText("");
+    } catch (err: unknown) {
+      toast.error(
+        (err as { message?: string })?.message ?? "Failed to delete account.",
+      );
+    } finally {
+      setIsManaging(false);
     }
   }
 
   return (
     <>
-      {teamError ? (
+      {teamLoading ? (
+        <div className="mb-5 space-y-4">
+          {[1, 2].map((i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between py-3 border-b border-gray-100"
+            >
+              <div className="flex items-center gap-3">
+                <Skeleton className="w-8 h-8 rounded-full" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
+              <Skeleton className="h-8 w-20" />
+            </div>
+          ))}
+        </div>
+      ) : teamError ? (
         <p className="text-sm mb-4" style={{ color: "var(--color-danger)" }}>
           Could not load team. Run the latest migration and try again.
         </p>
       ) : teamMembers.length === 0 ? (
-        <p
-          className="text-sm mb-4"
-          style={{ color: "var(--color-ink-tertiary)" }}
-        >
-          No team members yet.
-        </p>
+        <div className="mb-6">
+          <EmptyState
+            icon={Users}
+            title="No team members yet"
+            description="Invite staff to help manage your shop. They will have access to everything except settings and team management."
+          />
+        </div>
       ) : (
         <div className="mb-5">
           {teamMembers.map((member) => (
@@ -98,11 +165,10 @@ export function TeamSection() {
               </div>
               {member.role !== "owner" && (
                 <button
-                  onClick={() => handleRemove(member.user_id)}
-                  className="btn btn-ghost btn-sm"
-                  style={{ color: "var(--color-danger)" }}
+                  onClick={() => setManagingMember(member)}
+                  className="btn btn-secondary btn-sm"
                 >
-                  Remove
+                  Manage
                 </button>
               )}
             </div>
@@ -110,8 +176,143 @@ export function TeamSection() {
         </div>
       )}
 
+      {/* Modal Management */}
+      <Modal
+        isOpen={!!managingMember}
+        onClose={() => {
+          setManagingMember(null);
+          setShowDeleteConfirm(false);
+          setDeleteConfirmationText("");
+        }}
+        title={`Manage ${managingMember?.full_name}`}
+      >
+        {managingMember && (
+          <div className="space-y-6">
+            {/* Reset Password */}
+            <div
+              className="p-4 rounded-lg border"
+              style={{
+                borderColor: "var(--color-border-subtle)",
+                background: "var(--color-surface-1)",
+              }}
+            >
+              <h4 className="text-sm font-medium mb-1">Reset Password</h4>
+              <p
+                className="text-xs mb-3"
+                style={{ color: "var(--color-ink-tertiary)" }}
+              >
+                Set a new password for this staff member. They will use this to
+                log in.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="input text-sm"
+                  placeholder="New password (min 8 chars)"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+                <button
+                  onClick={handleResetPassword}
+                  disabled={isManaging || newPassword.length < 8}
+                  className="btn btn-primary btn-sm whitespace-nowrap"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+
+            {/* Danger Zone */}
+            <div
+              className="p-4 rounded-lg border"
+              style={{
+                borderColor: "var(--color-danger)",
+                background: "var(--color-danger-light)",
+              }}
+            >
+              <h4
+                className="text-sm font-medium mb-1"
+                style={{ color: "var(--color-danger-dark)" }}
+              >
+                Danger Zone
+              </h4>
+
+              <div className="flex items-center justify-between mt-3">
+                <span
+                  className="text-sm font-medium"
+                  style={{ color: "var(--color-danger-text)" }}
+                >
+                  Delete account entirely
+                </span>
+                {!showDeleteConfirm ? (
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="btn btn-danger btn-sm"
+                    disabled={isManaging}
+                  >
+                    Delete
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="btn btn-secondary btn-sm"
+                    disabled={isManaging}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+
+              {showDeleteConfirm && (
+                <div
+                  className="mt-4 p-3 rounded-md animate-fade-in-up"
+                  style={{
+                    background: "var(--color-surface-0)",
+                    border: "1px solid var(--color-danger)",
+                  }}
+                >
+                  <p
+                    className="text-xs mb-2 font-medium"
+                    style={{ color: "var(--color-danger-text)" }}
+                  >
+                    This action cannot be undone. To confirm, type{" "}
+                    <strong
+                      className="font-mono px-1 rounded select-all"
+                      style={{ background: "var(--color-danger-light)" }}
+                    >
+                      DELETE {managingMember.full_name}
+                    </strong>{" "}
+                    below.
+                  </p>
+                  <input
+                    type="text"
+                    className="input text-sm mb-2"
+                    placeholder={`DELETE ${managingMember.full_name}`}
+                    value={deleteConfirmationText}
+                    onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                    style={{ borderColor: "var(--color-danger)" }}
+                  />
+                  <button
+                    onClick={handleDeleteAccount}
+                    className="btn btn-danger btn-sm w-full"
+                    disabled={
+                      isManaging ||
+                      deleteConfirmationText !==
+                        `DELETE ${managingMember.full_name}`
+                    }
+                  >
+                    {isManaging ? "Deleting..." : "Permanently Delete Account"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Add Staff Section */}
       <div
-        className="pt-4"
+        className="pt-4 mt-2"
         style={{
           borderTop:
             teamMembers.length > 0 ? "1px solid var(--color-border)" : "none",
@@ -161,10 +362,10 @@ export function TeamSection() {
             <input
               className="input"
               type="password"
-              placeholder="Min. 6 characters"
+              placeholder="Min. 8 characters"
               value={staffPassword}
               onChange={(e) => setStaffPassword(e.target.value)}
-              minLength={6}
+              minLength={8}
               required
             />
           </div>
@@ -173,7 +374,7 @@ export function TeamSection() {
             className="btn btn-primary w-full"
             disabled={
               !staffEmail.trim() ||
-              !staffPassword.trim() ||
+              staffPassword.length < 8 ||
               !staffName.trim() ||
               isAdding
             }
@@ -181,18 +382,6 @@ export function TeamSection() {
             {isAdding ? "Creating account…" : "Create staff account"}
           </button>
         </form>
-        {msg && (
-          <p
-            className="text-sm mt-2"
-            style={{
-              color: msg.startsWith("Staff account created")
-                ? "var(--color-success)"
-                : "var(--color-danger)",
-            }}
-          >
-            {msg}
-          </p>
-        )}
       </div>
     </>
   );

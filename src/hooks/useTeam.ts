@@ -25,20 +25,6 @@ export function useTeam(shopId: string | null) {
   });
 }
 
-export function useRemoveStaff() {
-  const qc = useQueryClient();
-  const supabase = createClient();
-
-  return async (shopId: string, userId: string): Promise<void> => {
-    const { error } = await supabase.rpc("remove_staff_member", {
-      p_shop_id: shopId,
-      p_user_id: userId,
-    });
-    if (error) throw error;
-    qc.invalidateQueries({ queryKey: teamKeys.all(shopId) });
-  };
-}
-
 export function useAddStaff() {
   const qc = useQueryClient();
 
@@ -62,6 +48,48 @@ export function useAddStaff() {
     const data = await res.json();
     if (!res.ok)
       throw new Error(data.error || "Failed to create staff account");
+
+    qc.invalidateQueries({ queryKey: teamKeys.all(shopId) });
+  };
+}
+
+export function useResetStaffPassword() {
+  return async (
+    shopId: string,
+    userId: string,
+    newPassword: string,
+  ): Promise<void> => {
+    const res = await fetch("/api/admin/reset-staff-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        shop_id: shopId,
+        user_id: userId,
+        new_password: newPassword,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to reset password");
+  };
+}
+
+export function useDeleteStaff() {
+  const qc = useQueryClient();
+
+  return async (shopId: string, userId: string): Promise<void> => {
+    const res = await fetch("/api/admin/delete-staff", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        shop_id: shopId,
+        user_id: userId,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok)
+      throw new Error(data.error || "Failed to delete staff account");
 
     qc.invalidateQueries({ queryKey: teamKeys.all(shopId) });
   };

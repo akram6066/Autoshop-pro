@@ -131,8 +131,29 @@ export default function LoginForm() {
     setResetError("");
     try {
       const supabase = createClient();
+
+      // Check if user is an owner
+      const { data: isOwner, error: roleError } = await supabase.rpc(
+        "check_is_owner_by_email",
+        { p_email: resetEmail.trim().toLowerCase() },
+      );
+
+      if (roleError) {
+        setResetError("Something went wrong verifying your account.");
+        setResetLoading(false);
+        return;
+      }
+
+      if (isOwner === false) {
+        setResetError("Ask your owner or manager for your password.");
+        setResetLoading(false);
+        return;
+      }
+
       const { error } = await withAuthTimeout(
-        supabase.auth.resetPasswordForEmail(resetEmail.trim().toLowerCase()),
+        supabase.auth.resetPasswordForEmail(resetEmail.trim().toLowerCase(), {
+          redirectTo: `${window.location.origin}/api/auth/callback?next=/update-password`,
+        }),
         "Password reset",
       );
       if (error) {

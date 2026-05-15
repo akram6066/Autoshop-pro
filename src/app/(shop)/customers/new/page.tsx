@@ -52,7 +52,7 @@ export default function NewCustomerPage() {
       </button>
 
       <h1
-        className="font-display text-3xl mb-6"
+        className="text-2xl font-semibold mb-6"
         style={{ color: "var(--color-ink-primary)" }}
       >
         Add customer

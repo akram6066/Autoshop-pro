@@ -151,7 +151,7 @@ export default function ReportsPage() {
       <div className="flex items-start justify-between mb-8">
         <div>
           <h1
-            className="font-display text-3xl mb-1"
+            className="text-2xl font-semibold mb-1"
             style={{ color: "var(--color-ink-primary)" }}
           >
             Reports
