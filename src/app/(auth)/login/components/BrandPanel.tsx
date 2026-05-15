@@ -47,6 +47,7 @@ export default function BrandPanel() {
           width={260}
           height={60}
           className="h-9 w-auto brightness-0 invert mb-12"
+          priority
         />
 
         <h2

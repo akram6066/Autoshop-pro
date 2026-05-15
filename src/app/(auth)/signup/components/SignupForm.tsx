@@ -253,6 +253,7 @@ export default function SignupForm() {
             width={260}
             height={60}
             className="h-9 w-auto mx-auto dark:brightness-0 dark:invert"
+            priority
           />
         </div>
 

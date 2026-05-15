@@ -37,6 +37,13 @@ export const metadata: Metadata = {
   },
   description:
     "Offline-first inventory and point of sale for automotive parts shops — built for the African market.",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "32x32", type: "image/x-icon" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
