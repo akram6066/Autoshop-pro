@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, use } from "react";
+import { toast } from "sonner";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
@@ -43,26 +44,29 @@ function EditForm({
 
     const quantityDelta = quantity - product.quantity;
 
-    try {
-      await updateProduct({
-        shopId,
-        productId: product.id,
-        changes: {
-          name,
-          sku,
-          category,
-          room_id: roomId,
-          quantity,
-          min_stock: minStock,
-          price,
-          size: size.trim() || null,
-        },
-        quantityDelta,
-      });
-      onSaved();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+    const result = await updateProduct({
+      shopId,
+      productId: product.id,
+      changes: {
+        name,
+        sku,
+        category,
+        room_id: roomId,
+        quantity,
+        min_stock: minStock,
+        price,
+        size: size.trim() || null,
+      },
+      quantityDelta,
+    });
+    if (result.status === "error") {
+      setError(result.error.message);
+      return;
     }
+    if (result.status === "offline") {
+      toast.warning("Saved offline — will sync when reconnected.");
+    }
+    onSaved();
   }
 
   return (

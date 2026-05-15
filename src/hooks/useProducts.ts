@@ -6,7 +6,6 @@ import {
   useQueryClient,
   type UseQueryResult,
 } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { getDb, getLocalProducts, seedProducts } from "@/lib/db/instance";
 import { enqueue } from "@/lib/sync/queue";
@@ -14,6 +13,7 @@ import { getDeviceId } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 import type { Product } from "@/types/app";
 import type { Json } from "@/types/database";
+import type { MutationResult } from "@/types/mutations";
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
 
@@ -33,7 +33,6 @@ async function fetchProducts(shopId: string): Promise<Product[]> {
     .order("name");
 
   if (error) {
-    // Network/RLS failure — fall back to local cache
     console.warn(
       "[useProducts] Supabase fetch failed, using IndexedDB:",
       error.message,
@@ -41,7 +40,6 @@ async function fetchProducts(shopId: string): Promise<Product[]> {
     return getLocalProducts(shopId);
   }
 
-  // Sync local cache in background (no await — fire & forget)
   seedProducts(shopId, data as Product[]).catch(console.error);
 
   return data as Product[];
@@ -54,8 +52,8 @@ export function useProducts(shopId: string | null): UseQueryResult<Product[]> {
     queryKey: shopId ? productKeys.all(shopId) : ["products-disabled"],
     queryFn: () => fetchProducts(shopId!),
     enabled: !!shopId,
-    staleTime: 1000 * 60 * 2, // 2 minutes — don't refetch on every focus
-    gcTime: 1000 * 60 * 10, // 10 minutes cache
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 60 * 10,
     placeholderData: [],
   });
 }
@@ -77,7 +75,10 @@ export function useCreateProduct() {
   const supabase = createClient();
 
   return useMutation({
-    mutationFn: async ({ shopId, data }: CreateProductInput) => {
+    mutationFn: async ({
+      shopId,
+      data,
+    }: CreateProductInput): Promise<MutationResult<Product>> => {
       const now = new Date().toISOString();
       const payload: Product = {
         id: crypto.randomUUID(),
@@ -86,24 +87,35 @@ export function useCreateProduct() {
         ...data,
       };
 
-      const { error } = await supabase.rpc("manage_product", {
-        p_op: "INSERT",
-        p_product: payload as unknown as Json,
-      });
-
-      if (error) {
-        await enqueue(shopId, "MANAGE_PRODUCT", {
-          op: "INSERT",
-          product: payload as unknown as Record<string, unknown>,
+      try {
+        const { error } = await supabase.rpc("manage_product", {
+          p_op: "INSERT",
+          p_product: payload as unknown as Json,
         });
-        await getDb().products.put(payload);
+
+        if (error) {
+          await enqueue(shopId, "MANAGE_PRODUCT", {
+            op: "INSERT",
+            product: payload as unknown as Record<string, unknown>,
+          });
+          await getDb().products.put(payload);
+          return { status: "offline", data: payload };
+        }
+
+        return { status: "success", data: payload };
+      } catch (err) {
+        return {
+          status: "error",
+          error:
+            err instanceof Error ? err : new Error("Failed to create product"),
+        };
       }
-      return payload;
     },
-    onSuccess: (product) => {
-      qc.invalidateQueries({ queryKey: productKeys.all(product.shop_id) });
+    onSuccess: (result, { shopId }) => {
+      if (result.status !== "error") {
+        qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
+      }
     },
-    onError: () => toast.error("Failed to create product — saved offline."),
   });
 }
 
@@ -125,70 +137,82 @@ export function useUpdateProduct() {
       productId,
       changes,
       quantityDelta,
-    }: UpdateProductInput) => {
+    }: UpdateProductInput): Promise<MutationResult<{ shopId: string }>> => {
       const now = new Date().toISOString();
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { quantity, ...otherChanges } = changes;
       const payload = { ...otherChanges, updated_at: now };
 
-      const { error } = await supabase.rpc("manage_product", {
-        p_op: "UPDATE",
-        p_product: {
-          id: productId,
-          shop_id: shopId,
-          ...payload,
-        } as unknown as Json,
-      });
-
-      if (error) {
-        await enqueue(shopId, "MANAGE_PRODUCT", {
-          op: "UPDATE",
-          product: {
+      try {
+        const { error } = await supabase.rpc("manage_product", {
+          p_op: "UPDATE",
+          p_product: {
             id: productId,
             shop_id: shopId,
             ...payload,
-          } as unknown as Record<string, unknown>,
-        });
-      }
-
-      // Enqueue stock movement and update local quantity via delta
-      if (quantityDelta !== undefined && quantityDelta !== 0) {
-        const movementPayload = {
-          id: crypto.randomUUID(),
-          shop_id: shopId,
-          product_id: productId,
-          type: quantityDelta > 0 ? "IN" : "OUT",
-          delta: Math.abs(quantityDelta),
-          snapshot_qty: 0, // Server will calculate the true snapshot
-          seq: Date.now(),
-          device_id: getDeviceId(),
-          reason: "adjustment",
-          user_id: userId,
-          synced: !error,
-          conflict_flag: false,
-          created_at: now,
-        };
-        await enqueue(shopId, "RECORD_STOCK_MOVEMENT", {
-          movement: movementPayload,
+          } as unknown as Json,
         });
 
-        // Apply delta to local IndexedDB atomically
-        await getDb()
-          .products.where("id")
-          .equals(productId)
-          .modify((p) => {
-            p.quantity = Math.max(0, p.quantity + quantityDelta);
-            p.updated_at = now;
+        const isOffline = !!error;
+
+        if (isOffline) {
+          await enqueue(shopId, "MANAGE_PRODUCT", {
+            op: "UPDATE",
+            product: {
+              id: productId,
+              shop_id: shopId,
+              ...payload,
+            } as unknown as Record<string, unknown>,
           });
-      }
+        }
 
-      // Update other fields in local IndexedDB
-      await getDb().products.update(productId, payload);
+        if (quantityDelta !== undefined && quantityDelta !== 0) {
+          const movementPayload = {
+            id: crypto.randomUUID(),
+            shop_id: shopId,
+            product_id: productId,
+            type: quantityDelta > 0 ? "IN" : "OUT",
+            delta: Math.abs(quantityDelta),
+            snapshot_qty: 0,
+            seq: Date.now(),
+            device_id: getDeviceId(),
+            reason: "adjustment",
+            user_id: userId,
+            synced: !isOffline,
+            conflict_flag: false,
+            created_at: now,
+          };
+          await enqueue(shopId, "RECORD_STOCK_MOVEMENT", {
+            movement: movementPayload,
+          });
+
+          await getDb()
+            .products.where("id")
+            .equals(productId)
+            .modify((p) => {
+              p.quantity = Math.max(0, p.quantity + quantityDelta);
+              p.updated_at = now;
+            });
+        }
+
+        await getDb().products.update(productId, payload);
+
+        return isOffline
+          ? { status: "offline", data: { shopId } }
+          : { status: "success", data: { shopId } };
+      } catch (err) {
+        return {
+          status: "error",
+          error:
+            err instanceof Error ? err : new Error("Failed to update product"),
+        };
+      }
     },
-    onSuccess: (_, { shopId }) => {
-      qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
+    onSuccess: (result, { shopId }) => {
+      if (result.status !== "error") {
+        qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
+      }
     },
-    onError: () => toast.error("Failed to update product — saved offline."),
   });
 }
 
@@ -203,27 +227,40 @@ export function useDeleteProduct() {
     }: {
       shopId: string;
       productId: string;
-    }) => {
-      const { error } = await supabase.rpc("manage_product", {
-        p_op: "DELETE",
-        p_product: { id: productId, shop_id: shopId } as unknown as Json,
-      });
-
-      if (error) {
-        await enqueue(shopId, "MANAGE_PRODUCT", {
-          op: "DELETE",
-          product: { id: productId, shop_id: shopId } as unknown as Record<
-            string,
-            unknown
-          >,
+    }): Promise<MutationResult<{ shopId: string }>> => {
+      try {
+        const { error } = await supabase.rpc("manage_product", {
+          p_op: "DELETE",
+          p_product: { id: productId, shop_id: shopId } as unknown as Json,
         });
-      }
 
-      await getDb().products.delete(productId);
+        if (error) {
+          await enqueue(shopId, "MANAGE_PRODUCT", {
+            op: "DELETE",
+            product: { id: productId, shop_id: shopId } as unknown as Record<
+              string,
+              unknown
+            >,
+          });
+        }
+
+        await getDb().products.delete(productId);
+
+        return error
+          ? { status: "offline", data: { shopId } }
+          : { status: "success", data: { shopId } };
+      } catch (err) {
+        return {
+          status: "error",
+          error:
+            err instanceof Error ? err : new Error("Failed to delete product"),
+        };
+      }
     },
-    onSuccess: (_, { shopId }) => {
-      qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
+    onSuccess: (result, { shopId }) => {
+      if (result.status !== "error") {
+        qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
+      }
     },
-    onError: () => toast.error("Failed to delete product — saved offline."),
   });
 }

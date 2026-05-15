@@ -365,8 +365,18 @@ export default function InventoryPage() {
                   deleteProduct(
                     { shopId, productId: deletingProduct.id },
                     {
-                      onSuccess: () => setDeletingProduct(null),
-                      onError: () => toast.error("Failed to delete product"),
+                      onSuccess: (result) => {
+                        if (result.status === "error") {
+                          toast.error(result.error.message);
+                          return;
+                        }
+                        if (result.status === "offline") {
+                          toast.warning(
+                            "Saved offline — will sync when reconnected.",
+                          );
+                        }
+                        setDeletingProduct(null);
+                      },
                     },
                   );
                 }}

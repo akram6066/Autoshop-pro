@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import { useCreateProduct } from "@/hooks/useProducts";
 import { useRooms } from "@/hooks/useRooms";
@@ -33,24 +34,27 @@ export default function NewProductPage() {
     e.preventDefault();
     if (!shopId || !effectiveRoomId || !effectiveCategory) return;
     setError("");
-    try {
-      await createProduct({
-        shopId,
-        data: {
-          room_id: effectiveRoomId,
-          name: name.trim(),
-          sku: sku.trim(),
-          category: effectiveCategory,
-          quantity,
-          min_stock: minStock,
-          price,
-          size: size.trim() || null,
-        },
-      });
-      router.push("/inventory");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to create product");
+    const result = await createProduct({
+      shopId,
+      data: {
+        room_id: effectiveRoomId,
+        name: name.trim(),
+        sku: sku.trim(),
+        category: effectiveCategory,
+        quantity,
+        min_stock: minStock,
+        price,
+        size: size.trim() || null,
+      },
+    });
+    if (result.status === "error") {
+      setError(result.error.message);
+      return;
     }
+    if (result.status === "offline") {
+      toast.warning("Saved offline — will sync when reconnected.");
+    }
+    router.push("/inventory");
   }
 
   return (
