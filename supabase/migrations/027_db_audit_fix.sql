@@ -9,38 +9,38 @@
 -- ── 1. Drop redundant indexes ──────────────────────────────────────────────────
 
 -- Standalone created_at on sales; every query also filters shop_id — covered by idx_sales_shop_id_created_at
-DROP INDEX CONCURRENTLY IF EXISTS idx_sales_created_at;
+DROP INDEX IF EXISTS idx_sales_created_at;
 
 -- Standalone shop_id on sales; covered by idx_sales_shop_id_created_at (shop_id prefix)
-DROP INDEX CONCURRENTLY IF EXISTS idx_sales_shop_id;
+DROP INDEX IF EXISTS idx_sales_shop_id;
 
 -- Exact duplicate of idx_sales_shop_id_created_at (both are shop_id + created_at btree)
-DROP INDEX CONCURRENTLY IF EXISTS idx_sales_shop_date;
+DROP INDEX IF EXISTS idx_sales_shop_date;
 
 -- Exact duplicate of idx_movements_product_id added in migration 021
-DROP INDEX CONCURRENTLY IF EXISTS idx_stock_movements_product_id;
+DROP INDEX IF EXISTS idx_stock_movements_product_id;
 
 -- Single-column user_id on shop_members; covered by idx_shop_members_user_id_shop_id (user_id is prefix)
-DROP INDEX CONCURRENTLY IF EXISTS idx_shop_members_user_id;
+DROP INDEX IF EXISTS idx_shop_members_user_id;
 
 -- Low-selectivity text on a write-heavy table (every sale + product change inserts here); never queried standalone
-DROP INDEX CONCURRENTLY IF EXISTS idx_audit_logs_event_type;
+DROP INDEX IF EXISTS idx_audit_logs_event_type;
 
 -- Server never filters products by category alone — all filtering is client-side (useMemo)
-DROP INDEX CONCURRENTLY IF EXISTS idx_products_category;
+DROP INDEX IF EXISTS idx_products_category;
 
 -- ── 2. Add missing RLS / FK indexes ───────────────────────────────────────────
 
 -- RLS EXISTS check on customer_payments filters by shop_id; no index existed
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_customer_payments_shop_id
+CREATE INDEX IF NOT EXISTS idx_customer_payments_shop_id
   ON public.customer_payments (shop_id);
 
 -- purchase_orders had zero non-PK indexes; RLS checks shop_id on every query
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_purchase_orders_shop_id
+CREATE INDEX IF NOT EXISTS idx_purchase_orders_shop_id
   ON public.purchase_orders (shop_id);
 
 -- po_items.product_id is a FK with no supporting index
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_po_items_product_id
+CREATE INDEX IF NOT EXISTS idx_po_items_product_id
   ON public.po_items (product_id);
 
 -- ── 3. Schema fixes + RLS rewrites ────────────────────────────────────────────
