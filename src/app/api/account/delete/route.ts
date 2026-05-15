@@ -1,21 +1,13 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { sanitizeError } from "@/lib/api/errors";
 import { logRequest } from "@/lib/api/logger";
 import { accountDeleteSchema } from "@/lib/validations/api";
+import { withAuth } from "@/lib/api/with-auth";
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(async (request: NextRequest, { user }) => {
   try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     logRequest(request, user.id);
 
     const body = await request.json().catch(() => ({}));
@@ -28,7 +20,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Hard rate limit: 3 delete attempts per hour per user
     const limited = await enforceRateLimit(
       request,
       { name: "account-delete", limit: 3, windowSec: 3600 },
@@ -68,4 +59,4 @@ export async function DELETE(request: NextRequest) {
     });
     return NextResponse.json({ error: message }, { status });
   }
-}
+});
