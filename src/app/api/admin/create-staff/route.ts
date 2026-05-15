@@ -8,13 +8,6 @@ import { logRequest } from "@/lib/api/logger";
 import { staffInviteSchema } from "@/lib/validations/api";
 import type { Plan } from "@/lib/limits";
 
-interface AdminApiExtended {
-  getUserByEmail: (email: string) => Promise<{
-    data: { user: { id: string; email: string } } | null;
-    error: Error | null;
-  }>;
-}
-
 function getAdminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -103,18 +96,7 @@ export async function POST(request: NextRequest) {
       createError?.message?.toLowerCase().includes("already exists");
 
     if (alreadyExists) {
-      const { data: existingUser, error: lookupError } = await (
-        adminClient.auth.admin as unknown as AdminApiExtended
-      ).getUserByEmail(input.email);
-
-      if (lookupError || !existingUser?.user) {
-        return NextResponse.json(
-          { error: "Account exists but could not be found. Contact support." },
-          { status: 500 },
-        );
-      }
-
-      // Use the new invite system instead of direct insertion
+      // Invite is tied to the email — no user lookup needed
       const { error: inviteError } = await supabase.rpc("create_shop_invite", {
         p_shop_id: input.shop_id,
         p_email: input.email,
@@ -163,8 +145,13 @@ export async function POST(request: NextRequest) {
     });
 
     if (inviteError) {
-      // If invite fails after user creation, we keep the user but report the error
-      console.error("[create-staff] invite failed for new user:", inviteError);
+      const { message, status } = sanitizeError(inviteError, {
+        log: (e) =>
+          console.error("[create-staff] invite failed for new user:", e),
+        fallback:
+          "Account created but could not be added to shop. Contact support.",
+      });
+      return NextResponse.json({ error: message }, { status });
     }
 
     return NextResponse.json({ ok: true, created: true, invited: true });

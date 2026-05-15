@@ -20,7 +20,9 @@ export default function FinderPage() {
       .from("rooms")
       .select("*")
       .eq("shop_id", shopId)
-      .then(({ data }) => setRooms((data as Room[]) ?? []));
+      .then(({ data, error }) => {
+        if (!error) setRooms((data as Room[]) ?? []);
+      });
   }, [shopId]);
 
   const roomMap = useMemo(

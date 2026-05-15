@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import Link from "next/link";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
@@ -29,7 +30,7 @@ function StockBadge({ qty, minStock }: { qty: number; minStock: number }) {
 export default function InventoryPage() {
   const shopId = useAuthStore(selectShopId);
   const { data: products = [], isLoading } = useProducts(shopId);
-  const { mutate: deleteProduct } = useDeleteProduct();
+  const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProduct();
   const { data: rooms = [] } = useRooms(shopId);
   const { data: categories = [] } = useCategories();
 
@@ -358,13 +359,19 @@ export default function InventoryPage() {
               </button>
               <button
                 className="btn btn-danger btn-sm"
+                disabled={isDeleting}
                 onClick={() => {
-                  if (shopId)
-                    deleteProduct({ shopId, productId: deletingProduct.id });
-                  setDeletingProduct(null);
+                  if (!shopId) return;
+                  deleteProduct(
+                    { shopId, productId: deletingProduct.id },
+                    {
+                      onSuccess: () => setDeletingProduct(null),
+                      onError: () => toast.error("Failed to delete product"),
+                    },
+                  );
                 }}
               >
-                Delete
+                {isDeleting ? "Deleting…" : "Delete"}
               </button>
             </div>
           </div>
