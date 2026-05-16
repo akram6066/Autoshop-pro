@@ -1,5 +1,6 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
+import { networkInterfaces } from "os";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -9,70 +10,21 @@ if (!supabaseUrl) {
   throw new Error("NEXT_PUBLIC_SUPABASE_URL is required");
 }
 
-const supabaseHost = new URL(supabaseUrl).host;
+let supabaseHost: string;
+try {
+  supabaseHost = new URL(supabaseUrl).host;
+} catch {
+  throw new Error(
+    `NEXT_PUBLIC_SUPABASE_URL is not a valid URL (got: "${supabaseUrl}"). ` +
+      `Set it to your Supabase project URL, e.g. https://xyzxyz.supabase.co`,
+  );
+}
 
-/**
- * Content Security Policy
- *
- * Goals:
- * - Prevent XSS
- * - Prevent clickjacking
- * - Restrict external resources
- * - Restrict data exfiltration
- * - Keep compatibility with:
- *   - Next.js
- *   - Supabase realtime
- *   - Google Fonts
- *   - Service workers
- *
- * Notes:
- * - 'unsafe-eval' is only enabled in development for Next.js HMR
- * - 'unsafe-inline' scripts are intentionally NOT allowed
- * - style-src still requires unsafe-inline due to Tailwind/runtime styles
- */
-
-const csp = [
-  `default-src 'self'`,
-
-  // Scripts
-  `script-src 'self'${isDev ? " 'unsafe-eval'" : ""}`,
-
-  // Styles
-  `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
-
-  // Fonts
-  `font-src 'self' https://fonts.gstatic.com data:`,
-
-  // Images
-  `img-src 'self' data: blob: https://${supabaseHost}`,
-
-  // API / realtime
-  `connect-src 'self' https://${supabaseHost} wss://${supabaseHost}`,
-
-  // Web workers
-  `worker-src 'self' blob:`,
-
-  // PWA
-  `manifest-src 'self'`,
-
-  // Security hardening
-  `object-src 'none'`,
-  `base-uri 'self'`,
-  `form-action 'self'`,
-  `frame-ancestors 'none'`,
-
-  // Prevent mixed content
-  `upgrade-insecure-requests`,
-
-  // Block HTTP subresources
-  `block-all-mixed-content`,
-].join("; ");
+// CSP is set dynamically per-request in src/middleware.ts (nonce-based).
+// Only the non-CSP security headers live here so they apply to all routes
+// including /_next/static/ which middleware skips.
 
 const securityHeaders = [
-  {
-    key: "Content-Security-Policy",
-    value: csp,
-  },
   {
     key: "X-Content-Type-Options",
     value: "nosniff",
@@ -118,6 +70,19 @@ const securityHeaders = [
   },
 ];
 
+function getLanIPs(): string[] {
+  const nets = networkInterfaces();
+  const ips: string[] = [];
+  for (const ifaces of Object.values(nets)) {
+    for (const iface of ifaces ?? []) {
+      if (iface.family === "IPv4" && !iface.internal) {
+        ips.push(iface.address);
+      }
+    }
+  }
+  return ips;
+}
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
@@ -127,7 +92,7 @@ const nextConfig: NextConfig = {
 
   compress: true,
 
-  allowedDevOrigins: ["localhost", "127.0.0.1"],
+  allowedDevOrigins: ["localhost", "127.0.0.1", ...(isDev ? getLanIPs() : [])],
 
   async headers() {
     return [

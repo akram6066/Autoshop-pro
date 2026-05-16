@@ -243,4 +243,35 @@ export function useRecordCustomerPayment() {
   });
 }
 
+export function useDeleteCustomer() {
+  const qc = useQueryClient();
+  const supabase = createClient();
+
+  return useMutation({
+    mutationFn: async ({
+      shopId,
+      customerId,
+    }: {
+      shopId: string;
+      customerId: string;
+    }) => {
+      const payload = { id: customerId, shop_id: shopId };
+      const { error } = await supabase.rpc("manage_customer", {
+        p_op: "DELETE",
+        p_customer: payload as unknown as Json,
+      });
+
+      if (error) {
+        await enqueue(shopId, "MANAGE_CUSTOMER", {
+          op: "DELETE",
+          customer: payload,
+        });
+      }
+    },
+    onSuccess: (_, { shopId }) => {
+      qc.invalidateQueries({ queryKey: customerKeys.all(shopId) });
+    },
+  });
+}
+
 export type { CustomerSaleRow, CustomerPaymentRow };

@@ -1,17 +1,83 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import {
   useCustomer,
   useCustomerSales,
   useCustomerPayments,
   useUpdateCustomer,
+  useDeleteCustomer,
   useRecordCustomerPayment,
 } from "@/hooks/useCustomers";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/app";
+
+// ─── Delete Confirmation Dialog ───────────────────────────────────────────────
+
+function DeleteDialog({
+  customerName,
+  isPending,
+  onConfirm,
+  onCancel,
+}: {
+  customerName: string;
+  isPending: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.45)" }}
+      onClick={onCancel}
+    >
+      <div
+        className="card w-full max-w-sm p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2
+          className="text-lg font-semibold mb-2"
+          style={{ color: "var(--color-ink-primary)" }}
+        >
+          Delete customer?
+        </h2>
+        <p
+          className="text-sm mb-6"
+          style={{ color: "var(--color-ink-secondary)" }}
+        >
+          <strong>{customerName}</strong> and all their payment records will be
+          permanently removed. This cannot be undone.
+        </p>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isPending}
+            className="btn btn-sm flex-1"
+            style={{
+              background: "var(--color-danger)",
+              color: "#fff",
+              opacity: isPending ? 0.7 : 1,
+            }}
+          >
+            {isPending ? "Deleting…" : "Delete"}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isPending}
+            className="btn btn-secondary btn-sm flex-1"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Record Payment Form ──────────────────────────────────────────────────────
 
@@ -225,14 +291,25 @@ function EditCustomerForm({
 export default function CustomerDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = use(params);
+  const router = useRouter();
   const shopId = useAuthStore(selectShopId);
   const user = useAuthStore((s) => s.user);
-  const { data: customer, isLoading } = useCustomer(shopId, params.id);
-  const { data: sales = [] } = useCustomerSales(shopId, params.id);
-  const { data: payments = [] } = useCustomerPayments(shopId, params.id);
+  const { data: customer, isLoading } = useCustomer(shopId, id);
+  const { data: sales = [] } = useCustomerSales(shopId, id);
+  const { data: payments = [] } = useCustomerPayments(shopId, id);
+  const { mutateAsync: deleteCustomer, isPending: isDeleting } =
+    useDeleteCustomer();
   const [editing, setEditing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  async function handleDelete() {
+    if (!shopId) return;
+    await deleteCustomer({ shopId, customerId: id });
+    router.replace("/customers");
+  }
 
   if (isLoading) {
     return (
@@ -267,6 +344,15 @@ export default function CustomerDetailPage({
 
   return (
     <div className="max-w-2xl">
+      {confirmingDelete && (
+        <DeleteDialog
+          customerName={customer.name}
+          isPending={isDeleting}
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
+
       {/* Back */}
       <Link
         href="/customers"
@@ -304,13 +390,27 @@ export default function CustomerDetailPage({
           )}
         </div>
         {!editing && (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="btn btn-secondary btn-sm"
-          >
-            Edit
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="btn btn-secondary btn-sm"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              className="btn btn-sm"
+              style={{
+                color: "var(--color-danger)",
+                border: "1px solid var(--color-danger)",
+                background: "transparent",
+              }}
+            >
+              Delete
+            </button>
+          </div>
         )}
       </div>
 

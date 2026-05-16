@@ -36,6 +36,11 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
   const signingOut = useRef(false);
 
   const init = useCallback(async () => {
+    // Load persisted shop/role from localStorage immediately so the nav
+    // renders with real data while the Supabase fetch is in-flight.
+    // This runs after hydration, so it never causes a hydration mismatch.
+    useAuthStore.persist.rehydrate();
+
     const supabase = createClient();
 
     const {

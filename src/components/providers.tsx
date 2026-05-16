@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useAuthStore } from "@/stores/authStore";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -45,6 +46,13 @@ function requestSync() {
 
 export function Providers({ children }: { children: ReactNode }) {
   const queryClient = getQueryClient();
+
+  // Restore persisted shop/role from localStorage after client hydration.
+  // skipHydration: true in the store prevents a server/client mismatch on
+  // first render; this call is the manual trigger that actually loads the data.
+  useEffect(() => {
+    useAuthStore.persist.rehydrate();
+  }, []);
 
   // Register Service Worker
   useEffect(() => {

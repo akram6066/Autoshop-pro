@@ -2,9 +2,10 @@ const CACHE_VERSION = "v3";
 const STATIC_CACHE = `autoshop-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `autoshop-runtime-${CACHE_VERSION}`;
 
+// Only the offline fallback page is precached. HTML documents (/, /login, etc.)
+// are intentionally excluded: caching them causes stale chunk-fingerprint
+// mismatches after a new build activates via skipWaiting().
 const PRECACHE_URLS = [
-  "/",
-  "/login",
   "/offline",
 ];
 
@@ -46,18 +47,12 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   if (url.hostname.includes("supabase.co")) return;
 
-  // Navigation requests — network first, offline fallback
+  // Navigation requests — always network-first, never cached.
+  // Caching HTML causes stale chunk-fingerprint mismatches after a new build
+  // activates; serve /offline only when the network is completely unreachable.
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
-        .then((res) => {
-          const clone = res.clone();
-          caches.open(RUNTIME_CACHE).then((c) => c.put(request, clone));
-          return res;
-        })
-        .catch(() =>
-          caches.match(request).then((cached) => cached || caches.match("/offline"))
-        )
+      fetch(request).catch(() => caches.match("/offline"))
     );
     return;
   }

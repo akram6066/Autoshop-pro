@@ -19,7 +19,12 @@ interface AuthState {
   setShop: (shop: Shop | null) => void;
   setShops: (shops: ShopWithRole[]) => void;
   switchShop: (shop: ShopWithRole) => Promise<void>;
-  setAll: (user: User | null, profile: Profile | null, shop: Shop | null, shops?: ShopWithRole[]) => void;
+  setAll: (
+    user: User | null,
+    profile: Profile | null,
+    shop: Shop | null,
+    shops?: ShopWithRole[],
+  ) => void;
   reset: () => void;
 }
 
@@ -48,10 +53,11 @@ export const useAuthStore = create<AuthState>()(
               shopId: profile?.shop_id ?? null,
             },
             false,
-            "setProfile"
+            "setProfile",
           ),
 
-        setShop: (shop) => set({ shop, shopId: shop?.id ?? null }, false, "setShop"),
+        setShop: (shop) =>
+          set({ shop, shopId: shop?.id ?? null }, false, "setShop"),
 
         setShops: (shops) => set({ shops }, false, "setShops"),
 
@@ -59,7 +65,9 @@ export const useAuthStore = create<AuthState>()(
         switchShop: async (shopWithRole) => {
           const { createClient } = await import("@/lib/supabase/client");
           const supabase = createClient();
-          await supabase.rpc("switch_active_shop", { p_shop_id: shopWithRole.id });
+          await supabase.rpc("switch_active_shop", {
+            p_shop_id: shopWithRole.id,
+          });
           set(
             {
               shop: shopWithRole,
@@ -67,12 +75,13 @@ export const useAuthStore = create<AuthState>()(
               role: shopWithRole.role,
             },
             false,
-            "switchShop"
+            "switchShop",
           );
         },
 
         setAll: (user, profile, shop, shops = []) => {
-          if (user) setSentryUser(user.id); else clearSentryUser();
+          if (user) setSentryUser(user.id);
+          else clearSentryUser();
           return set(
             {
               user,
@@ -83,24 +92,34 @@ export const useAuthStore = create<AuthState>()(
               shopId: shop?.id ?? profile?.shop_id ?? null,
             },
             false,
-            "setAll"
+            "setAll",
           );
         },
 
-        reset: () => { clearSentryUser(); set(initialState, false, "reset"); },
+        reset: () => {
+          clearSentryUser();
+          set(initialState, false, "reset");
+        },
       }),
       {
         name: "autoshop-auth",
+        // Prevent auto-rehydration from localStorage on the client's first render.
+        // Without this, server renders null state but client immediately renders
+        // persisted state — React sees a mismatch, throws a hydration error, and
+        // the broken subtree loses its event handlers (buttons stop working).
+        // We call useAuthStore.persist.rehydrate() manually inside init() instead,
+        // which runs after hydration is complete and is always safe.
+        skipHydration: true,
         partialize: (state) => ({
           shop: state.shop,
           shops: state.shops,
           role: state.role,
           shopId: state.shopId,
         }),
-      }
+      },
     ),
-    { name: "AuthStore" }
-  )
+    { name: "AuthStore" },
+  ),
 );
 
 export const selectUser = (s: AuthState) => s.user;
