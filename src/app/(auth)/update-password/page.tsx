@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useMounted } from "@/hooks/useMounted";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -35,6 +36,7 @@ export default function UpdatePasswordPage() {
     confirmPassword?: string;
   }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const mounted = useMounted();
   const [success, setSuccess] = useState(false);
 
   async function handleUpdate(e: React.FormEvent) {
@@ -104,6 +106,7 @@ export default function UpdatePasswordPage() {
             height={60}
             className="h-9 w-auto mx-auto dark:brightness-0 dark:invert"
             priority
+            loading="eager"
           />
         </div>
 
@@ -271,7 +274,7 @@ export default function UpdatePasswordPage() {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={isLoading}
+                  disabled={!mounted || isLoading}
                   style={{
                     width: "100%",
                     justifyContent: "center",

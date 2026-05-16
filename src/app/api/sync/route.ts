@@ -32,46 +32,64 @@ export const POST = withAuth(
     }
 
     const { shop_id, commands } = result.data;
-    const results: Array<{ id: string; success: boolean; error?: string }> = [];
 
-    for (const cmd of commands) {
-      let error: string | null = null;
+    const RPC_TIMEOUT_MS = 10_000;
+    const CONCURRENCY = 5;
+
+    async function runCommand(
+      cmd: (typeof commands)[number],
+    ): Promise<{ id: string; success: boolean; error?: string }> {
       const p = cmd.payload;
+      let error: string | null = null;
+
+      // supabase.rpc() returns a PromiseLike (thenable), not a true Promise.
+      // Promise.resolve() converts it to a real Promise before racing.
+      const withTimeout = <T>(thenable: PromiseLike<T>): Promise<T> =>
+        Promise.race([
+          Promise.resolve(thenable),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("RPC timeout")), RPC_TIMEOUT_MS),
+          ),
+        ]);
 
       try {
         if (cmd.command === "RECORD_SALE") {
-          const { error: rpcError } = await supabase.rpc("record_sale", {
-            p_sale: p.sale as Json,
-            p_items: p.items as Json,
-          });
+          const { error: rpcError } = await withTimeout(
+            supabase.rpc("record_sale", {
+              p_sale: p.sale as Json,
+              p_items: p.items as Json,
+            }),
+          );
           if (rpcError) error = rpcError.message;
         } else if (cmd.command === "RECORD_CUSTOMER_PAYMENT") {
-          const { error: rpcError } = await supabase.rpc(
-            "record_customer_payment",
-            {
+          const { error: rpcError } = await withTimeout(
+            supabase.rpc("record_customer_payment", {
               p_payment: p.payment as Json,
-            },
+            }),
           );
           if (rpcError) error = rpcError.message;
         } else if (cmd.command === "RECORD_STOCK_MOVEMENT") {
-          const { error: rpcError } = await supabase.rpc(
-            "record_stock_movement",
-            {
+          const { error: rpcError } = await withTimeout(
+            supabase.rpc("record_stock_movement", {
               p_movement: p.movement as Json,
-            },
+            }),
           );
           if (rpcError) error = rpcError.message;
         } else if (cmd.command === "MANAGE_PRODUCT") {
-          const { error: rpcError } = await supabase.rpc("manage_product", {
-            p_op: p.op as string,
-            p_product: p.product as Json,
-          });
+          const { error: rpcError } = await withTimeout(
+            supabase.rpc("manage_product", {
+              p_op: p.op as string,
+              p_product: p.product as Json,
+            }),
+          );
           if (rpcError) error = rpcError.message;
         } else if (cmd.command === "MANAGE_CUSTOMER") {
-          const { error: rpcError } = await supabase.rpc("manage_customer", {
-            p_op: p.op as string,
-            p_customer: p.customer as Json,
-          });
+          const { error: rpcError } = await withTimeout(
+            supabase.rpc("manage_customer", {
+              p_op: p.op as string,
+              p_customer: p.customer as Json,
+            }),
+          );
           if (rpcError) error = rpcError.message;
         } else {
           error = `Unknown command: ${cmd.command}`;
@@ -84,7 +102,15 @@ export const POST = withAuth(
         });
       }
 
-      results.push({ id: cmd.id, success: !error, error: error ?? undefined });
+      return { id: cmd.id, success: !error, error: error ?? undefined };
+    }
+
+    // Run commands in parallel batches — CONCURRENCY at a time
+    const results: Array<{ id: string; success: boolean; error?: string }> = [];
+    for (let i = 0; i < commands.length; i += CONCURRENCY) {
+      const batch = commands.slice(i, i + CONCURRENCY);
+      const batchResults = await Promise.all(batch.map(runCommand));
+      results.push(...batchResults);
     }
 
     if (commands.some((c) => c.command === "RECORD_SALE")) {

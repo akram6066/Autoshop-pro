@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, use } from "react";
+import { useMounted } from "@/hooks/useMounted";
 import { toast } from "sonner";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -36,6 +37,7 @@ function EditForm({
   const [price, setPrice] = useState(product.price);
   const [size, setSize] = useState(product.size ?? "");
   const [error, setError] = useState("");
+  const mounted = useMounted();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -251,7 +253,11 @@ function EditForm({
       )}
 
       <div className="flex gap-3 pt-2">
-        <button type="submit" className="btn btn-primary" disabled={isPending}>
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={!mounted || isPending}
+        >
           {isPending ? "Saving…" : "Save changes"}
         </button>
         <button type="button" onClick={onSaved} className="btn btn-secondary">

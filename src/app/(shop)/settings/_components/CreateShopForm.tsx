@@ -1,5 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
+import { useMounted } from "@/hooks/useMounted";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore, selectUser, selectShops } from "@/stores/authStore";
 import type { Shop, ShopWithRole } from "@/types/app";
@@ -11,6 +12,7 @@ export function CreateShopForm() {
   const setShops = useAuthStore((s) => s.setShops);
   const switchShop = useAuthStore((s) => s.switchShop);
   const [isPending, startTransition] = useTransition();
+  const mounted = useMounted();
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [msg, setMsg] = useState("");
@@ -79,7 +81,7 @@ export function CreateShopForm() {
         <button
           type="submit"
           className="btn btn-primary btn-sm"
-          disabled={isPending || !user}
+          disabled={!mounted || isPending || !user}
         >
           {isPending ? "Creating…" : "Create shop"}
         </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, Suspense } from "react";
+import { useMounted } from "@/hooks/useMounted";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -29,6 +30,7 @@ function SetupContent() {
 
   const [step, setStep] = useState<Step>("shop");
   const [isPending, startTransition] = useTransition();
+  const mounted = useMounted();
   const [shopError, setShopError] = useState("");
   const [roomsError, setRoomsError] = useState("");
   const [shopName, setShopName] = useState("");
@@ -194,6 +196,8 @@ function SetupContent() {
           width={260}
           height={60}
           className="h-10 w-auto mx-auto mb-6 dark:brightness-0 dark:invert"
+          priority
+          loading="eager"
         />
         <h1 className="font-display text-3xl mb-1">AutoShop Pro</h1>
         <p className="text-sm" style={{ color: "var(--color-ink-tertiary)" }}>
@@ -318,7 +322,7 @@ function SetupContent() {
             <button
               type="submit"
               className="btn btn-primary w-full mt-6"
-              disabled={isPending || !shopName.trim()}
+              disabled={!mounted || isPending || !shopName.trim()}
             >
               {isPending ? "Creating…" : "Continue →"}
             </button>
@@ -406,7 +410,7 @@ function SetupContent() {
             <button
               type="submit"
               className="btn btn-primary w-full mt-6"
-              disabled={isPending || rooms.length === 0}
+              disabled={!mounted || isPending || rooms.length === 0}
             >
               {isPending
                 ? "Setting up…"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useMounted } from "@/hooks/useMounted";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -42,6 +43,7 @@ export default function SignupForm() {
   const setAll = useAuthStore((s) => s.setAll);
 
   const [isLoading, setIsLoading] = useState(false);
+  const mounted = useMounted();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -133,13 +135,14 @@ export default function SignupForm() {
       );
       setDone(true);
       router.replace(sessionState.destination);
-      router.refresh();
     } catch (err) {
-      setError(
-        friendlySignupError(
-          err instanceof Error ? err.message : "Something went wrong.",
-        ),
-      );
+      const msg =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Signup failed. Please try again.";
+      setError(friendlySignupError(msg));
     } finally {
       setIsLoading(false);
     }
@@ -254,6 +257,7 @@ export default function SignupForm() {
             height={60}
             className="h-9 w-auto mx-auto dark:brightness-0 dark:invert"
             priority
+            loading="eager"
           />
         </div>
 
@@ -505,7 +509,7 @@ export default function SignupForm() {
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={isLoading}
+              disabled={!mounted || isLoading}
               style={{
                 width: "100%",
                 justifyContent: "center",

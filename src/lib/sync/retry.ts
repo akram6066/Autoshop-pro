@@ -1,36 +1,50 @@
 import { flushQueue } from "./queue";
 
-// ─── Retry Scheduler ──────────────────────────────────────────────────────────
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+let currentDelay = 5_000; // start at 5 s
 
-let retryTimer: ReturnType<typeof setInterval> | null = null;
-const RETRY_INTERVAL_MS = 30_000; // 30 seconds when online
+const MIN_DELAY_MS = 5_000;
+const MAX_DELAY_MS = 60_000;
 
-/**
- * Schedule a recurring sync flush while online.
- */
-export function scheduleRetry(shopId: string): () => void {
-  if (retryTimer) clearInterval(retryTimer);
-
-  const run = () => {
-    if (navigator.onLine) {
-      flushQueue(shopId).catch(console.error);
-    }
-  };
-
-  retryTimer = setInterval(run, RETRY_INTERVAL_MS);
-  return () => {
-    if (retryTimer) clearInterval(retryTimer);
-  };
+function clearRetry() {
+  if (retryTimer) {
+    clearTimeout(retryTimer);
+    retryTimer = null;
+  }
 }
 
-/**
- * Attach window online/offline listeners.
- * On reconnect: immediately flush the queue.
- * Returns cleanup function.
- */
+function scheduleNext(shopId: string) {
+  clearRetry();
+  retryTimer = setTimeout(() => tick(shopId), currentDelay);
+}
+
+async function tick(shopId: string) {
+  if (!navigator.onLine) {
+    scheduleNext(shopId);
+    return;
+  }
+
+  try {
+    await flushQueue(shopId);
+    // Success — reset backoff
+    currentDelay = MIN_DELAY_MS;
+  } catch {
+    // Failure — back off exponentially up to MAX
+    currentDelay = Math.min(currentDelay * 2, MAX_DELAY_MS);
+  }
+
+  scheduleNext(shopId);
+}
+
+export function scheduleRetry(shopId: string): () => void {
+  currentDelay = MIN_DELAY_MS;
+  scheduleNext(shopId);
+  return clearRetry;
+}
+
 export function attachSyncListeners(shopId: string): () => void {
   const handleOnline = () => {
-    console.log("[sync] Online — flushing queue");
+    currentDelay = MIN_DELAY_MS; // reset on reconnect
     flushQueue(shopId).catch(console.error);
   };
 

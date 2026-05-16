@@ -225,27 +225,35 @@ CREATE POLICY "owners can manage po items"
     WHERE po.id = po_items.po_id AND sm.user_id = auth.uid() AND sm.role = 'owner'
   ));
 
--- ── shop_members owner SELECT and DELETE (IN → EXISTS) ────────────────────────
--- Inner subquery targets the caller's own row (visible via "members can view their own memberships")
+-- ── shop_members owner SELECT and DELETE ──────────────────────────────────────
+-- These policies previously queried shop_members from within a policy ON
+-- shop_members → infinite recursion. Fix: SECURITY DEFINER function that
+-- bypasses RLS when checking ownership (defined in migration 028, but we
+-- create it here idempotently so 027 is self-contained).
+CREATE OR REPLACE FUNCTION public.is_shop_owner(p_shop_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.shop_members
+    WHERE shop_id = p_shop_id
+      AND user_id = auth.uid()
+      AND role = 'owner'
+  );
+$$;
+
 DROP POLICY IF EXISTS "owners can view all members of their shop" ON public.shop_members;
 CREATE POLICY "owners can view all members of their shop"
   ON public.shop_members FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM public.shop_members osm
-    WHERE osm.shop_id = shop_members.shop_id
-      AND osm.user_id = auth.uid()
-      AND osm.role = 'owner'
-  ));
+  USING (public.is_shop_owner(shop_id));
 
 DROP POLICY IF EXISTS "owners can remove members" ON public.shop_members;
 CREATE POLICY "owners can remove members"
   ON public.shop_members FOR DELETE
-  USING (EXISTS (
-    SELECT 1 FROM public.shop_members osm
-    WHERE osm.shop_id = shop_members.shop_id
-      AND osm.user_id = auth.uid()
-      AND osm.role = 'owner'
-  ));
+  USING (public.is_shop_owner(shop_id));
 
 -- ── profiles owner SELECT (double nested IN → single JOIN EXISTS) ─────────────
 DROP POLICY IF EXISTS "owners can view shop profiles" ON public.profiles;

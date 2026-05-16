@@ -31,13 +31,20 @@ function delay(ms: number) {
 export async function withAuthTimeout<T>(
   promise: PromiseLike<T>,
   action = "Auth request",
-  ms = 15000,
+  ms = 12000,
 ): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
   const timeout = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => {
-      reject(new Error(`${action} timed out. Please try again.`));
+      const offline = typeof navigator !== "undefined" && !navigator.onLine;
+      reject(
+        new Error(
+          offline
+            ? `${action} failed — you appear to be offline. Please check your internet connection.`
+            : `${action} timed out. Your internet may be slow or unstable — please try again.`,
+        ),
+      );
     }, ms);
   });
 
@@ -58,7 +65,7 @@ async function fetchProfile(
     .eq("id", userId)
     .maybeSingle<Profile>();
 
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return data ?? null;
 }
 
@@ -92,7 +99,7 @@ export async function loadAuthSessionState(
     .select("shop_id, role, shops(*)")
     .eq("user_id", user.id);
 
-  if (error) throw error;
+  if (error) throw new Error(error.message);
 
   const rows = (data ?? []) as ShopMemberRow[];
   const shops: ShopWithRole[] = rows

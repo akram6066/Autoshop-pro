@@ -74,7 +74,7 @@ async function upstashSlidingWindow(
         ["EXPIRE", currentKey, cfg.windowSec * 2, "NX"],
         ["GET", prevKey],
       ]),
-      signal: AbortSignal.timeout(800),
+      signal: AbortSignal.timeout(3000),
       cache: "no-store",
     });
 

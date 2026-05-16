@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useMounted } from "@/hooks/useMounted";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -18,8 +19,67 @@ import EyeButton from "./EyeButton";
 import ErrorBox from "./ErrorBox";
 import FieldError from "./FieldError";
 
+function isNetworkError(err: unknown): boolean {
+  if (typeof navigator !== "undefined" && !navigator.onLine) return true;
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  const code = (
+    err instanceof Error && "code" in err
+      ? String((err as NodeJS.ErrnoException).code)
+      : ""
+  ).toLowerCase();
+  return (
+    msg.includes("fetch failed") ||
+    msg.includes("connect timeout") ||
+    msg.includes("connecttimeout") ||
+    msg.includes("und_err") ||
+    msg.includes("enotfound") ||
+    msg.includes("econnrefused") ||
+    msg.includes("econnreset") ||
+    msg.includes("aborted") ||
+    msg.includes("network") ||
+    msg.includes("offline") ||
+    msg.includes("slow or unstable") ||
+    msg.includes("appear to be offline") ||
+    code === "econnreset" ||
+    code === "econnrefused" ||
+    code === "enotfound" ||
+    code === "econnaborted"
+  );
+}
+
 function friendlyAuthError(message: string): string {
+  if (typeof navigator !== "undefined" && !navigator.onLine)
+    return "You're offline. Please check your internet connection and try again.";
+
   const m = message.toLowerCase();
+
+  // Network / connectivity errors — check these before auth errors
+  if (m.includes("offline") || m.includes("appear to be offline"))
+    return "You're offline. Please check your internet connection and try again.";
+  if (
+    m.includes("fetch failed") ||
+    m.includes("connecttimeout") ||
+    m.includes("connect timeout") ||
+    m.includes("und_err") ||
+    m.includes("econnreset") ||
+    m.includes("aborted")
+  )
+    return "The connection was interrupted. Your internet may be unstable — please try again.";
+  if (
+    m.includes("slow or unstable") ||
+    m.includes("timed out") ||
+    m.includes("timeout")
+  )
+    return "Your internet is too slow or unstable. Please check your connection and try again.";
+  if (
+    m.includes("network") ||
+    m.includes("fetch") ||
+    m.includes("enotfound") ||
+    m.includes("econnrefused")
+  )
+    return "Connection failed. Check your internet and try again.";
+
+  // Auth-specific errors
   if (m.includes("supabase") && m.includes("missing"))
     return "Auth is not configured on this deployment. Check the Vercel Supabase environment variables.";
   if (m.includes("invalid login") || m.includes("invalid credentials"))
@@ -28,15 +88,29 @@ function friendlyAuthError(message: string): string {
     return "Please confirm your email address before signing in.";
   if (m.includes("too many") || m.includes("rate limit"))
     return "Too many attempts — wait a few minutes and try again.";
-  if (m.includes("timed out"))
-    return "Login is taking too long. Check your connection and Vercel Supabase environment variables, then try again.";
-  if (m.includes("network") || m.includes("fetch"))
-    return "Connection failed. Check your internet and try again.";
+
   return message;
 }
 
+const SESSION_BANNERS: Record<
+  string,
+  { message: string; variant: "error" | "warning" }
+> = {
+  signed_out: {
+    message: "You've been signed out. Please sign in again.",
+    variant: "warning",
+  },
+  session_expired: {
+    message: "Your session has expired. Please sign in again to continue.",
+    variant: "warning",
+  },
+};
+
 export default function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionBanner =
+    SESSION_BANNERS[searchParams.get("reason") ?? ""] ?? null;
   const setAll = useAuthStore((s) => s.setAll);
 
   // Login state
@@ -44,10 +118,14 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [errorVariant, setErrorVariant] = useState<"error" | "warning">(
+    "error",
+  );
   const [fieldErrors, setFieldErrors] = useState<
     AuthFieldErrors<LoginFormValues>
   >({});
   const [isLoading, setIsLoading] = useState(false);
+  const mounted = useMounted();
   const [touched, setTouched] = useState({ email: false, password: false });
 
   // Forgot-password state
@@ -80,6 +158,16 @@ export default function LoginForm() {
     }
 
     setFieldErrors({});
+
+    // Pre-flight: bail immediately if offline
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setError(
+        "You're offline. Please check your internet connection and try again.",
+      );
+      setErrorVariant("warning");
+      return;
+    }
+
     setIsLoading(true);
     try {
       const supabase = createClient();
@@ -97,7 +185,9 @@ export default function LoginForm() {
           payload: { email: parsed.data.email, error: authError?.message },
           severity: "warning",
         });
-        setError(friendlyAuthError(authError?.message ?? "Sign-in failed"));
+        const msg = authError?.message ?? "Sign-in failed";
+        setErrorVariant(isNetworkError(authError) ? "warning" : "error");
+        setError(friendlyAuthError(msg));
         return;
       }
 
@@ -112,13 +202,15 @@ export default function LoginForm() {
         sessionState.shops,
       );
       router.replace(sessionState.destination);
-      router.refresh();
     } catch (err) {
-      setError(
-        friendlyAuthError(
-          err instanceof Error ? err.message : "Something went wrong.",
-        ),
-      );
+      const msg =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Login failed. Please try again.";
+      setErrorVariant(isNetworkError(err) ? "warning" : "error");
+      setError(friendlyAuthError(msg));
     } finally {
       setIsLoading(false);
     }
@@ -127,6 +219,15 @@ export default function LoginForm() {
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
     if (!resetEmail.trim()) return;
+
+    // Pre-flight: bail immediately if offline
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setResetError(
+        "You're offline. Please check your internet connection and try again.",
+      );
+      return;
+    }
+
     setResetLoading(true);
     setResetError("");
     try {
@@ -139,7 +240,11 @@ export default function LoginForm() {
       );
 
       if (roleError) {
-        setResetError("Something went wrong verifying your account.");
+        setResetError(
+          isNetworkError(roleError)
+            ? "Unable to reach the server. Check your internet and try again."
+            : "Something went wrong verifying your account.",
+        );
         setResetLoading(false);
         return;
       }
@@ -157,12 +262,16 @@ export default function LoginForm() {
         "Password reset",
       );
       if (error) {
-        setResetError(error.message);
+        setResetError(friendlyAuthError(error.message));
       } else {
         setResetSent(true);
       }
-    } catch {
-      setResetError("Something went wrong. Please try again.");
+    } catch (err) {
+      setResetError(
+        isNetworkError(err)
+          ? "Unable to reach the server. Your internet may be unstable — please try again."
+          : "Something went wrong. Please try again.",
+      );
     } finally {
       setResetLoading(false);
     }
@@ -193,6 +302,7 @@ export default function LoginForm() {
             height={60}
             className="h-9 w-auto mx-auto dark:brightness-0 dark:invert"
             priority
+            loading="eager"
           />
         </div>
 
@@ -386,6 +496,15 @@ export default function LoginForm() {
         ) : (
           /* ── Login form ── */
           <>
+            {sessionBanner && (
+              <div style={{ marginBottom: 20 }}>
+                <ErrorBox
+                  message={sessionBanner.message}
+                  variant={sessionBanner.variant}
+                />
+              </div>
+            )}
+
             <div style={{ marginBottom: 28 }}>
               <h1
                 style={{
@@ -434,7 +553,10 @@ export default function LoginForm() {
                     value={email}
                     onChange={(e) => {
                       setEmail(e.target.value);
-                      if (error) setError("");
+                      if (error) {
+                        setError("");
+                        setErrorVariant("error");
+                      }
                       if (fieldErrors.email)
                         setFieldErrors((prev) => ({ ...prev, email: "" }));
                     }}
@@ -495,7 +617,10 @@ export default function LoginForm() {
                       value={password}
                       onChange={(e) => {
                         setPassword(e.target.value);
-                        if (error) setError("");
+                        if (error) {
+                          setError("");
+                          setErrorVariant("error");
+                        }
                         if (fieldErrors.password)
                           setFieldErrors((prev) => ({
                             ...prev,
@@ -522,13 +647,13 @@ export default function LoginForm() {
                 </div>
 
                 {/* Global error */}
-                {error && <ErrorBox message={error} />}
+                {error && <ErrorBox message={error} variant={errorVariant} />}
 
                 {/* Submit */}
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={isLoading}
+                  disabled={!mounted || isLoading}
                   style={{
                     width: "100%",
                     justifyContent: "center",

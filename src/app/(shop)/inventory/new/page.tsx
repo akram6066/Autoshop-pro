@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useMounted } from "@/hooks/useMounted";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
@@ -16,6 +17,7 @@ export default function NewProductPage() {
   const { data: rooms = [] } = useRooms(shopId);
 
   const [error, setError] = useState("");
+  const mounted = useMounted();
 
   const [name, setName] = useState("");
   const [sku, setSku] = useState("");
@@ -304,6 +306,7 @@ export default function NewProductPage() {
               type="submit"
               className="btn btn-primary"
               disabled={
+                !mounted ||
                 isPending ||
                 !name.trim() ||
                 !sku.trim() ||

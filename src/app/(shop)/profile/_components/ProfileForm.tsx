@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useMounted } from "@/hooks/useMounted";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore, selectProfile, selectUser } from "@/stores/authStore";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ export function ProfileForm() {
 
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [isPending, startTransition] = useTransition();
+  const mounted = useMounted();
 
   const shop = useAuthStore((s) => s.shop);
   const shops = useAuthStore((s) => s.shops);
@@ -63,7 +65,9 @@ export function ProfileForm() {
         <button
           type="submit"
           className="btn btn-primary"
-          disabled={isPending || fullName.trim() === profile.full_name}
+          disabled={
+            !mounted || isPending || fullName.trim() === profile.full_name
+          }
         >
           {isPending ? "Saving…" : "Save Changes"}
         </button>

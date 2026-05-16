@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useMounted } from "@/hooks/useMounted";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore, selectUser } from "@/stores/authStore";
 import { z } from "zod";
@@ -41,6 +42,7 @@ export function SecurityForm() {
   }>({});
 
   const [isResetPending, startResetTransition] = useTransition();
+  const mounted = useMounted();
 
   function handleForgotPassword() {
     if (!user?.email) return;
@@ -170,7 +172,7 @@ export function SecurityForm() {
             <button
               type="submit"
               className="btn btn-secondary"
-              disabled={isEmailPending || !email.trim()}
+              disabled={!mounted || isEmailPending || !email.trim()}
             >
               {isEmailPending ? "Sending…" : "Update Email"}
             </button>
@@ -354,7 +356,7 @@ export function SecurityForm() {
             <button
               type="submit"
               className="btn btn-secondary"
-              disabled={isPwdPending || !password}
+              disabled={!mounted || isPwdPending || !password}
             >
               {isPwdPending ? "Updating…" : "Update Password"}
             </button>

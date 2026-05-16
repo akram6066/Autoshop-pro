@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useMounted } from "@/hooks/useMounted";
 import Container from "./Container";
 
 function WaitlistSection() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const mounted = useMounted();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -318,7 +320,7 @@ function WaitlistSection() {
                   <button
                     type="submit"
                     className="btn btn-primary"
-                    disabled={loading}
+                    disabled={!mounted || loading}
                     style={{
                       width: "100%",
                       padding: "12px",

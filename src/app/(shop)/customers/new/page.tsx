@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useMounted } from "@/hooks/useMounted";
 import { useRouter } from "next/navigation";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import { useCreateCustomer } from "@/hooks/useCustomers";
@@ -13,6 +14,7 @@ export default function NewCustomerPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
+  const mounted = useMounted();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -103,7 +105,7 @@ export default function NewCustomerPage() {
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={isPending || !name.trim()}
+              disabled={!mounted || isPending || !name.trim()}
             >
               {isPending ? "Saving…" : "Save customer"}
             </button>

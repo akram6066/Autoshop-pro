@@ -105,9 +105,24 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getUser() validates the JWT with Supabase's server — it has no built-in timeout.
+  // On a slow or unreachable connection it hangs forever, freezing all navigation.
+  // We race it against 5 s; on timeout we fall back to getSession() which reads
+  // the cookie locally (no network) so the user can keep working.
+  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] =
+    null;
+  try {
+    const result = await Promise.race([
+      supabase.auth.getUser(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("auth_timeout")), 5000),
+      ),
+    ]);
+    user = result.data.user;
+  } catch {
+    const { data: sessionData } = await supabase.auth.getSession();
+    user = sessionData.session?.user ?? null;
+  }
 
   // Redirect unauthenticated users away from app routes
   if (!user) {

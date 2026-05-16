@@ -33,6 +33,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
   const reset = useAuthStore((s) => s.reset);
 
   const initialised = useRef(false);
+  const signingOut = useRef(false);
 
   const init = useCallback(async () => {
     const supabase = createClient();
@@ -55,6 +56,20 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
     ]);
 
     const profile = profileRes.data;
+
+    if (profileRes.error) {
+      // Network/Supabase error — don't misread a failed fetch as "user has no shop".
+      // If the store already has a shopId from the login flow, stay on the dashboard.
+      const currentShopId = useAuthStore.getState().shopId;
+      if (currentShopId) {
+        initialised.current = true;
+        return;
+      }
+      // No store state at all — session is genuinely broken, send to login.
+      router.replace("/login");
+      return;
+    }
+
     if (!profile?.shop_id) {
       router.replace("/setup");
       return;
@@ -107,7 +122,14 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       if (event === "SIGNED_OUT") {
         initialised.current = false;
         reset();
-        router.replace("/login");
+        if (signingOut.current) {
+          // User clicked "Sign out" explicitly — go to login with no banner
+          signingOut.current = false;
+          router.replace("/login");
+        } else {
+          // Automatic: session expired or invalidated from another device/admin
+          router.replace("/login?reason=session_expired");
+        }
       }
       if (event === "TOKEN_REFRESHED") {
         initialised.current = false;
@@ -123,10 +145,11 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
 
   const handleSignOut = async () => {
     const supabase = createClient();
+    signingOut.current = true;
     initialised.current = false;
     await supabase.auth.signOut();
     reset();
-    router.replace("/login");
+    // router.replace("/login") is handled by the SIGNED_OUT listener above
   };
 
   return (

@@ -55,7 +55,8 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
             width={260}
             height={60}
             className="h-8 w-auto dark:hidden"
-            fetchPriority="high"
+            priority
+            loading="eager"
           />
           <Image
             src="/logo-dark.svg"
