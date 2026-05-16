@@ -49,7 +49,11 @@ export function EmptyState({
         {description}
       </p>
       {action && (
-        <button onClick={action.onClick} className="btn btn-secondary btn-sm">
+        <button
+          type="button"
+          onClick={action.onClick}
+          className="btn btn-secondary btn-sm"
+        >
           {action.label}
         </button>
       )}

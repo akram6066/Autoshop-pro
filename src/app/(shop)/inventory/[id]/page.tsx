@@ -344,6 +344,7 @@ export default function ProductDetailPage({
         </div>
         {!editing && (
           <button
+            type="button"
             onClick={() => setEditing(true)}
             className="btn btn-secondary btn-sm"
           >

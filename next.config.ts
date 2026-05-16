@@ -35,9 +35,7 @@ const csp = [
   `default-src 'self'`,
 
   // Scripts
-  `script-src 'self'${
-    isDev ? " 'unsafe-eval'" : ""
-  }`,
+  `script-src 'self'${isDev ? " 'unsafe-eval'" : ""}`,
 
   // Styles
   `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
@@ -183,10 +181,10 @@ export default withSentryConfig(nextConfig, {
   widenClientFileUpload: true,
 
   /**
-   * Tunnel Sentry traffic through Next.js
-   * Helps bypass ad blockers
+   * Tunnel Sentry traffic through Next.js to bypass ad blockers.
+   * Disabled in dev — the proxy causes ECONNRESET noise with no benefit.
    */
-  tunnelRoute: "/monitoring",
+  tunnelRoute: isDev ? undefined : "/monitoring",
 
   webpack: {
     automaticVercelMonitors: true,

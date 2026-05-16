@@ -97,7 +97,11 @@ export function SaleReceipt({
               </>
             )}
         </div>
-        <button onClick={onDismiss} className="btn btn-primary w-full">
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="btn btn-primary w-full"
+        >
           New sale
         </button>
       </div>

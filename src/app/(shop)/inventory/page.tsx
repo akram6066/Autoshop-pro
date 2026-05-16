@@ -285,6 +285,7 @@ export default function InventoryPage() {
                         </svg>
                       </Link>
                       <button
+                        type="button"
                         onClick={() =>
                           setDeletingProduct({
                             id: product.id,

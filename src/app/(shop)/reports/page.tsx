@@ -161,6 +161,7 @@ export default function ReportsPage() {
           </p>
         </div>
         <button
+          type="button"
           onClick={exportCSV}
           className="btn btn-secondary btn-sm"
           disabled={summary.length === 0}

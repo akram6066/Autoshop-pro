@@ -100,6 +100,7 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
           {/* User Menu — desktop only */}
           <div className="hidden sm:block relative" ref={menuRef}>
             <button
+              type="button"
               onClick={() => setUserMenuOpen((o) => !o)}
               className="btn btn-ghost btn-icon flex items-center justify-center rounded-full"
               style={{
@@ -165,6 +166,7 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
                   Profile Settings
                 </Link>
                 <button
+                  type="button"
                   onClick={() => {
                     setUserMenuOpen(false);
                     onSignOut();
@@ -180,6 +182,7 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
 
           {/* Hamburger — mobile only */}
           <button
+            type="button"
             onClick={() => setMobileOpen((o) => !o)}
             className="sm:hidden btn btn-ghost btn-icon"
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
@@ -270,6 +273,7 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
               Profile Settings
             </Link>
             <button
+              type="button"
               onClick={onSignOut}
               className="w-full mt-3 btn btn-ghost btn-sm justify-start gap-3"
               style={{ color: "var(--color-ink-tertiary)" }}

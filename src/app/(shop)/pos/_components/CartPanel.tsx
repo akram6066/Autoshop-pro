@@ -101,6 +101,7 @@ export function CartPanel({
         </h2>
         {items.length > 0 && (
           <button
+            type="button"
             onClick={onClear}
             className="text-xs"
             style={{ color: "var(--color-ink-tertiary)" }}
@@ -170,6 +171,7 @@ export function CartPanel({
           )}
 
           <button
+            type="button"
             onClick={onCheckout}
             disabled={isSaving}
             className="btn btn-primary w-full"

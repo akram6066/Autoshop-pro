@@ -165,6 +165,7 @@ export function TeamSection() {
               </div>
               {member.role !== "owner" && (
                 <button
+                  type="button"
                   onClick={() => setManagingMember(member)}
                   className="btn btn-secondary btn-sm"
                 >
@@ -213,6 +214,7 @@ export function TeamSection() {
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
                 <button
+                  type="button"
                   onClick={handleResetPassword}
                   disabled={isManaging || newPassword.length < 8}
                   className="btn btn-primary btn-sm whitespace-nowrap"
@@ -246,6 +248,7 @@ export function TeamSection() {
                 </span>
                 {!showDeleteConfirm ? (
                   <button
+                    type="button"
                     onClick={() => setShowDeleteConfirm(true)}
                     className="btn btn-danger btn-sm"
                     disabled={isManaging}
@@ -254,6 +257,7 @@ export function TeamSection() {
                   </button>
                 ) : (
                   <button
+                    type="button"
                     onClick={() => setShowDeleteConfirm(false)}
                     className="btn btn-secondary btn-sm"
                     disabled={isManaging}
@@ -293,6 +297,7 @@ export function TeamSection() {
                     style={{ borderColor: "var(--color-danger)" }}
                   />
                   <button
+                    type="button"
                     onClick={handleDeleteAccount}
                     className="btn btn-danger btn-sm w-full"
                     disabled={

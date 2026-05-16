@@ -71,6 +71,7 @@ export function RoomsSection() {
             >
               <span className="text-sm">{room.name}</span>
               <button
+                type="button"
                 onClick={() => handleDelete(room.id)}
                 className="btn btn-ghost btn-sm btn-icon"
               >

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useMounted } from "@/hooks/useMounted";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -43,7 +42,6 @@ export default function SignupForm() {
   const setAll = useAuthStore((s) => s.setAll);
 
   const [isLoading, setIsLoading] = useState(false);
-  const mounted = useMounted();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -509,7 +507,7 @@ export default function SignupForm() {
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={!mounted || isLoading}
+              disabled={isLoading}
               style={{
                 width: "100%",
                 justifyContent: "center",

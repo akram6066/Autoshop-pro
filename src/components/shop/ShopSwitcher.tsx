@@ -34,6 +34,7 @@ export function ShopSwitcher() {
     <div ref={ref} className="relative">
       {/* Trigger — sm+: name + chevron pill; mobile: icon + chevron only */}
       <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-1.5"
         style={{
@@ -118,6 +119,7 @@ export function ShopSwitcher() {
             return (
               <button
                 key={s.id}
+                type="button"
                 onClick={async () => {
                   await switchShop(s);
                   setOpen(false);

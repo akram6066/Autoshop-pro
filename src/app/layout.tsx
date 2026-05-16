@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { Providers } from "@/components/providers";
 
 // ─── Fonts ────────────────────────────────────────────────────────────────────
@@ -77,7 +78,9 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
     >
       <body>
-        <Providers>{children}</Providers>
+        <ThemeProvider>
+          <Providers>{children}</Providers>
+        </ThemeProvider>
       </body>
     </html>
   );

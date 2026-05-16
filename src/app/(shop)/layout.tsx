@@ -43,7 +43,17 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       error: userError,
     } = await supabase.auth.getUser();
     if (userError || !user) {
-      router.replace("/login");
+      const isStaleToken =
+        userError?.message?.includes("refresh_token_not_found") ||
+        userError?.message?.includes("Invalid Refresh Token");
+      if (isStaleToken) {
+        // Wipe the corrupted token locally so the login page starts clean.
+        // scope:"local" avoids an HTTP call to an already-invalidated session.
+        await supabase.auth.signOut({ scope: "local" });
+        router.replace("/login?reason=session_expired");
+      } else {
+        router.replace("/login");
+      }
       return;
     }
 
@@ -107,14 +117,13 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
     initialised.current = true;
   }, [router, setAll]);
 
+  // Auth init + cross-tab sign-out listener — runs once, stable deps only
   useEffect(() => {
     const supabase = createClient();
 
     if (!initialised.current) {
       init();
     }
-
-    const cleanupCrossTab = shopId ? listenForCrossTabSync(shopId) : () => {};
 
     const {
       data: { subscription },
@@ -123,11 +132,9 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
         initialised.current = false;
         reset();
         if (signingOut.current) {
-          // User clicked "Sign out" explicitly — go to login with no banner
           signingOut.current = false;
           router.replace("/login");
         } else {
-          // Automatic: session expired or invalidated from another device/admin
           router.replace("/login?reason=session_expired");
         }
       }
@@ -137,11 +144,14 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => {
-      subscription.unsubscribe();
-      cleanupCrossTab();
-    };
-  }, [init, reset, router, shopId]);
+    return () => subscription.unsubscribe();
+  }, [init, reset, router]);
+
+  // Cross-tab sync listener — updates when the active shop changes
+  useEffect(() => {
+    if (!shopId) return;
+    return listenForCrossTabSync(shopId);
+  }, [shopId]);
 
   const handleSignOut = async () => {
     const supabase = createClient();

@@ -103,6 +103,7 @@ export function CategoriesSection() {
               </div>
               <div className="flex items-center gap-1">
                 <button
+                  type="button"
                   onClick={() => {
                     setEditing(cat);
                     setName(cat.name);
@@ -126,6 +127,7 @@ export function CategoriesSection() {
                   </svg>
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleDelete(cat.id)}
                   className="btn btn-ghost btn-sm btn-icon"
                   style={{ color: "var(--color-danger)" }}

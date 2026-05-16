@@ -51,9 +51,18 @@ async function DashboardContent() {
 
   const shopIds = rows.map((r) => r.shop_id);
 
-  // Single grouped query replaces N per-shop round-trips
-  const [productCountsRes, lowStockRes, summaryRes] = await Promise.all([
-    supabase.from("products").select("shop_id").in("shop_id", shopIds),
+  // HEAD request per shop — transfers only the count header, not row data.
+  // For the typical 1-2 shop case this is 1-2 cheap parallel requests.
+  const [shopCounts, lowStockRes, summaryRes] = await Promise.all([
+    Promise.all(
+      shopIds.map((id) =>
+        supabase
+          .from("products")
+          .select("*", { count: "exact", head: true })
+          .eq("shop_id", id)
+          .then((r) => [id, r.count ?? 0] as const),
+      ),
+    ),
     supabase.rpc("get_low_stock_products", { p_shop_id: activeShopId }),
     supabase.rpc("get_sales_summary", {
       p_shop_id: activeShopId,
@@ -62,10 +71,7 @@ async function DashboardContent() {
     }),
   ]);
 
-  const countMap: Record<string, number> = {};
-  for (const row of productCountsRes.data ?? []) {
-    countMap[row.shop_id] = (countMap[row.shop_id] ?? 0) + 1;
-  }
+  const countMap = Object.fromEntries(shopCounts);
   const shops = rows.map((m) => ({
     ...m.shops,
     role: m.role,

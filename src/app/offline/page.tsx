@@ -58,6 +58,7 @@ export default function OfflinePage() {
           once you&apos;re back online.
         </p>
         <button
+          type="button"
           onClick={() => window.location.reload()}
           style={{
             display: "inline-flex",

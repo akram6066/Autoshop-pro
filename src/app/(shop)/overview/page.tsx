@@ -141,7 +141,11 @@ function ShopCard({
       )}
 
       {/* Action */}
-      <button onClick={onOpen} className="btn btn-primary w-full btn-sm">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="btn btn-primary w-full btn-sm"
+      >
         {isActive ? "Go to dashboard →" : "Open shop →"}
       </button>
     </div>

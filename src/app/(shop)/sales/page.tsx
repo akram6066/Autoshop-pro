@@ -237,6 +237,7 @@ export default function SalesPage() {
               </p>
               <div className="flex gap-2">
                 <button
+                  type="button"
                   onClick={() => setPage((p) => p - 1)}
                   disabled={page === 0}
                   className="btn btn-secondary btn-sm"
@@ -244,6 +245,7 @@ export default function SalesPage() {
                   Previous
                 </button>
                 <button
+                  type="button"
                   onClick={() => setPage((p) => p + 1)}
                   disabled={page >= totalPages - 1}
                   className="btn btn-secondary btn-sm"

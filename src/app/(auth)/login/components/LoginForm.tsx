@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useMounted } from "@/hooks/useMounted";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -125,7 +124,6 @@ export default function LoginForm() {
     AuthFieldErrors<LoginFormValues>
   >({});
   const [isLoading, setIsLoading] = useState(false);
-  const mounted = useMounted();
   const [touched, setTouched] = useState({ email: false, password: false });
 
   // Forgot-password state
@@ -653,7 +651,7 @@ export default function LoginForm() {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={!mounted || isLoading}
+                  disabled={isLoading}
                   style={{
                     width: "100%",
                     justifyContent: "center",

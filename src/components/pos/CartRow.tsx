@@ -115,6 +115,7 @@ export function CartRow({
 
         <div className="flex items-center gap-1">
           <button
+            type="button"
             onClick={() => onQtyChange(item.quantity - 1)}
             className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-medium transition-colors"
             style={{
@@ -132,6 +133,7 @@ export function CartRow({
             {item.quantity}
           </span>
           <button
+            type="button"
             onClick={() => onQtyChange(item.quantity + 1)}
             disabled={item.quantity >= item.product.quantity}
             className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-medium transition-colors"
@@ -153,6 +155,7 @@ export function CartRow({
         </span>
 
         <button
+          type="button"
           onClick={onRemove}
           className="btn btn-ghost btn-sm btn-icon"
           style={{ color: "var(--color-ink-ghost)" }}

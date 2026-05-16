@@ -27,6 +27,7 @@ export function ProductCard({
 
   return (
     <button
+      type="button"
       onClick={onAdd}
       disabled={outOfStock}
       className="card w-full h-full text-left rounded-xl transition-all duration-150 flex flex-col overflow-hidden"

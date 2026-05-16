@@ -73,6 +73,7 @@ function FAQSection() {
               }}
             >
               <button
+                type="button"
                 onClick={() => setOpenIdx(openIdx === i ? null : i)}
                 style={{
                   width: "100%",

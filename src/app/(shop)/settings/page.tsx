@@ -384,6 +384,7 @@ export default function SettingsPage() {
           This cannot be undone.
         </p>
         <button
+          type="button"
           onClick={() => setShowDeleteConfirm(true)}
           className="btn btn-danger"
         >

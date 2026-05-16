@@ -43,6 +43,7 @@ export function ProductGrid({ products, isLoading, categories, onAdd }: Props) {
           {["all", ...categories.map((c) => c.name)].map((cat) => (
             <button
               key={cat}
+              type="button"
               onClick={() => setCategoryFilter(cat)}
               className="btn btn-sm"
               style={{

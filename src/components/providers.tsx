@@ -2,8 +2,6 @@
 
 import { useEffect, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider, useTheme } from "next-themes";
-import { Toaster } from "sonner";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -45,17 +43,6 @@ function requestSync() {
   });
 }
 
-function ThemedToaster() {
-  const { resolvedTheme } = useTheme();
-  return (
-    <Toaster
-      richColors
-      position="top-right"
-      theme={(resolvedTheme ?? "system") as "light" | "dark" | "system"}
-    />
-  );
-}
-
 export function Providers({ children }: { children: ReactNode }) {
   const queryClient = getQueryClient();
 
@@ -86,24 +73,15 @@ export function Providers({ children }: { children: ReactNode }) {
 
   // Prune old IndexedDB data every 24 hours
   useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
     import("@/lib/db/instance").then(({ pruneOldData }) => {
       pruneOldData();
-      const interval = setInterval(pruneOldData, 24 * 60 * 60 * 1000);
-      return () => clearInterval(interval);
+      interval = setInterval(pruneOldData, 24 * 60 * 60 * 1000);
     });
+    return () => clearInterval(interval);
   }, []);
 
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      /* Removed disableTransitionOnChange — body transition handles smooth theme switching */
-    >
-      <QueryClientProvider client={queryClient}>
-        {children}
-        <ThemedToaster />
-      </QueryClientProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 }

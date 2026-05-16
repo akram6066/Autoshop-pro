@@ -45,6 +45,7 @@ export function MobileCartBar({
             </span>
           </div>
           <button
+            type="button"
             onClick={onCheckout}
             disabled={isSaving}
             className="btn btn-primary w-full"

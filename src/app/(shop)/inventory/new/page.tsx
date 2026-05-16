@@ -62,6 +62,7 @@ export default function NewProductPage() {
   return (
     <div className="max-w-xl">
       <button
+        type="button"
         onClick={() => router.back()}
         className="btn btn-ghost btn-sm mb-6"
         style={{ color: "var(--color-ink-tertiary)" }}
