@@ -2,19 +2,18 @@ import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { sanitizeError } from "@/lib/api/errors";
-import { checkLimit } from "@/lib/api/limit-check";
+import { getLimits } from "@/lib/limits";
 import { logRequest } from "@/lib/api/logger";
 import { staffInviteSchema } from "@/lib/validations/api";
 import { withAuth } from "@/lib/api/with-auth";
 import type { Plan } from "@/lib/limits";
 
-function getAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } },
-  );
-}
+// Module-level singleton — avoids re-creating a TCP connection on every request.
+const adminClient = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } },
+);
 
 export const POST = withAuth(
   async (request: NextRequest, { user, supabase }) => {
@@ -39,48 +38,75 @@ export const POST = withAuth(
       }
       const input = result.data;
 
-      const { data: membership, error: memberError } = await supabase
-        .from("shop_members")
-        .select("role")
-        .eq("shop_id", input.shop_id)
-        .eq("user_id", user.id)
-        .single();
+      // Run all three validation queries in parallel instead of sequentially.
+      // Previously: 3 round-trips × ~150ms = ~450ms sequential.
+      // Now: 1 parallel batch = ~150ms total.
+      const [memberRes, shopRes, staffCountRes] = await Promise.all([
+        supabase
+          .from("shop_members")
+          .select("role")
+          .eq("shop_id", input.shop_id)
+          .eq("user_id", user.id)
+          .single(),
+        supabase.from("shops").select("plan").eq("id", input.shop_id).single(),
+        supabase
+          .from("shop_members")
+          .select("id", { count: "exact", head: true })
+          .eq("shop_id", input.shop_id)
+          .eq("role", "staff"),
+      ]);
 
-      if (memberError || !membership || membership.role !== "owner") {
+      if (
+        memberRes.error ||
+        !memberRes.data ||
+        memberRes.data.role !== "owner"
+      ) {
         return NextResponse.json(
           { error: "Only shop owners can create staff accounts" },
           { status: 403 },
         );
       }
 
-      const { data: shopData } = await supabase
-        .from("shops")
-        .select("plan")
-        .eq("id", input.shop_id)
-        .single();
-      const plan: Plan = shopData?.plan === "pro" ? "pro" : "free";
-      const limitResult = await checkLimit(
-        supabase,
-        input.shop_id,
-        "staff",
-        plan,
-      );
-      if (!limitResult.allowed) {
+      const plan: Plan = shopRes.data?.plan === "pro" ? "pro" : "free";
+      const maxStaff = getLimits(plan).staff;
+      const currentStaff = (staffCountRes.count as number | null) ?? 0;
+      if (currentStaff >= maxStaff) {
         return NextResponse.json(
           { error: "Staff limit reached. Free plan allows 3 staff members." },
           { status: 403 },
         );
       }
 
-      const adminClient = getAdminClient();
-
-      const { data: newUser, error: createError } =
-        await adminClient.auth.admin.createUser({
+      const createResult = await Promise.race([
+        adminClient.auth.admin.createUser({
           email: input.email,
           password: input.password,
           email_confirm: true,
           user_metadata: { full_name: input.full_name },
-        });
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("create_timeout")), 8000),
+        ),
+      ]).catch((err: unknown) => {
+        if (err instanceof Error && err.message === "create_timeout") {
+          return { data: null, error: { message: "create_timeout" } };
+        }
+        return { data: null, error: { message: String(err) } };
+      });
+
+      if (
+        createResult.error &&
+        "message" in createResult.error &&
+        createResult.error.message === "create_timeout"
+      ) {
+        console.error("[create-staff] auth.admin.createUser timed out");
+        return NextResponse.json(
+          { error: "Supabase took too long to respond. Try again." },
+          { status: 504 },
+        );
+      }
+
+      const { data: newUser, error: createError } = createResult;
 
       const alreadyExists =
         createError?.message
@@ -89,7 +115,6 @@ export const POST = withAuth(
         createError?.message?.toLowerCase().includes("already exists");
 
       if (alreadyExists) {
-        // Invite is tied to the email — no user lookup needed
         const { error: inviteError } = await supabase.rpc(
           "create_shop_invite",
           {
@@ -126,29 +151,36 @@ export const POST = withAuth(
 
       const staffUserId = newUser.user.id;
 
-      await adminClient.from("profiles").upsert({
-        id: staffUserId,
-        full_name: input.full_name,
-        role: "staff",
-      });
+      // Run both DB writes in parallel — profile + shop membership.
+      // Previously sequential: 2 × ~150ms = ~300ms. Now: ~150ms.
+      const [, memberUpsertErr] = await Promise.all([
+        adminClient.from("profiles").upsert({
+          id: staffUserId,
+          full_name: input.full_name,
+          role: "staff",
+          shop_id: input.shop_id,
+        }),
+        adminClient
+          .from("shop_members")
+          .upsert({
+            shop_id: input.shop_id,
+            user_id: staffUserId,
+            role: "staff",
+          })
+          .then((r) => r.error),
+      ]);
 
-      const { error: inviteError } = await supabase.rpc("create_shop_invite", {
-        p_shop_id: input.shop_id,
-        p_email: input.email,
-        p_role: "staff",
-      });
-
-      if (inviteError) {
-        const { message, status } = sanitizeError(inviteError, {
+      if (memberUpsertErr) {
+        const { message, status } = sanitizeError(memberUpsertErr, {
           log: (e) =>
-            console.error("[create-staff] invite failed for new user:", e),
+            console.error("[create-staff] shop_members upsert failed:", e),
           fallback:
             "Account created but could not be added to shop. Contact support.",
         });
         return NextResponse.json({ error: message }, { status });
       }
 
-      return NextResponse.json({ ok: true, created: true, invited: true });
+      return NextResponse.json({ ok: true, created: true, invited: false });
     } catch (err) {
       const { message, status } = sanitizeError(err, {
         log: (e) => console.error("[create-staff] unexpected error:", e),

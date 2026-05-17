@@ -13,6 +13,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Users } from "lucide-react";
 import { toast } from "sonner";
+import { friendlyError } from "@/lib/api/errors";
 
 export function TeamSection() {
   const shopId = useAuthStore(selectShopId);
@@ -35,7 +36,6 @@ export function TeamSection() {
   const [managingMember, setManagingMember] = useState<TeamMember | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [isManaging, setIsManaging] = useState(false);
-  const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   async function handleAdd(e: React.FormEvent) {
@@ -55,10 +55,7 @@ export function TeamSection() {
       setStaffPassword("");
       setStaffName("");
     } catch (err: unknown) {
-      toast.error(
-        (err as { message?: string })?.message ??
-          "Failed to create staff account",
-      );
+      toast.error(friendlyError(err, "Failed to create staff account."));
     } finally {
       setIsAdding(false);
     }
@@ -75,9 +72,7 @@ export function TeamSection() {
       toast.success("Password reset successfully.");
       setNewPassword("");
     } catch (err: unknown) {
-      toast.error(
-        (err as { message?: string })?.message ?? "Failed to reset password.",
-      );
+      toast.error(friendlyError(err, "Failed to reset password."));
     } finally {
       setIsManaging(false);
     }
@@ -92,11 +87,8 @@ export function TeamSection() {
       toast.success("Account deleted successfully.");
       setManagingMember(null);
       setShowDeleteConfirm(false);
-      setDeleteConfirmationText("");
     } catch (err: unknown) {
-      toast.error(
-        (err as { message?: string })?.message ?? "Failed to delete account.",
-      );
+      toast.error(friendlyError(err, "Failed to delete account."));
     } finally {
       setIsManaging(false);
     }
@@ -183,7 +175,6 @@ export function TeamSection() {
         onClose={() => {
           setManagingMember(null);
           setShowDeleteConfirm(false);
-          setDeleteConfirmationText("");
         }}
         title={`Manage ${managingMember?.full_name}`}
       >
@@ -239,14 +230,14 @@ export function TeamSection() {
                 Danger Zone
               </h4>
 
-              <div className="flex items-center justify-between mt-3">
-                <span
-                  className="text-sm font-medium"
-                  style={{ color: "var(--color-danger-text)" }}
-                >
-                  Delete account entirely
-                </span>
-                {!showDeleteConfirm ? (
+              {!showDeleteConfirm ? (
+                <div className="flex items-center justify-between mt-3">
+                  <span
+                    className="text-sm"
+                    style={{ color: "var(--color-danger-text)" }}
+                  >
+                    Delete this staff account permanently
+                  </span>
                   <button
                     type="button"
                     onClick={() => setShowDeleteConfirm(true)}
@@ -255,59 +246,34 @@ export function TeamSection() {
                   >
                     Delete
                   </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="btn btn-secondary btn-sm"
-                    disabled={isManaging}
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
-
-              {showDeleteConfirm && (
-                <div
-                  className="mt-4 p-3 rounded-md animate-fade-in-up"
-                  style={{
-                    background: "var(--color-surface-0)",
-                    border: "1px solid var(--color-danger)",
-                  }}
-                >
+                </div>
+              ) : (
+                <div className="mt-3 space-y-3">
                   <p
-                    className="text-xs mb-2 font-medium"
+                    className="text-sm font-medium"
                     style={{ color: "var(--color-danger-text)" }}
                   >
-                    This action cannot be undone. To confirm, type{" "}
-                    <strong
-                      className="font-mono px-1 rounded select-all"
-                      style={{ background: "var(--color-danger-light)" }}
-                    >
-                      DELETE {managingMember.full_name}
-                    </strong>{" "}
-                    below.
+                    Delete <strong>{managingMember.full_name}</strong>? This
+                    cannot be undone.
                   </p>
-                  <input
-                    type="text"
-                    className="input text-sm mb-2"
-                    placeholder={`DELETE ${managingMember.full_name}`}
-                    value={deleteConfirmationText}
-                    onChange={(e) => setDeleteConfirmationText(e.target.value)}
-                    style={{ borderColor: "var(--color-danger)" }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleDeleteAccount}
-                    className="btn btn-danger btn-sm w-full"
-                    disabled={
-                      isManaging ||
-                      deleteConfirmationText !==
-                        `DELETE ${managingMember.full_name}`
-                    }
-                  >
-                    {isManaging ? "Deleting..." : "Permanently Delete Account"}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="btn btn-secondary btn-sm flex-1"
+                      disabled={isManaging}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteAccount}
+                      className="btn btn-danger btn-sm flex-1"
+                      disabled={isManaging}
+                    >
+                      {isManaging ? "Deleting…" : "Yes, delete"}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

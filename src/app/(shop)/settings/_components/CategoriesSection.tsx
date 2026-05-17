@@ -9,6 +9,7 @@ import {
   useUpdateCategory,
 } from "@/hooks/useCategories";
 import type { CategoryItem } from "@/types/app";
+import { friendlyError } from "@/lib/api/errors";
 
 const PRESET_COLORS = [
   "#3b6ef5",
@@ -50,9 +51,7 @@ export function CategoriesSection() {
       setName("");
       setColor(randomColor());
     } catch (err: unknown) {
-      setMsg(
-        (err as { message?: string })?.message ?? "Failed to save category",
-      );
+      setMsg(friendlyError(err, "Failed to save category."));
     }
   }
 
@@ -71,9 +70,7 @@ export function CategoriesSection() {
     try {
       await deleteCategory({ categoryId });
     } catch (err: unknown) {
-      setMsg(
-        (err as { message?: string })?.message ?? "Failed to delete category",
-      );
+      setMsg(friendlyError(err, "Failed to delete category."));
     }
   }
 

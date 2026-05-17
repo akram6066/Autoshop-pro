@@ -17,13 +17,16 @@ function getCategoryColor(category: string): string {
 
 export function ProductCard({
   product,
+  hasVariants = false,
   onAdd,
 }: {
   product: Product;
+  hasVariants?: boolean;
   onAdd: () => void;
 }) {
-  const outOfStock = product.quantity === 0;
-  const lowStock = !outOfStock && product.quantity <= product.min_stock;
+  const outOfStock = !hasVariants && product.quantity === 0;
+  const lowStock =
+    !hasVariants && !outOfStock && product.quantity <= product.min_stock;
 
   return (
     <button
@@ -109,20 +112,41 @@ export function ProductCard({
             className="text-base font-bold"
             style={{ color: "var(--color-brand-600)" }}
           >
-            {formatCurrency(product.price)}
+            {hasVariants ? (
+              <span
+                className="text-xs"
+                style={{ color: "var(--color-ink-tertiary)" }}
+              >
+                from —
+              </span>
+            ) : (
+              formatCurrency(product.price)
+            )}
           </span>
-          <span
-            className="text-xs font-medium px-1.5 py-0.5 rounded-md"
-            style={{
-              background: "var(--color-surface-2)",
-              color:
-                product.quantity === 0
-                  ? "var(--color-danger)"
-                  : "var(--color-ink-secondary)",
-            }}
-          >
-            {product.quantity}
-          </span>
+          {hasVariants ? (
+            <span
+              className="text-xs font-medium px-1.5 py-0.5 rounded-md"
+              style={{
+                background: "var(--color-brand-50)",
+                color: "var(--color-brand-700)",
+              }}
+            >
+              sizes ›
+            </span>
+          ) : (
+            <span
+              className="text-xs font-medium px-1.5 py-0.5 rounded-md"
+              style={{
+                background: "var(--color-surface-2)",
+                color:
+                  product.quantity === 0
+                    ? "var(--color-danger)"
+                    : "var(--color-ink-secondary)",
+              }}
+            >
+              {product.quantity}
+            </span>
+          )}
         </div>
       </div>
     </button>

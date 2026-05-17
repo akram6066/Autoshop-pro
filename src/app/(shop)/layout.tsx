@@ -8,7 +8,8 @@ import { useAuthStore, selectRole, selectShopId } from "@/stores/authStore";
 import { seedLocalCache } from "@/lib/db/instance";
 import { listenForCrossTabSync } from "@/lib/sync/queue";
 import { ShopHeader } from "@/components/shop/ShopHeader";
-import type { Profile, Room, Product, ShopWithRole } from "@/types/app";
+import { fetchAllProducts } from "@/lib/supabase/fetchAllProducts";
+import type { Profile, Room, ShopWithRole } from "@/types/app";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -85,7 +86,8 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (!profile?.shop_id) {
+    // Profile row missing entirely — account not fully set up yet.
+    if (!profile) {
       router.replace("/setup");
       return;
     }
@@ -96,25 +98,31 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       role: m.role,
     }));
 
+    // No active shop on profile AND no memberships → first-time setup.
+    if (!profile.shop_id && shops.length === 0) {
+      router.replace("/setup");
+      return;
+    }
+
     const activeShop =
       shops.find((s) => s.id === profile.shop_id) ?? shops[0] ?? null;
 
     if (activeShop) {
       Promise.all([
         supabase.from("rooms").select("*").eq("shop_id", activeShop.id),
-        supabase.from("products").select("*").eq("shop_id", activeShop.id),
-      ]).then(([roomsRes, productsRes]) => {
+        fetchAllProducts(supabase, activeShop.id),
+      ]).then(([roomsRes, products]) => {
         seedLocalCache(
           activeShop,
           (roomsRes.data as Room[]) ?? [],
-          (productsRes.data as Product[]) ?? [],
+          products,
         ).catch(console.error);
       });
     }
 
     setAll(
       user,
-      { ...profile, role: activeShop?.role ?? profile.role },
+      { ...profile, role: activeShop?.role ?? profile.role ?? null },
       activeShop,
       shops,
     );

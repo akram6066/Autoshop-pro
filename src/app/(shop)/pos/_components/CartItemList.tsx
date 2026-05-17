@@ -7,9 +7,9 @@ type CartItem = ComponentProps<typeof CartRow>["item"];
 
 interface Props {
   items: CartItem[];
-  onQtyChange: (productId: string, qty: number) => void;
-  onRemove: (productId: string) => void;
-  onPriceEdit: (productId: string, price: number, reason: string) => void;
+  onQtyChange: (cartKey: string, qty: number) => void;
+  onRemove: (cartKey: string) => void;
+  onPriceEdit: (cartKey: string, price: number, reason: string) => void;
 }
 
 export function CartItemList({
@@ -46,12 +46,12 @@ export function CartItemList({
     <div>
       {items.map((item) => (
         <CartRow
-          key={item.product.id}
+          key={item.cartKey}
           item={item}
-          onQtyChange={(qty) => onQtyChange(item.product.id, qty)}
-          onRemove={() => onRemove(item.product.id)}
+          onQtyChange={(qty) => onQtyChange(item.cartKey, qty)}
+          onRemove={() => onRemove(item.cartKey)}
           onPriceEdit={(price, reason) =>
-            onPriceEdit(item.product.id, price, reason)
+            onPriceEdit(item.cartKey, price, reason)
           }
         />
       ))}

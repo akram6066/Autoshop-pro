@@ -91,6 +91,37 @@ const KNOWN_PATTERNS: Array<{
   },
 ];
 
+/**
+ * Client-safe: translate a raw Supabase/Postgres error into a plain-English
+ * message the user can act on. Never leaks constraint names or SQL fragments.
+ */
+export function friendlyError(
+  err: unknown,
+  fallback = "Something went wrong. Please try again.",
+): string {
+  const raw = extractMessage(err);
+  if (!raw) return fallback;
+
+  // Unique constraint violations — check constraint/table name for specificity
+  if (/duplicate key|unique.*constraint/i.test(raw)) {
+    if (/categories_/i.test(raw))
+      return "A category with that name already exists.";
+    if (/products_/i.test(raw))
+      return "A product with that name already exists.";
+    if (/shops_/i.test(raw)) return "A shop with that name already exists.";
+    if (/profiles_/i.test(raw))
+      return "An account with this email already exists.";
+    return "This already exists. Please use a different name.";
+  }
+
+  // Walk the rest of the known patterns
+  for (const { pattern, message } of KNOWN_PATTERNS) {
+    if (pattern.test(raw)) return message;
+  }
+
+  return fallback;
+}
+
 export function sanitizeError(
   err: unknown,
   opts: SanitizeOptions = {},

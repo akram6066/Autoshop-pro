@@ -43,6 +43,11 @@ export function useAddStaff() {
         password,
         full_name: fullName,
       }),
+      signal: AbortSignal.timeout(12000),
+    }).catch(() => {
+      throw new Error(
+        "Request timed out. Check your connection and try again.",
+      );
     });
 
     const data = await res.json();
@@ -67,6 +72,11 @@ export function useResetStaffPassword() {
         user_id: userId,
         new_password: newPassword,
       }),
+      signal: AbortSignal.timeout(12000),
+    }).catch(() => {
+      throw new Error(
+        "Request timed out. Check your connection and try again.",
+      );
     });
 
     const data = await res.json();
@@ -81,10 +91,12 @@ export function useDeleteStaff() {
     const res = await fetch("/api/admin/delete-staff", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        shop_id: shopId,
-        user_id: userId,
-      }),
+      body: JSON.stringify({ shop_id: shopId, user_id: userId }),
+      signal: AbortSignal.timeout(12000),
+    }).catch(() => {
+      throw new Error(
+        "Request timed out. Check your connection and try again.",
+      );
     });
 
     const data = await res.json();

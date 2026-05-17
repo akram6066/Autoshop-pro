@@ -187,6 +187,22 @@ export const NAV: NavItem[] = [
     ),
   },
   {
+    href: "/activity",
+    label: "Activity",
+    ownerOnly: true,
+    icon: (
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
+  {
     href: "/settings",
     label: "Settings",
     ownerOnly: true,

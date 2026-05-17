@@ -84,7 +84,7 @@ export function useSalesSummary(
       return data as SalesSummaryRow[];
     },
     enabled: !!shopId,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60, // 1 min — reflects recent sales promptly
   });
 }
 
@@ -148,6 +148,7 @@ export function useRecordSale() {
         id: crypto.randomUUID(),
         sale_id: saleId,
         product_id: i.product.id,
+        variant_id: i.variantId ?? null,
         quantity: i.quantity,
         unit_price: i.unit_price,
       }));

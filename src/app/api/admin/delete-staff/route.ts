@@ -81,12 +81,30 @@ export const POST = withAuth(
 
       const adminClient = getAdminClient();
 
-      const { error: deleteError } = await adminClient.auth.admin.deleteUser(
-        body.user_id,
-      );
+      const deleteResult = await Promise.race([
+        adminClient.auth.admin.deleteUser(body.user_id),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("delete_timeout")), 8000),
+        ),
+      ]).catch((err: unknown) => {
+        if (err instanceof Error && err.message === "delete_timeout") {
+          return { error: { message: "delete_timeout", status: 504 } };
+        }
+        return { error: { message: String(err), status: 500 } };
+      });
 
-      if (deleteError) {
-        const { message, status } = sanitizeError(deleteError, {
+      if (deleteResult.error) {
+        if (
+          "message" in deleteResult.error &&
+          deleteResult.error.message === "delete_timeout"
+        ) {
+          console.error("[delete-staff] auth.admin.deleteUser timed out");
+          return NextResponse.json(
+            { error: "Supabase took too long to respond. Try again." },
+            { status: 504 },
+          );
+        }
+        const { message, status } = sanitizeError(deleteResult.error, {
           log: (e) => console.error("[delete-staff] auth.admin.deleteUser:", e),
           fallback: "Failed to delete account",
         });

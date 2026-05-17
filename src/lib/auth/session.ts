@@ -109,16 +109,20 @@ export async function loadAuthSessionState(
       role: membership.role,
     }));
 
-  const activeShop =
-    (shops.find((shop) => shop.id === profile.shop_id) as Shop | undefined) ??
-    (shops[0] as Shop | undefined) ??
-    null;
+  const activeShopWithRole: ShopWithRole | null =
+    shops.find((shop) => shop.id === profile.shop_id) ?? shops[0] ?? null;
+
+  const activeShop = activeShopWithRole as Shop | null;
 
   return {
     user,
     profile,
     activeShop,
     shops,
-    destination: activeShop ? "/dashboard" : "/setup",
+    destination: !activeShopWithRole
+      ? "/setup"
+      : activeShopWithRole.role === "staff"
+        ? "/pos"
+        : "/dashboard",
   };
 }

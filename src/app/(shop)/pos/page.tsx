@@ -9,8 +9,9 @@ import { useCategories } from "@/hooks/useCategories";
 import { useRecordSale } from "@/hooks/useSales";
 import { useCustomers, useCreateCustomer } from "@/hooks/useCustomers";
 import { useCart } from "@/hooks/useCart";
+import { useShopVariants } from "@/hooks/useVariants";
 import type { ReceiptData } from "@/components/pos/SaleReceipt";
-import type { Customer, PaymentMethod } from "@/types/app";
+import type { Customer, PaymentMethod, ProductVariant } from "@/types/app";
 import { ProductGrid } from "./_components/ProductGrid";
 import { CartPanel } from "./_components/CartPanel";
 import { MobileCartBar } from "./_components/MobileCartBar";
@@ -138,11 +139,22 @@ export default function POSPage() {
   const { data: products = [], isLoading } = useProducts(shopId);
   const { data: categories = [] } = useCategories();
   const { data: customers = [] } = useCustomers(shopId);
+  const { data: allVariants = [] } = useShopVariants(shopId);
   const { mutateAsync: recordSale, isPending: isSaving } = useRecordSale();
   const { mutateAsync: createCustomer, isPending: isCreatingCustomer } =
     useCreateCustomer();
   const { items, total, add, remove, updateQty, overridePrice, clear } =
     useCart();
+
+  const variantsByProduct = useMemo(() => {
+    const map = new Map<string, ProductVariant[]>();
+    for (const v of allVariants) {
+      const arr = map.get(v.product_id) ?? [];
+      arr.push(v);
+      map.set(v.product_id, arr);
+    }
+    return map;
+  }, [allVariants]);
 
   const [state, dispatch] = useReducer(checkoutReducer, initial);
   const {
@@ -247,6 +259,7 @@ export default function POSPage() {
           products={products}
           isLoading={isLoading}
           categories={categories}
+          variantsByProduct={variantsByProduct}
           onAdd={add}
         />
         <CartPanel

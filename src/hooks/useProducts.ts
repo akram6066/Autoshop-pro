@@ -7,6 +7,7 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { fetchAllProducts } from "@/lib/supabase/fetchAllProducts";
 import { getDb, getLocalProducts, seedProducts } from "@/lib/db/instance";
 import { enqueue } from "@/lib/sync/queue";
 import { getDeviceId } from "@/lib/utils";
@@ -26,23 +27,14 @@ export const productKeys = {
 
 async function fetchProducts(shopId: string): Promise<Product[]> {
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .eq("shop_id", shopId)
-    .order("name");
-
-  if (error) {
-    console.warn(
-      "[useProducts] Supabase fetch failed, using IndexedDB:",
-      error.message,
-    );
+  try {
+    const data = await fetchAllProducts(supabase, shopId);
+    seedProducts(shopId, data).catch(console.error);
+    return data;
+  } catch (err) {
+    console.warn("[useProducts] Supabase fetch failed, using IndexedDB:", err);
     return getLocalProducts(shopId);
   }
-
-  seedProducts(shopId, data as Product[]).catch(console.error);
-
-  return data as Product[];
 }
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────

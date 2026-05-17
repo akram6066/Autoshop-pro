@@ -75,6 +75,17 @@ export interface Product {
   updated_at: string;
 }
 
+export interface ProductVariant {
+  id: string;
+  product_id: string;
+  size: string;
+  sku: string | null;
+  price: number;
+  quantity: number;
+  min_stock: number;
+  created_at: string;
+}
+
 export type PaymentMethod = "cash" | "mpesa" | "credit" | "partial";
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
@@ -182,7 +193,11 @@ export interface POItem {
 }
 
 export interface CartItem {
+  cartKey: string; // "${productId}:${variantId ?? ""}"
   product: Product;
+  variantId?: string;
+  variantSize?: string;
+  maxQuantity: number; // available stock (variant.quantity or product.quantity)
   quantity: number;
   unit_price: number;
   overrideReason?: string;

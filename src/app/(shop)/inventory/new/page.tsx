@@ -6,53 +6,181 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import { useCreateProduct } from "@/hooks/useProducts";
+import { useCreateVariants } from "@/hooks/useVariants";
 import { useRooms } from "@/hooks/useRooms";
 import { useCategories } from "@/hooks/useCategories";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface VariantRow {
+  _key: string; // local React key only
+  size: string;
+  sku: string;
+  quantity: number;
+  min_stock: number;
+  price: number;
+}
+
+function newRow(): VariantRow {
+  return {
+    _key: crypto.randomUUID(),
+    size: "",
+    sku: "",
+    quantity: 0,
+    min_stock: 0,
+    price: 0,
+  };
+}
+
+// Select-all on focus so the user doesn't have to delete 0 first
+function NumInput({
+  value,
+  onChange,
+  min = 0,
+  placeholder,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  placeholder?: string;
+}) {
+  return (
+    <input
+      className="input"
+      type="number"
+      min={min}
+      value={value}
+      placeholder={placeholder}
+      onFocus={(e) => e.target.select()}
+      onChange={(e) =>
+        onChange(isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber)
+      }
+    />
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function NewProductPage() {
   const router = useRouter();
   const shopId = useAuthStore(selectShopId);
-  const { mutateAsync: createProduct, isPending } = useCreateProduct();
+  const { mutateAsync: createProduct, isPending: isCreatingProduct } =
+    useCreateProduct();
+  const { mutateAsync: createVariants, isPending: isCreatingVariants } =
+    useCreateVariants(shopId);
   const { data: categories = [] } = useCategories();
   const { data: rooms = [] } = useRooms(shopId);
 
   const [error, setError] = useState("");
   const mounted = useMounted();
 
+  // ── Product-level fields ──
   const [name, setName] = useState("");
-  const [sku, setSku] = useState("");
   const [category, setCategory] = useState("");
   const [roomId, setRoomId] = useState("");
+
+  // ── Simple (no-variant) fields ──
+  const [sku, setSku] = useState("");
+  const [size, setSize] = useState("");
   const [quantity, setQuantity] = useState(0);
   const [minStock, setMinStock] = useState(5);
   const [price, setPrice] = useState(0);
-  const [size, setSize] = useState("");
 
-  // Fall back to first available option until the user picks something explicitly
+  // ── Variant mode ──
+  const [useVariants, setUseVariants] = useState(false);
+  const [variants, setVariants] = useState<VariantRow[]>([newRow()]);
+
   const effectiveRoomId = roomId || rooms[0]?.id || "";
   const effectiveCategory = category || categories[0]?.name || "";
+  const isPending = isCreatingProduct || isCreatingVariants;
+
+  function addVariantRow() {
+    setVariants((prev) => [...prev, newRow()]);
+  }
+
+  function removeVariantRow(key: string) {
+    setVariants((prev) => prev.filter((r) => r._key !== key));
+  }
+
+  function updateVariantRow(
+    key: string,
+    patch: Partial<Omit<VariantRow, "_key">>,
+  ) {
+    setVariants((prev) =>
+      prev.map((r) => (r._key === key ? { ...r, ...patch } : r)),
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!shopId || !effectiveRoomId || !effectiveCategory) return;
+
+    if (useVariants) {
+      const filled = variants.filter((v) => v.size.trim());
+      if (filled.length === 0) {
+        setError("Add at least one size variant.");
+        return;
+      }
+      const sizes = filled.map((v) => v.size.trim().toLowerCase());
+      if (new Set(sizes).size !== sizes.length) {
+        setError("Duplicate sizes found — each size must be unique.");
+        return;
+      }
+    }
+
     setError("");
+
     const result = await createProduct({
       shopId,
       data: {
         room_id: effectiveRoomId,
         name: name.trim(),
-        sku: sku.trim(),
+        sku: useVariants ? "" : sku.trim(),
         category: effectiveCategory,
-        quantity,
-        min_stock: minStock,
-        price,
-        size: size.trim() || null,
+        quantity: useVariants ? 0 : quantity,
+        min_stock: useVariants ? 0 : minStock,
+        price: useVariants ? 0 : price,
+        size: useVariants ? null : size.trim() || null,
       },
     });
+
     if (result.status === "error") {
       setError(result.error.message);
       return;
     }
+    if (result.status === "offline" && useVariants) {
+      toast.warning(
+        "You're offline — variants will be saved when reconnected.",
+      );
+      router.push("/inventory");
+      return;
+    }
+
+    if (useVariants && result.status === "success") {
+      const productId = (result as { status: "success"; data: { id: string } })
+        .data?.id;
+      if (productId) {
+        const filled = variants.filter((v) => v.size.trim());
+        try {
+          await createVariants({
+            productId,
+            variants: filled.map((v) => ({
+              size: v.size.trim(),
+              sku: v.sku.trim() || undefined,
+              price: v.price,
+              quantity: v.quantity,
+              min_stock: v.min_stock,
+            })),
+          });
+        } catch (err) {
+          setError(
+            `Product saved, but variants failed: ${(err as Error).message}`,
+          );
+          return;
+        }
+      }
+    }
+
     if (result.status === "offline") {
       toast.warning("Saved offline — will sync when reconnected.");
     }
@@ -60,7 +188,7 @@ export default function NewProductPage() {
   }
 
   return (
-    <div className="max-w-xl">
+    <div className="max-w-2xl">
       <button
         type="button"
         onClick={() => router.back()}
@@ -88,6 +216,7 @@ export default function NewProductPage() {
 
       <div className="card p-6 animate-scale-in">
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Product name */}
           <div>
             <label className="block text-sm font-medium mb-1.5">
               Product name{" "}
@@ -104,21 +233,7 @@ export default function NewProductPage() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1.5">
-              SKU <span style={{ color: "var(--color-danger)" }}>*</span>
-            </label>
-            <input
-              className="input"
-              type="text"
-              value={sku}
-              onChange={(e) => setSku(e.target.value)}
-              required
-              placeholder="e.g. TYR-MPS4S-245-40-18"
-              style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}
-            />
-          </div>
-
+          {/* Category + Room */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1.5">
@@ -166,135 +281,200 @@ export default function NewProductPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1.5">
-              Size{" "}
-              <span
-                style={{ color: "var(--color-ink-ghost)", fontWeight: 400 }}
+          {/* Variant mode toggle */}
+          <div
+            className="flex items-center justify-between rounded-xl px-4 py-3"
+            style={{
+              background: useVariants
+                ? "var(--color-brand-50)"
+                : "var(--color-surface-1)",
+              border: `1px solid ${useVariants ? "var(--color-brand-200)" : "var(--color-border-input)"}`,
+            }}
+          >
+            <div>
+              <p
+                className="text-sm font-medium"
+                style={{ color: "var(--color-ink-primary)" }}
               >
-                (optional)
-              </span>
-            </label>
-            <div className="relative">
-              <input
-                className="input"
-                list="size-options"
-                type="text"
-                placeholder="e.g. L, XL, 245/40R18, 16in"
-                value={size}
-                onChange={(e) => setSize(e.target.value)}
-              />
-              {size && (
-                <button
-                  type="button"
-                  onClick={() => setSize("")}
-                  aria-label="Clear size"
-                  style={{
-                    position: "absolute",
-                    right: "0.5rem",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "1.25rem",
-                    height: "1.25rem",
-                    borderRadius: "50%",
-                    border: "none",
-                    background: "transparent",
-                    color: "var(--color-ink-ghost)",
-                    cursor: "pointer",
-                    padding: 0,
-                  }}
-                >
-                  <svg
-                    width="10"
-                    height="10"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M18 6L6 18M6 6l12 12"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-              )}
+                Multiple sizes
+              </p>
+              <p
+                className="text-xs"
+                style={{ color: "var(--color-ink-tertiary)" }}
+              >
+                One brand, different sizes each with their own qty & price
+              </p>
             </div>
-            <datalist id="size-options">
-              {[
-                "S",
-                "M",
-                "L",
-                "XL",
-                "XXL",
-                "14in",
-                "15in",
-                "16in",
-                "17in",
-                "18in",
-                "19in",
-                "20in",
-              ].map((s) => (
-                <option key={s} value={s} />
-              ))}
-            </datalist>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={useVariants}
+              onClick={() => setUseVariants((v) => !v)}
+              className="flex-shrink-0 w-10 h-6 rounded-full transition-colors relative"
+              style={{
+                background: useVariants
+                  ? "var(--color-brand-500)"
+                  : "var(--color-surface-3)",
+              }}
+            >
+              <span
+                className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all"
+                style={{ left: useVariants ? "1.25rem" : "0.25rem" }}
+              />
+            </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1.5">
-                Initial qty
-              </label>
-              <input
-                className="input"
-                type="number"
-                min={0}
-                value={quantity}
-                onChange={(e) =>
-                  setQuantity(
-                    isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber,
-                  )
-                }
-              />
+          {/* ── Variant rows ── */}
+          {useVariants ? (
+            <div className="space-y-3">
+              {/* Header */}
+              <div
+                className="grid gap-2 text-xs font-medium"
+                style={{
+                  gridTemplateColumns: "1fr 90px 70px 70px 90px 32px",
+                  color: "var(--color-ink-tertiary)",
+                  paddingBottom: 4,
+                  borderBottom: "1px solid var(--color-surface-2)",
+                }}
+              >
+                <span>Size *</span>
+                <span>SKU</span>
+                <span>Qty</span>
+                <span>Min</span>
+                <span>Price (KES)</span>
+                <span />
+              </div>
+
+              {variants.map((row) => (
+                <div
+                  key={row._key}
+                  className="grid gap-2 items-center"
+                  style={{
+                    gridTemplateColumns: "1fr 90px 70px 70px 90px 32px",
+                  }}
+                >
+                  <input
+                    className="input"
+                    type="text"
+                    placeholder="e.g. 205/55R16"
+                    value={row.size}
+                    onChange={(e) =>
+                      updateVariantRow(row._key, { size: e.target.value })
+                    }
+                    required
+                  />
+                  <input
+                    className="input"
+                    type="text"
+                    placeholder="SKU"
+                    value={row.sku}
+                    style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}
+                    onChange={(e) =>
+                      updateVariantRow(row._key, { sku: e.target.value })
+                    }
+                  />
+                  <NumInput
+                    value={row.quantity}
+                    onChange={(v) =>
+                      updateVariantRow(row._key, { quantity: v })
+                    }
+                  />
+                  <NumInput
+                    value={row.min_stock}
+                    onChange={(v) =>
+                      updateVariantRow(row._key, { min_stock: v })
+                    }
+                  />
+                  <NumInput
+                    value={row.price}
+                    onChange={(v) => updateVariantRow(row._key, { price: v })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeVariantRow(row._key)}
+                    disabled={variants.length === 1}
+                    className="btn-icon"
+                    style={{
+                      color: "var(--color-danger)",
+                      opacity: variants.length === 1 ? 0.3 : 1,
+                    }}
+                    aria-label="Remove size"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={addVariantRow}
+                className="btn btn-secondary btn-sm"
+              >
+                + Add size
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1.5">
-                Min stock
-              </label>
-              <input
-                className="input"
-                type="number"
-                min={0}
-                value={minStock}
-                onChange={(e) =>
-                  setMinStock(
-                    isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber,
-                  )
-                }
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1.5">
-                Price (KES)
-              </label>
-              <input
-                className="input"
-                type="number"
-                min={0}
-                value={price}
-                onChange={(e) =>
-                  setPrice(
-                    isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber,
-                  )
-                }
-              />
-            </div>
-          </div>
+          ) : (
+            /* ── Simple product fields ── */
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    SKU <span style={{ color: "var(--color-danger)" }}>*</span>
+                  </label>
+                  <input
+                    className="input"
+                    type="text"
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value)}
+                    required={!useVariants}
+                    placeholder="e.g. TYR-MPS4S-245-40-18"
+                    style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    Size{" "}
+                    <span
+                      style={{
+                        color: "var(--color-ink-ghost)",
+                        fontWeight: 400,
+                      }}
+                    >
+                      (optional)
+                    </span>
+                  </label>
+                  <input
+                    className="input"
+                    type="text"
+                    placeholder="e.g. 245/40R18"
+                    value={size}
+                    onChange={(e) => setSize(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    Initial qty
+                  </label>
+                  <NumInput value={quantity} onChange={setQuantity} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    Min stock
+                  </label>
+                  <NumInput value={minStock} onChange={setMinStock} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    Price (KES)
+                  </label>
+                  <NumInput value={price} onChange={setPrice} />
+                </div>
+              </div>
+            </>
+          )}
 
           {error && (
             <p className="text-sm" style={{ color: "var(--color-danger)" }}>
@@ -310,7 +490,7 @@ export default function NewProductPage() {
                 !mounted ||
                 isPending ||
                 !name.trim() ||
-                !sku.trim() ||
+                (!useVariants && !sku.trim()) ||
                 !effectiveRoomId ||
                 !effectiveCategory
               }

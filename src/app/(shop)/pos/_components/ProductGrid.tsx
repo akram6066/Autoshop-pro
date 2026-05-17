@@ -3,22 +3,36 @@
 import { useState, useMemo } from "react";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { ProductCard } from "@/components/pos/ProductCard";
-import type { Product } from "@/types/app";
+import { VariantPickerModal } from "./VariantPickerModal";
+import type { Product, ProductVariant } from "@/types/app";
 
 interface Props {
   products: Product[];
   isLoading: boolean;
   categories: { name: string }[];
-  onAdd: (product: Product) => void;
+  variantsByProduct: Map<string, ProductVariant[]>;
+  onAdd: (product: Product, variant?: ProductVariant) => void;
 }
 
-export function ProductGrid({ products, isLoading, categories, onAdd }: Props) {
+const INITIAL_LIMIT = 48;
+const SEARCH_LIMIT = 100;
+
+export function ProductGrid({
+  products,
+  isLoading,
+  categories,
+  variantsByProduct,
+  onAdd,
+}: Props) {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [pickerProduct, setPickerProduct] = useState<Product | null>(null);
 
-  const filtered = useMemo(() => {
+  const { filtered, isLimited, totalMatches } = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return products.filter((p) => {
+    const hasActiveFilter = q.length >= 2 || categoryFilter !== "all";
+
+    const matches = products.filter((p) => {
       const matchCat =
         categoryFilter === "all" || p.category === categoryFilter;
       const matchQ =
@@ -27,7 +41,27 @@ export function ProductGrid({ products, isLoading, categories, onAdd }: Props) {
         p.sku.toLowerCase().includes(q);
       return matchCat && matchQ;
     });
+
+    const limit = hasActiveFilter ? SEARCH_LIMIT : INITIAL_LIMIT;
+    return {
+      filtered: matches.slice(0, limit),
+      isLimited: matches.length > limit,
+      totalMatches: matches.length,
+    };
   }, [products, search, categoryFilter]);
+
+  function handleProductClick(product: Product) {
+    const variants = variantsByProduct.get(product.id);
+    if (variants && variants.length > 0) {
+      setPickerProduct(product);
+    } else {
+      onAdd(product);
+    }
+  }
+
+  const pickerVariants = pickerProduct
+    ? (variantsByProduct.get(pickerProduct.id) ?? [])
+    : [];
 
   return (
     <div className="flex-1 flex flex-col min-w-0 pb-24 sm:pb-0">
@@ -85,15 +119,43 @@ export function ProductGrid({ products, isLoading, categories, onAdd }: Props) {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 stagger">
-            {filtered.map((product) => (
-              <div key={product.id} className="animate-fade-in-up h-full">
-                <ProductCard product={product} onAdd={() => onAdd(product)} />
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 stagger">
+              {filtered.map((product) => {
+                const hasVariants =
+                  (variantsByProduct.get(product.id)?.length ?? 0) > 0;
+                return (
+                  <div key={product.id} className="animate-fade-in-up h-full">
+                    <ProductCard
+                      product={product}
+                      hasVariants={hasVariants}
+                      onAdd={() => handleProductClick(product)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            {isLimited && (
+              <p
+                className="text-xs text-center mt-4"
+                style={{ color: "var(--color-ink-tertiary)" }}
+              >
+                Showing {filtered.length} of {totalMatches} — type to search for
+                more
+              </p>
+            )}
+          </>
         )}
       </div>
+
+      {pickerProduct && (
+        <VariantPickerModal
+          product={pickerProduct}
+          variants={pickerVariants}
+          onSelect={(variant) => onAdd(pickerProduct, variant)}
+          onClose={() => setPickerProduct(null)}
+        />
+      )}
     </div>
   );
 }

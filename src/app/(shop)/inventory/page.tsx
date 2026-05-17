@@ -38,10 +38,13 @@ export default function InventoryPage() {
   const [roomFilter, setRoomFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<Category | "all">("all");
   const [sortBy, setSortBy] = useState<"name" | "qty" | "price">("name");
+  const [page, setPage] = useState(0);
   const [deletingProduct, setDeletingProduct] = useState<{
     id: string;
     name: string;
   } | null>(null);
+
+  const PAGE_SIZE = 100;
 
   // ─── Filter + sort ──────────────────────────────────────────────────────────
 
@@ -66,6 +69,9 @@ export default function InventoryPage() {
 
     return result;
   }, [products, search, roomFilter, categoryFilter, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const lowStockCount = products.filter(
     (p) => p.quantity <= p.min_stock,
@@ -109,7 +115,10 @@ export default function InventoryPage() {
         {/* Search */}
         <SearchBar
           value={search}
-          onChange={setSearch}
+          onChange={(v) => {
+            setSearch(v);
+            setPage(0);
+          }}
           placeholder="Search products..."
           className="flex-1 min-w-48"
         />
@@ -119,7 +128,10 @@ export default function InventoryPage() {
           className="input"
           style={{ width: "auto", minWidth: 140 }}
           value={roomFilter}
-          onChange={(e) => setRoomFilter(e.target.value)}
+          onChange={(e) => {
+            setRoomFilter(e.target.value);
+            setPage(0);
+          }}
         >
           <option value="all">All rooms</option>
           {rooms.map((r) => (
@@ -134,9 +146,10 @@ export default function InventoryPage() {
           className="input"
           style={{ width: "auto", minWidth: 130 }}
           value={categoryFilter}
-          onChange={(e) =>
-            setCategoryFilter(e.target.value as Category | "all")
-          }
+          onChange={(e) => {
+            setCategoryFilter(e.target.value as Category | "all");
+            setPage(0);
+          }}
         >
           <option value="all">All categories</option>
           {categories.map((c) => (
@@ -151,9 +164,10 @@ export default function InventoryPage() {
           className="input"
           style={{ width: "auto", minWidth: 120 }}
           value={sortBy}
-          onChange={(e) =>
-            setSortBy(e.target.value as "name" | "qty" | "price")
-          }
+          onChange={(e) => {
+            setSortBy(e.target.value as "name" | "qty" | "price");
+            setPage(0);
+          }}
         >
           <option value="name">Name A–Z</option>
           <option value="qty">Qty ↑</option>
@@ -210,7 +224,7 @@ export default function InventoryPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((product) => (
+              {paginated.map((product) => (
                 <tr key={product.id}>
                   <td>
                     <Link
@@ -316,6 +330,40 @@ export default function InventoryPage() {
               ))}
             </tbody>
           </table>
+
+          {totalPages > 1 && (
+            <div
+              className="flex items-center justify-between px-4 py-3"
+              style={{ borderTop: "1px solid var(--color-border-subtle)" }}
+            >
+              <span
+                className="text-sm"
+                style={{ color: "var(--color-ink-tertiary)" }}
+              >
+                {page * PAGE_SIZE + 1}–
+                {Math.min((page + 1) * PAGE_SIZE, filtered.length)} of{" "}
+                {filtered.length}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={page === 0}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  ← Prev
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

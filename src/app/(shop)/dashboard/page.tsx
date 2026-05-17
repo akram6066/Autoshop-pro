@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import type { LowStockProduct, SalesSummaryRow } from "@/types/app";
+import type { LowStockProduct } from "@/types/app";
 import DashboardSkeleton from "./loading";
 
 interface MembershipRow {
@@ -53,23 +53,33 @@ async function DashboardContent() {
 
   // HEAD request per shop — transfers only the count header, not row data.
   // For the typical 1-2 shop case this is 1-2 cheap parallel requests.
-  const [shopCounts, lowStockRes, summaryRes] = await Promise.all([
-    Promise.all(
-      shopIds.map((id) =>
-        supabase
-          .from("products")
-          .select("*", { count: "exact", head: true })
-          .eq("shop_id", id)
-          .then((r) => [id, r.count ?? 0] as const),
+  const [shopCounts, lowStockRes, todaySalesRes, pendingOrdersRes] =
+    await Promise.all([
+      Promise.all(
+        shopIds.map((id) =>
+          supabase
+            .from("products")
+            .select("*", { count: "exact", head: true })
+            .eq("shop_id", id)
+            .then((r) => [id, r.count ?? 0] as const),
+        ),
       ),
-    ),
-    supabase.rpc("get_low_stock_products", { p_shop_id: activeShopId }),
-    supabase.rpc("get_sales_summary", {
-      p_shop_id: activeShopId,
-      p_from: todayStart.toISOString(),
-      p_to: todayEnd.toISOString(),
-    }),
-  ]);
+      supabase.rpc("get_low_stock_products", { p_shop_id: activeShopId }),
+      // Direct live-table query — bypasses the stale materialized view in get_sales_summary
+      supabase
+        .from("sales")
+        .select("total_amount")
+        .eq("shop_id", activeShopId)
+        .gte("created_at", todayStart.toISOString())
+        .lte("created_at", todayEnd.toISOString()),
+      supabase
+        .from("purchase_orders")
+        .select("id, supplier_name, status, created_at")
+        .eq("shop_id", activeShopId)
+        .in("status", ["draft", "partial"])
+        .order("created_at", { ascending: false })
+        .limit(5),
+    ]);
 
   const countMap = Object.fromEntries(shopCounts);
   const shops = rows.map((m) => ({
@@ -79,14 +89,20 @@ async function DashboardContent() {
     isActive: m.shop_id === activeShopId,
   }));
 
-  const lowStock = (lowStockRes.data ?? []) as LowStockProduct[];
-  const todaySummary: SalesSummaryRow = (
-    summaryRes.data as SalesSummaryRow[]
-  )?.[0] ?? {
-    date: now.toISOString(),
-    total_revenue: 0,
-    order_count: 0,
+  type PendingOrder = {
+    id: string;
+    supplier_name: string;
+    status: "draft" | "partial";
+    created_at: string;
   };
+  const lowStock = (lowStockRes.data ?? []) as LowStockProduct[];
+  const pendingOrders = (pendingOrdersRes.data ?? []) as PendingOrder[];
+  const todaySales = (todaySalesRes.data ?? []) as { total_amount: number }[];
+  const orderCount = todaySales.length;
+  const totalRevenue = todaySales.reduce(
+    (sum, s) => sum + Number(s.total_amount),
+    0,
+  );
 
   const activeShop = shops.find((s) => s.id === activeShopId);
   const hour = now.getHours();
@@ -205,13 +221,13 @@ async function DashboardContent() {
         {[
           {
             label: "Revenue",
-            value: formatCurrency(todaySummary.total_revenue),
-            sub: `${Number(todaySummary.order_count)} orders today`,
+            value: formatCurrency(totalRevenue),
+            sub: `${orderCount} orders today`,
           },
           {
             label: "Orders",
-            value: String(Number(todaySummary.order_count)),
-            sub: "Completed sales",
+            value: String(orderCount),
+            sub: "Completed sales today",
           },
           {
             label: "Low stock",
@@ -309,7 +325,54 @@ async function DashboardContent() {
         </div>
       )}
 
-      {lowStock.length === 0 && Number(todaySummary.order_count) === 0 && (
+      {/* Pending purchase orders */}
+      {pendingOrders.length > 0 && (
+        <div className="card mb-8 animate-fade-in-up">
+          <div
+            className="px-5 py-4 flex items-center gap-2"
+            style={{ borderBottom: "1px solid var(--color-border)" }}
+          >
+            <div
+              className="w-2 h-2 rounded-full"
+              style={{ background: "var(--color-brand-400)" }}
+            />
+            <h2 className="font-medium text-sm">Pending purchase orders</h2>
+            <span className="badge badge-info ml-auto">
+              {pendingOrders.length}
+            </span>
+          </div>
+          <table className="table-auto-shop">
+            <thead>
+              <tr>
+                <th>Supplier</th>
+                <th>Status</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingOrders.map((po) => (
+                <tr key={po.id}>
+                  <td className="font-medium">{po.supplier_name}</td>
+                  <td>
+                    <span
+                      className={`badge ${po.status === "partial" ? "badge-warning" : "badge-neutral"}`}
+                    >
+                      {po.status === "partial" ? "Partial" : "Draft"}
+                    </span>
+                  </td>
+                  <td
+                    style={{ color: "var(--color-ink-tertiary)", fontSize: 13 }}
+                  >
+                    {formatDate(po.created_at)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {lowStock.length === 0 && orderCount === 0 && (
         <div className="card p-8 text-center animate-fade-in-up">
           <div
             className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-4"

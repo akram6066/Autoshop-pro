@@ -78,13 +78,34 @@ export const POST = withAuth(
 
       const adminClient = getAdminClient();
 
-      const { error: updateError } =
-        await adminClient.auth.admin.updateUserById(body.user_id, {
+      const updateResult = await Promise.race([
+        adminClient.auth.admin.updateUserById(body.user_id, {
           password: body.new_password,
-        });
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("update_timeout")), 8000),
+        ),
+      ]).catch((err: unknown) => {
+        if (err instanceof Error && err.message === "update_timeout") {
+          return { error: { message: "update_timeout" } };
+        }
+        return { error: { message: String(err) } };
+      });
 
-      if (updateError) {
-        const { message, status } = sanitizeError(updateError, {
+      if (updateResult.error) {
+        if (
+          "message" in updateResult.error &&
+          updateResult.error.message === "update_timeout"
+        ) {
+          console.error(
+            "[reset-staff-password] auth.admin.updateUserById timed out",
+          );
+          return NextResponse.json(
+            { error: "Supabase took too long to respond. Try again." },
+            { status: 504 },
+          );
+        }
+        const { message, status } = sanitizeError(updateResult.error, {
           log: (e) =>
             console.error(
               "[reset-staff-password] auth.admin.updateUserById:",

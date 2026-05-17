@@ -61,6 +61,17 @@ export function CartRow({
           >
             {item.product.name}
           </p>
+          {item.variantSize && (
+            <span
+              className="text-xs px-1.5 py-px rounded-md font-medium"
+              style={{
+                background: "var(--color-brand-50)",
+                color: "var(--color-brand-700)",
+              }}
+            >
+              {item.variantSize}
+            </span>
+          )}
           <div className="flex items-center gap-1.5 mt-0.5">
             <button
               type="button"
@@ -135,7 +146,7 @@ export function CartRow({
           <button
             type="button"
             onClick={() => onQtyChange(item.quantity + 1)}
-            disabled={item.quantity >= item.product.quantity}
+            disabled={item.quantity >= item.maxQuantity}
             className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-medium transition-colors"
             style={{
               background: "var(--color-surface-2)",

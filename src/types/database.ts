@@ -545,6 +545,47 @@ export interface Database {
         };
         Relationships: [];
       };
+      product_variants: {
+        Row: {
+          id: string;
+          product_id: string;
+          size: string;
+          sku: string | null;
+          price: number;
+          quantity: number;
+          min_stock: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          size: string;
+          sku?: string | null;
+          price: number;
+          quantity?: number;
+          min_stock?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          product_id?: string;
+          size?: string;
+          sku?: string | null;
+          price?: number;
+          quantity?: number;
+          min_stock?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Functions: {
       setup_owner_shop: {
@@ -587,6 +628,17 @@ export interface Database {
       get_sales_summary: {
         Args: { p_shop_id: string; p_from: string; p_to: string };
         Returns: { date: string; total_revenue: number; order_count: number }[];
+      };
+      get_sales_with_staff: {
+        Args: { p_shop_id: string; p_offset?: number; p_limit?: number };
+        Returns: {
+          id: string;
+          total_amount: number;
+          payment_method: string;
+          created_at: string;
+          staff_name: string;
+          total_count: number;
+        }[];
       };
       get_shop_team: {
         Args: { p_shop_id: string };
