@@ -10,12 +10,12 @@ interface Props {
 
 export function PaymentMethodPicker({ value, onChange }: Props) {
   return (
-    <div className="flex gap-1.5 mb-3">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-3">
       {(["cash", "mpesa", "credit", "partial"] as PaymentMethod[]).map((m) => (
         <button
           key={m}
           onClick={() => onChange(m)}
-          className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all"
+          className="py-2.5 rounded-lg text-sm font-medium transition-all"
           style={{
             background:
               value === m ? "var(--color-brand-500)" : "var(--color-surface-2)",

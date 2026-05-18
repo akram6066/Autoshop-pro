@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer, useMemo } from "react";
+import { useReducer, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
@@ -156,6 +156,7 @@ export default function POSPage() {
     return map;
   }, [allVariants]);
 
+  const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [state, dispatch] = useReducer(checkoutReducer, initial);
   const {
     paymentMethod,
@@ -221,6 +222,7 @@ export default function POSPage() {
         deliveryAddress: deliveryEnabled ? deliveryAddress.trim() : undefined,
         deliveryFee: deliveryEnabled ? deliveryFee : undefined,
       });
+      setMobileCartOpen(false);
       dispatch({
         type: "SET_RECEIPT",
         receipt: {
@@ -305,13 +307,14 @@ export default function POSPage() {
           }
           isSaving={isSaving}
           onCheckout={handleCheckout}
+          mobileOpen={mobileCartOpen}
+          onMobileClose={() => setMobileCartOpen(false)}
         />
       </div>
       <MobileCartBar
         itemCount={items.length}
         grandTotal={grandTotal}
-        isSaving={isSaving}
-        onCheckout={handleCheckout}
+        onOpenCart={() => setMobileCartOpen(true)}
       />
     </>
   );

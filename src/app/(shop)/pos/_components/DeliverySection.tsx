@@ -1,5 +1,3 @@
-"use client";
-
 interface Props {
   enabled: boolean;
   address: string;

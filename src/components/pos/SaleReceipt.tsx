@@ -1,5 +1,3 @@
-"use client";
-
 import { formatCurrency } from "@/lib/utils";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/app";
 

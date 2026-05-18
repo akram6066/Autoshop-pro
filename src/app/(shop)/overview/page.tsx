@@ -255,9 +255,9 @@ export default function OverviewPage() {
 
   const allLoaded = Object.values(kpisMap).every((k) => !k.loading);
 
-  const hour = new Date().getHours();
+  const h = new Date().getHours();
   const greeting =
-    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+    h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 
   if (shops.length === 0) return null;
 

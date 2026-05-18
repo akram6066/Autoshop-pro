@@ -209,162 +209,305 @@ export default function InventoryPage() {
           )}
         </div>
       ) : (
-        <div className="card overflow-x-auto">
-          <table className="table-auto-shop" style={{ minWidth: 640 }}>
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>SKU</th>
-                <th>Size</th>
-                <th>Category</th>
-                <th style={{ textAlign: "right" }}>Price</th>
-                <th style={{ textAlign: "right" }}>Qty</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginated.map((product) => (
-                <tr key={product.id}>
-                  <td>
+        <>
+          {/* Mobile card list */}
+          <div className="sm:hidden space-y-2">
+            {paginated.map((product) => (
+              <div key={product.id} className="card px-4 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
                     <Link
                       href={`/inventory/${product.id}`}
-                      className="font-medium hover:underline"
+                      className="font-medium text-sm truncate block hover:underline"
                       style={{ color: "var(--color-brand-600)" }}
                     >
                       {product.name}
                     </Link>
-                  </td>
-                  <td
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 12,
-                      color: "var(--color-ink-tertiary)",
-                    }}
-                  >
-                    {product.sku}
-                  </td>
-                  <td
-                    style={{
-                      color: "var(--color-ink-secondary)",
-                      fontSize: 13,
-                    }}
-                  >
-                    {product.size || (
-                      <span style={{ color: "var(--color-ink-ghost)" }}>—</span>
-                    )}
-                  </td>
-                  <td>
-                    <span className="badge badge-neutral">
-                      {CATEGORY_LABELS[product.category]}
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span
+                        className="text-xs font-mono"
+                        style={{ color: "var(--color-ink-tertiary)" }}
+                      >
+                        {product.sku}
+                      </span>
+                      {product.size && (
+                        <span
+                          className="text-xs"
+                          style={{ color: "var(--color-ink-secondary)" }}
+                        >
+                          {product.size}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <StockBadge
+                    qty={product.quantity}
+                    minStock={product.min_stock}
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="text-sm font-medium"
+                      style={{ color: "var(--color-ink-primary)" }}
+                    >
+                      {formatCurrency(product.price)}
                     </span>
-                  </td>
-                  <td style={{ textAlign: "right", fontWeight: 500 }}>
-                    {formatCurrency(product.price)}
-                  </td>
-                  <td style={{ textAlign: "right", fontWeight: 500 }}>
-                    {product.quantity}
-                  </td>
-                  <td>
-                    <StockBadge
-                      qty={product.quantity}
-                      minStock={product.min_stock}
-                    />
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-1">
+                    <span
+                      className="text-xs"
+                      style={{ color: "var(--color-ink-tertiary)" }}
+                    >
+                      qty {product.quantity}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Link
+                      href={`/inventory/${product.id}`}
+                      className="btn btn-ghost btn-sm btn-icon"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
+                          stroke="currentColor"
+                          strokeWidth="1.75"
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+                          stroke="currentColor"
+                          strokeWidth="1.75"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDeletingProduct({
+                          id: product.id,
+                          name: product.name,
+                        })
+                      }
+                      className="btn btn-ghost btn-sm btn-icon"
+                      style={{ color: "var(--color-danger)" }}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
+                          stroke="currentColor"
+                          strokeWidth="1.75"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between py-2">
+                <span
+                  className="text-sm"
+                  style={{ color: "var(--color-ink-tertiary)" }}
+                >
+                  {page * PAGE_SIZE + 1}–
+                  {Math.min((page + 1) * PAGE_SIZE, filtered.length)} of{" "}
+                  {filtered.length}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={page === 0}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
+                    ← Prev
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={page >= totalPages - 1}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block card overflow-x-auto">
+            <table className="table-auto-shop" style={{ minWidth: 640 }}>
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>SKU</th>
+                  <th>Size</th>
+                  <th>Category</th>
+                  <th style={{ textAlign: "right" }}>Price</th>
+                  <th style={{ textAlign: "right" }}>Qty</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginated.map((product) => (
+                  <tr key={product.id}>
+                    <td>
                       <Link
                         href={`/inventory/${product.id}`}
-                        className="btn btn-ghost btn-sm btn-icon"
+                        className="font-medium hover:underline"
+                        style={{ color: "var(--color-brand-600)" }}
                       >
-                        <svg
-                          width="14"
-                          height="14"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
-                            stroke="currentColor"
-                            strokeWidth="1.75"
-                            strokeLinecap="round"
-                          />
-                          <path
-                            d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
-                            stroke="currentColor"
-                            strokeWidth="1.75"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
+                        {product.name}
                       </Link>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDeletingProduct({
-                            id: product.id,
-                            name: product.name,
-                          })
-                        }
-                        className="btn btn-ghost btn-sm btn-icon"
-                        style={{ color: "var(--color-danger)" }}
-                      >
-                        <svg
-                          width="14"
-                          height="14"
-                          fill="none"
-                          viewBox="0 0 24 24"
+                    </td>
+                    <td
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 12,
+                        color: "var(--color-ink-tertiary)",
+                      }}
+                    >
+                      {product.sku}
+                    </td>
+                    <td
+                      style={{
+                        color: "var(--color-ink-secondary)",
+                        fontSize: 13,
+                      }}
+                    >
+                      {product.size || (
+                        <span style={{ color: "var(--color-ink-ghost)" }}>
+                          —
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <span className="badge badge-neutral">
+                        {CATEGORY_LABELS[product.category]}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: "right", fontWeight: 500 }}>
+                      {formatCurrency(product.price)}
+                    </td>
+                    <td style={{ textAlign: "right", fontWeight: 500 }}>
+                      {product.quantity}
+                    </td>
+                    <td>
+                      <StockBadge
+                        qty={product.quantity}
+                        minStock={product.min_stock}
+                      />
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <Link
+                          href={`/inventory/${product.id}`}
+                          className="btn btn-ghost btn-sm btn-icon"
                         >
-                          <path
-                            d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
-                            stroke="currentColor"
-                            strokeWidth="1.75"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                          <svg
+                            width="14"
+                            height="14"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
+                              stroke="currentColor"
+                              strokeWidth="1.75"
+                              strokeLinecap="round"
+                            />
+                            <path
+                              d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+                              stroke="currentColor"
+                              strokeWidth="1.75"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDeletingProduct({
+                              id: product.id,
+                              name: product.name,
+                            })
+                          }
+                          className="btn btn-ghost btn-sm btn-icon"
+                          style={{ color: "var(--color-danger)" }}
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
+                              stroke="currentColor"
+                              strokeWidth="1.75"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-          {totalPages > 1 && (
-            <div
-              className="flex items-center justify-between px-4 py-3"
-              style={{ borderTop: "1px solid var(--color-border-subtle)" }}
-            >
-              <span
-                className="text-sm"
-                style={{ color: "var(--color-ink-tertiary)" }}
+            {totalPages > 1 && (
+              <div
+                className="flex items-center justify-between px-4 py-3"
+                style={{ borderTop: "1px solid var(--color-border-subtle)" }}
               >
-                {page * PAGE_SIZE + 1}–
-                {Math.min((page + 1) * PAGE_SIZE, filtered.length)} of{" "}
-                {filtered.length}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  disabled={page === 0}
-                  onClick={() => setPage((p) => p - 1)}
+                <span
+                  className="text-sm"
+                  style={{ color: "var(--color-ink-tertiary)" }}
                 >
-                  ← Prev
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next →
-                </button>
+                  {page * PAGE_SIZE + 1}–
+                  {Math.min((page + 1) * PAGE_SIZE, filtered.length)} of{" "}
+                  {filtered.length}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={page === 0}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
+                    ← Prev
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={page >= totalPages - 1}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    Next →
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Delete confirmation modal */}

@@ -231,7 +231,7 @@ export default function NewProductPage() {
           </div>
 
           {/* Category + Room */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1.5">
                 Category
@@ -324,9 +324,9 @@ export default function NewProductPage() {
           {/* ── Variant rows ── */}
           {useVariants ? (
             <div className="space-y-3">
-              {/* Header */}
+              {/* Desktop header */}
               <div
-                className="grid gap-2 text-xs font-medium"
+                className="hidden sm:grid gap-2 text-xs font-medium"
                 style={{
                   gridTemplateColumns: "1fr 90px 70px 70px 90px 32px",
                   color: "var(--color-ink-tertiary)",
@@ -343,62 +343,165 @@ export default function NewProductPage() {
               </div>
 
               {variants.map((row) => (
-                <div
-                  key={row._key}
-                  className="grid gap-2 items-center"
-                  style={{
-                    gridTemplateColumns: "1fr 90px 70px 70px 90px 32px",
-                  }}
-                >
-                  <input
-                    className="input"
-                    type="text"
-                    placeholder="e.g. 205/55R16"
-                    value={row.size}
-                    onChange={(e) =>
-                      updateVariantRow(row._key, { size: e.target.value })
-                    }
-                    required
-                  />
-                  <input
-                    className="input"
-                    type="text"
-                    placeholder="SKU"
-                    value={row.sku}
-                    style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}
-                    onChange={(e) =>
-                      updateVariantRow(row._key, { sku: e.target.value })
-                    }
-                  />
-                  <NumInput
-                    value={row.quantity}
-                    onChange={(v) =>
-                      updateVariantRow(row._key, { quantity: v })
-                    }
-                  />
-                  <NumInput
-                    value={row.min_stock}
-                    onChange={(v) =>
-                      updateVariantRow(row._key, { min_stock: v })
-                    }
-                  />
-                  <NumInput
-                    value={row.price}
-                    onChange={(v) => updateVariantRow(row._key, { price: v })}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeVariantRow(row._key)}
-                    disabled={variants.length === 1}
-                    className="btn-icon"
+                <div key={row._key}>
+                  {/* Desktop row */}
+                  <div
+                    className="hidden sm:grid gap-2 items-center"
                     style={{
-                      color: "var(--color-danger)",
-                      opacity: variants.length === 1 ? 0.3 : 1,
+                      gridTemplateColumns: "1fr 90px 70px 70px 90px 32px",
                     }}
-                    aria-label="Remove size"
                   >
-                    ✕
-                  </button>
+                    <input
+                      className="input"
+                      type="text"
+                      placeholder="e.g. 205/55R16"
+                      value={row.size}
+                      onChange={(e) =>
+                        updateVariantRow(row._key, { size: e.target.value })
+                      }
+                      required
+                    />
+                    <input
+                      className="input"
+                      type="text"
+                      placeholder="SKU"
+                      value={row.sku}
+                      style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}
+                      onChange={(e) =>
+                        updateVariantRow(row._key, { sku: e.target.value })
+                      }
+                    />
+                    <NumInput
+                      value={row.quantity}
+                      onChange={(v) =>
+                        updateVariantRow(row._key, { quantity: v })
+                      }
+                    />
+                    <NumInput
+                      value={row.min_stock}
+                      onChange={(v) =>
+                        updateVariantRow(row._key, { min_stock: v })
+                      }
+                    />
+                    <NumInput
+                      value={row.price}
+                      onChange={(v) => updateVariantRow(row._key, { price: v })}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeVariantRow(row._key)}
+                      disabled={variants.length === 1}
+                      className="btn-icon"
+                      style={{
+                        color: "var(--color-danger)",
+                        opacity: variants.length === 1 ? 0.3 : 1,
+                      }}
+                      aria-label="Remove size"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Mobile card */}
+                  <div
+                    className="sm:hidden rounded-xl p-3 space-y-2"
+                    style={{
+                      background: "var(--color-surface-1)",
+                      border: "1px solid var(--color-border-input)",
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <input
+                        className="input flex-1"
+                        type="text"
+                        placeholder="Size e.g. 205/55R16 *"
+                        value={row.size}
+                        onChange={(e) =>
+                          updateVariantRow(row._key, { size: e.target.value })
+                        }
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeVariantRow(row._key)}
+                        disabled={variants.length === 1}
+                        className="btn btn-ghost btn-sm btn-icon flex-shrink-0"
+                        style={{
+                          color: "var(--color-danger)",
+                          opacity: variants.length === 1 ? 0.3 : 1,
+                        }}
+                        aria-label="Remove size"
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M18 6L6 18M6 6l12 12"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                    <input
+                      className="input w-full"
+                      type="text"
+                      placeholder="SKU (optional)"
+                      value={row.sku}
+                      style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}
+                      onChange={(e) =>
+                        updateVariantRow(row._key, { sku: e.target.value })
+                      }
+                    />
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label
+                          className="block text-xs mb-1"
+                          style={{ color: "var(--color-ink-tertiary)" }}
+                        >
+                          Qty
+                        </label>
+                        <NumInput
+                          value={row.quantity}
+                          onChange={(v) =>
+                            updateVariantRow(row._key, { quantity: v })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label
+                          className="block text-xs mb-1"
+                          style={{ color: "var(--color-ink-tertiary)" }}
+                        >
+                          Min
+                        </label>
+                        <NumInput
+                          value={row.min_stock}
+                          onChange={(v) =>
+                            updateVariantRow(row._key, { min_stock: v })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label
+                          className="block text-xs mb-1"
+                          style={{ color: "var(--color-ink-tertiary)" }}
+                        >
+                          Price
+                        </label>
+                        <NumInput
+                          value={row.price}
+                          onChange={(v) =>
+                            updateVariantRow(row._key, { price: v })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ))}
 
@@ -413,7 +516,7 @@ export default function NewProductPage() {
           ) : (
             /* ── Simple product fields ── */
             <>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1.5">
                     SKU <span style={{ color: "var(--color-danger)" }}>*</span>
@@ -450,7 +553,7 @@ export default function NewProductPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1.5">
                     Initial qty

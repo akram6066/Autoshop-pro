@@ -123,85 +123,140 @@ export default function CustomersPage() {
           )}
         </div>
       ) : (
-        <div className="card overflow-hidden">
-          <table className="table-auto-shop">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Phone</th>
-                <th>Joined</th>
-                <th style={{ textAlign: "right" }}>Balance</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((c) => (
-                <tr key={c.id}>
-                  <td
-                    className="font-medium"
+        <>
+          {/* Mobile card list */}
+          <div className="sm:hidden space-y-2">
+            {filtered.map((c) => (
+              <Link
+                key={c.id}
+                href={`/customers/${c.id}`}
+                className="card px-4 py-3 flex items-center justify-between gap-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <p
+                    className="font-medium text-sm truncate"
                     style={{ color: "var(--color-ink-primary)" }}
                   >
                     {c.name}
-                  </td>
-                  <td
-                    style={{
-                      color: "var(--color-ink-secondary)",
-                      fontSize: 13,
-                    }}
+                  </p>
+                  <p
+                    className="text-xs mt-0.5"
+                    style={{ color: "var(--color-ink-tertiary)" }}
                   >
-                    {c.phone || "—"}
-                  </td>
-                  <td
-                    style={{ color: "var(--color-ink-tertiary)", fontSize: 12 }}
-                  >
-                    {formatDate(c.created_at)}
-                  </td>
-                  <td
-                    style={{
-                      textAlign: "right",
-                      fontWeight: 500,
-                      color:
-                        c.balance < 0
-                          ? "var(--color-danger)"
-                          : c.balance > 0
-                            ? "var(--color-success)"
-                            : "var(--color-ink-tertiary)",
-                    }}
-                  >
-                    {c.balance === 0
-                      ? "—"
-                      : formatCurrency(Math.abs(c.balance))}
-                    {c.balance < 0 && (
-                      <span
-                        className="ml-1 text-xs"
-                        style={{ color: "var(--color-danger)" }}
-                      >
-                        owed
-                      </span>
-                    )}
-                    {c.balance > 0 && (
-                      <span
-                        className="ml-1 text-xs"
-                        style={{ color: "var(--color-success)" }}
-                      >
-                        credit
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    <Link
-                      href={`/customers/${c.id}`}
-                      className="btn btn-secondary btn-sm"
-                      style={{ fontSize: 12 }}
+                    {c.phone || formatDate(c.created_at)}
+                  </p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  {c.balance !== 0 ? (
+                    <p
+                      className="text-sm font-medium"
+                      style={{
+                        color:
+                          c.balance < 0
+                            ? "var(--color-danger)"
+                            : "var(--color-success)",
+                      }}
                     >
-                      View
-                    </Link>
-                  </td>
+                      {c.balance < 0 ? "Owes " : "Credit "}
+                      {formatCurrency(Math.abs(c.balance))}
+                    </p>
+                  ) : (
+                    <p
+                      className="text-sm"
+                      style={{ color: "var(--color-ink-ghost)" }}
+                    >
+                      —
+                    </p>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block card overflow-hidden">
+            <table className="table-auto-shop">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Joined</th>
+                  <th style={{ textAlign: "right" }}>Balance</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map((c) => (
+                  <tr key={c.id}>
+                    <td
+                      className="font-medium"
+                      style={{ color: "var(--color-ink-primary)" }}
+                    >
+                      {c.name}
+                    </td>
+                    <td
+                      style={{
+                        color: "var(--color-ink-secondary)",
+                        fontSize: 13,
+                      }}
+                    >
+                      {c.phone || "—"}
+                    </td>
+                    <td
+                      style={{
+                        color: "var(--color-ink-tertiary)",
+                        fontSize: 12,
+                      }}
+                    >
+                      {formatDate(c.created_at)}
+                    </td>
+                    <td
+                      style={{
+                        textAlign: "right",
+                        fontWeight: 500,
+                        color:
+                          c.balance < 0
+                            ? "var(--color-danger)"
+                            : c.balance > 0
+                              ? "var(--color-success)"
+                              : "var(--color-ink-tertiary)",
+                      }}
+                    >
+                      {c.balance === 0
+                        ? "—"
+                        : formatCurrency(Math.abs(c.balance))}
+                      {c.balance < 0 && (
+                        <span
+                          className="ml-1 text-xs"
+                          style={{ color: "var(--color-danger)" }}
+                        >
+                          owed
+                        </span>
+                      )}
+                      {c.balance > 0 && (
+                        <span
+                          className="ml-1 text-xs"
+                          style={{ color: "var(--color-success)" }}
+                        >
+                          credit
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <Link
+                        href={`/customers/${c.id}`}
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: 12 }}
+                      >
+                        View
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

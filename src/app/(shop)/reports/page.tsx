@@ -92,7 +92,7 @@ export default function ReportsPage() {
   const [customFrom, setCustomFrom] = useState(() =>
     toISO(new Date(Date.now() - 7 * 86400000)),
   );
-  const [customTo, setCustomTo] = useState(toISO(new Date()));
+  const [customTo, setCustomTo] = useState(() => toISO(new Date()));
 
   const { from, to } = useMemo(() => {
     const now = new Date();
@@ -200,7 +200,7 @@ export default function ReportsPage() {
         ))}
 
         {range === "custom" && (
-          <div className="flex items-center gap-2 ml-2">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               type="date"
               className="input"

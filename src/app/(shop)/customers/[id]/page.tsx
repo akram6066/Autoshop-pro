@@ -127,7 +127,7 @@ function RecordPaymentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1">
           <label
             className="block text-xs font-medium mb-1"
@@ -502,7 +502,7 @@ export default function CustomerDetailPage({
 
       {/* Sales history */}
       {!editing && (
-        <div className="card overflow-hidden mb-6 animate-fade-in-up">
+        <div className="card overflow-x-auto mb-6 animate-fade-in-up">
           <div
             className="px-5 py-4"
             style={{ borderBottom: "1px solid var(--color-border)" }}
@@ -517,7 +517,7 @@ export default function CustomerDetailPage({
               No sales recorded yet.
             </p>
           ) : (
-            <table className="table-auto-shop">
+            <table className="table-auto-shop" style={{ minWidth: 400 }}>
               <thead>
                 <tr>
                   <th>Date</th>
@@ -581,7 +581,7 @@ export default function CustomerDetailPage({
       {/* Payment history */}
       {!editing && (
         <div
-          className="card overflow-hidden animate-fade-in-up"
+          className="card overflow-x-auto animate-fade-in-up"
           style={{ animationDelay: "100ms" }}
         >
           <div

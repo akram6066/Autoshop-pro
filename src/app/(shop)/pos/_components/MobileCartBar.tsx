@@ -5,16 +5,10 @@ import { formatCurrency } from "@/lib/utils";
 interface Props {
   itemCount: number;
   grandTotal: number;
-  isSaving: boolean;
-  onCheckout: () => void;
+  onOpenCart: () => void;
 }
 
-export function MobileCartBar({
-  itemCount,
-  grandTotal,
-  isSaving,
-  onCheckout,
-}: Props) {
+export function MobileCartBar({ itemCount, grandTotal, onOpenCart }: Props) {
   return (
     <div
       className="sm:hidden fixed bottom-0 left-0 right-0 z-30 px-4 pt-3 pb-4"
@@ -32,27 +26,20 @@ export function MobileCartBar({
           Tap a product to add it to the cart
         </p>
       ) : (
-        <>
-          <div className="flex items-center justify-between mb-3">
-            <span
-              className="text-sm"
-              style={{ color: "var(--color-ink-secondary)" }}
-            >
+        <button
+          type="button"
+          onClick={onOpenCart}
+          className="btn btn-primary w-full"
+        >
+          <span>View Cart</span>
+          <span className="ml-auto flex items-center gap-2 text-sm opacity-90">
+            <span>
               {itemCount} item{itemCount !== 1 ? "s" : ""}
             </span>
-            <span className="text-xl font-semibold">
-              {formatCurrency(grandTotal)}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={onCheckout}
-            disabled={isSaving}
-            className="btn btn-primary w-full"
-          >
-            {isSaving ? "Processing…" : `Charge ${formatCurrency(grandTotal)}`}
-          </button>
-        </>
+            <span>·</span>
+            <span>{formatCurrency(grandTotal)}</span>
+          </span>
+        </button>
       )}
     </div>
   );

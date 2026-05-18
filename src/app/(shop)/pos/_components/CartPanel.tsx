@@ -45,6 +45,8 @@ interface Props {
   onAmountPaidChange: (v: number) => void;
   isSaving: boolean;
   onCheckout: () => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 export function CartPanel({
@@ -78,108 +80,167 @@ export function CartPanel({
   onAmountPaidChange,
   isSaving,
   onCheckout,
+  mobileOpen = false,
+  onMobileClose,
 }: Props) {
   return (
-    <div className="hidden sm:flex sm:w-80 flex-col card p-0 overflow-hidden flex-shrink-0">
+    <>
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div
+          className="sm:hidden fixed inset-0 z-40"
+          style={{ background: "oklch(0% 0 0 / 45%)" }}
+          onClick={onMobileClose}
+        />
+      )}
+
       <div
-        className="px-4 py-3 flex items-center justify-between"
-        style={{ borderBottom: "1px solid var(--color-border)" }}
+        className={
+          mobileOpen
+            ? "flex fixed inset-x-0 bottom-0 z-50 flex-col overflow-hidden card p-0 flex-shrink-0 sm:static sm:flex sm:w-80 sm:max-h-full sm:z-auto"
+            : "hidden sm:flex sm:w-80 flex-col card p-0 overflow-hidden flex-shrink-0"
+        }
+        style={
+          mobileOpen
+            ? {
+                maxHeight: "85vh",
+                borderBottomLeftRadius: 0,
+                borderBottomRightRadius: 0,
+              }
+            : undefined
+        }
       >
-        <h2
-          className="font-medium"
-          style={{ color: "var(--color-ink-primary)" }}
+        {/* Drag handle — mobile only */}
+        {mobileOpen && (
+          <div className="sm:hidden flex justify-center pt-2.5 pb-1 flex-shrink-0">
+            <div
+              className="w-10 h-1 rounded-full"
+              style={{ background: "var(--color-border)" }}
+            />
+          </div>
+        )}
+
+        <div
+          className="px-4 py-3 flex items-center justify-between flex-shrink-0"
+          style={{ borderBottom: "1px solid var(--color-border)" }}
         >
-          Cart
-          {items.length > 0 && (
-            <span
-              className="ml-2 text-sm font-normal"
-              style={{ color: "var(--color-ink-tertiary)" }}
-            >
-              {items.length} item{items.length !== 1 ? "s" : ""}
-            </span>
-          )}
-        </h2>
-        {items.length > 0 && (
-          <button
-            type="button"
-            onClick={onClear}
-            className="text-xs"
-            style={{ color: "var(--color-ink-tertiary)" }}
+          <h2
+            className="font-medium"
+            style={{ color: "var(--color-ink-primary)" }}
           >
-            Clear all
-          </button>
+            Cart
+            {items.length > 0 && (
+              <span
+                className="ml-2 text-sm font-normal"
+                style={{ color: "var(--color-ink-tertiary)" }}
+              >
+                {items.length} item{items.length !== 1 ? "s" : ""}
+              </span>
+            )}
+          </h2>
+          <div className="flex items-center gap-2">
+            {items.length > 0 && (
+              <button
+                type="button"
+                onClick={onClear}
+                className="text-xs"
+                style={{ color: "var(--color-ink-tertiary)" }}
+              >
+                Clear all
+              </button>
+            )}
+            {mobileOpen && (
+              <button
+                type="button"
+                onClick={onMobileClose}
+                className="sm:hidden btn btn-ghost btn-sm btn-icon"
+                aria-label="Close cart"
+              >
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+                  <path
+                    d="M18 6L6 18M6 6l12 12"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4">
+          <CartItemList
+            items={items}
+            onQtyChange={onQtyChange}
+            onRemove={onRemove}
+            onPriceEdit={onPriceEdit}
+          />
+        </div>
+
+        {items.length > 0 && (
+          <div
+            className="p-4"
+            style={{ borderTop: "1px solid var(--color-border)" }}
+          >
+            <DeliverySection
+              enabled={deliveryEnabled}
+              address={deliveryAddress}
+              fee={deliveryFee}
+              addressError={addressError}
+              onToggle={onDeliveryToggle}
+              onAddressChange={onDeliveryAddressChange}
+              onFeeChange={onDeliveryFeeChange}
+            />
+            <CartSummary
+              subtotal={total}
+              deliveryFee={deliveryFee}
+              grandTotal={grandTotal}
+              showBreakdown={deliveryEnabled && deliveryFee > 0}
+            />
+            <PaymentMethodPicker
+              value={paymentMethod}
+              onChange={onPaymentMethodChange}
+            />
+
+            {(paymentMethod === "credit" || paymentMethod === "partial") && (
+              <div className="mb-3">
+                <CustomerSelector
+                  customers={customers}
+                  selectedCustomer={selectedCustomer}
+                  search={customerSearch}
+                  onSearchChange={onCustomerSearchChange}
+                  onSelect={onCustomerSelect}
+                  onClear={onCustomerClear}
+                  onCreateAndSelect={onCreateAndSelect}
+                  isCreating={isCreatingCustomer}
+                  error={customerError}
+                />
+              </div>
+            )}
+
+            {paymentMethod === "partial" && (
+              <PartialPaymentInput
+                amountPaid={amountPaid}
+                grandTotal={grandTotal}
+                error={amountPaidError}
+                onChange={onAmountPaidChange}
+              />
+            )}
+
+            <button
+              type="button"
+              onClick={onCheckout}
+              disabled={isSaving}
+              className="btn btn-primary w-full"
+            >
+              {isSaving
+                ? "Processing…"
+                : `Charge ${formatCurrency(grandTotal)}`}
+            </button>
+          </div>
         )}
       </div>
-
-      <div className="flex-1 overflow-y-auto px-4">
-        <CartItemList
-          items={items}
-          onQtyChange={onQtyChange}
-          onRemove={onRemove}
-          onPriceEdit={onPriceEdit}
-        />
-      </div>
-
-      {items.length > 0 && (
-        <div
-          className="p-4"
-          style={{ borderTop: "1px solid var(--color-border)" }}
-        >
-          <DeliverySection
-            enabled={deliveryEnabled}
-            address={deliveryAddress}
-            fee={deliveryFee}
-            addressError={addressError}
-            onToggle={onDeliveryToggle}
-            onAddressChange={onDeliveryAddressChange}
-            onFeeChange={onDeliveryFeeChange}
-          />
-          <CartSummary
-            subtotal={total}
-            deliveryFee={deliveryFee}
-            grandTotal={grandTotal}
-            showBreakdown={deliveryEnabled && deliveryFee > 0}
-          />
-          <PaymentMethodPicker
-            value={paymentMethod}
-            onChange={onPaymentMethodChange}
-          />
-
-          {(paymentMethod === "credit" || paymentMethod === "partial") && (
-            <div className="mb-3">
-              <CustomerSelector
-                customers={customers}
-                selectedCustomer={selectedCustomer}
-                search={customerSearch}
-                onSearchChange={onCustomerSearchChange}
-                onSelect={onCustomerSelect}
-                onClear={onCustomerClear}
-                onCreateAndSelect={onCreateAndSelect}
-                isCreating={isCreatingCustomer}
-                error={customerError}
-              />
-            </div>
-          )}
-
-          {paymentMethod === "partial" && (
-            <PartialPaymentInput
-              amountPaid={amountPaid}
-              grandTotal={grandTotal}
-              error={amountPaidError}
-              onChange={onAmountPaidChange}
-            />
-          )}
-
-          <button
-            type="button"
-            onClick={onCheckout}
-            disabled={isSaving}
-            className="btn btn-primary w-full"
-          >
-            {isSaving ? "Processing…" : `Charge ${formatCurrency(grandTotal)}`}
-          </button>
-        </div>
-      )}
-    </div>
+    </>
   );
 }

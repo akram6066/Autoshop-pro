@@ -73,8 +73,8 @@ function EditForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="sm:col-span-2">
           <label className="block text-sm font-medium mb-1.5">
             Product name
           </label>
@@ -405,7 +405,7 @@ export default function ProductDetailPage({
       {/* Movement history */}
       {!editing && (
         <div
-          className="card overflow-hidden animate-fade-in-up"
+          className="card overflow-x-auto animate-fade-in-up"
           style={{ animationDelay: "100ms" }}
         >
           <div
@@ -423,7 +423,7 @@ export default function ProductDetailPage({
               No movements recorded yet.
             </p>
           ) : (
-            <table className="table-auto-shop">
+            <table className="table-auto-shop" style={{ minWidth: 420 }}>
               <thead>
                 <tr>
                   <th>Date</th>
