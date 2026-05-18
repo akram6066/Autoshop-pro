@@ -148,21 +148,13 @@ export default function NewProductPage() {
       setError(result.error.message);
       return;
     }
-    if (result.status === "offline" && useVariants) {
-      toast.warning(
-        "You're offline — variants will be saved when reconnected.",
-      );
-      router.push("/inventory");
-      return;
-    }
+    if (useVariants) {
+      const productId = (result.data as { id: string } | undefined)?.id;
 
-    if (useVariants && result.status === "success") {
-      const productId = (result as { status: "success"; data: { id: string } })
-        .data?.id;
       if (productId) {
         const filled = variants.filter((v) => v.size.trim());
         try {
-          await createVariants({
+          const variantResult = await createVariants({
             productId,
             variants: filled.map((v) => ({
               size: v.size.trim(),
@@ -172,6 +164,11 @@ export default function NewProductPage() {
               min_stock: v.min_stock,
             })),
           });
+          if (variantResult.offline || result.status === "offline") {
+            toast.warning("Saved offline — will sync when reconnected.");
+            router.push("/inventory");
+            return;
+          }
         } catch (err) {
           setError(
             `Product saved, but variants failed: ${(err as Error).message}`,

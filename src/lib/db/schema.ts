@@ -1,6 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import type {
   Product,
+  ProductVariant,
   Room,
   Shop,
   Sale,
@@ -17,10 +18,11 @@ export class AutoShopDatabase extends Dexie {
   shops!: Table<Shop>;
   rooms!: Table<Room>;
   products!: Table<Product>;
+  product_variants!: Table<ProductVariant>;
   sales!: Table<Sale>;
   sale_items!: Table<SaleItem>;
   stock_movements!: Table<StockMovement>;
-  sync_queue!: Table<SyncCommand>; // Now uses SyncCommand
+  sync_queue!: Table<SyncCommand>;
   purchase_orders!: Table<PurchaseOrder>;
   po_items!: Table<POItem>;
 
@@ -76,7 +78,7 @@ export class AutoShopDatabase extends Dexie {
         sale_items: "id, sale_id, product_id",
         stock_movements: "id, shop_id, product_id, seq, synced, created_at",
         sync_queue:
-          "id, shop_id, command, status, created_at, [shop_id+status]", // Changed table_name to command
+          "id, shop_id, command, status, created_at, [shop_id+status]",
         purchase_orders: "id, shop_id, status, synced, created_at",
         po_items: "id, po_id, product_id",
       })
@@ -107,6 +109,20 @@ export class AutoShopDatabase extends Dexie {
             }
           });
       });
+
+    // V5 — product_variants offline cache
+    this.version(5).stores({
+      shops: "id",
+      rooms: "id, shop_id",
+      products: "id, shop_id, room_id, category, sku, updated_at",
+      product_variants: "id, product_id",
+      sales: "id, shop_id, user_id, created_at, synced",
+      sale_items: "id, sale_id, product_id",
+      stock_movements: "id, shop_id, product_id, seq, synced, created_at",
+      sync_queue: "id, shop_id, command, status, created_at, [shop_id+status]",
+      purchase_orders: "id, shop_id, status, synced, created_at",
+      po_items: "id, po_id, product_id",
+    });
   }
 }
 

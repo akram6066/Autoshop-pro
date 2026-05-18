@@ -3,7 +3,7 @@ import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { logRequest, logger } from "@/lib/api/logger";
 import { syncPayloadSchema } from "@/lib/validations/api";
 import { withAuth } from "@/lib/api/with-auth";
-import type { Json } from "@/types/database";
+import type { Json, Database } from "@/types/database";
 
 export const POST = withAuth(
   async (request: NextRequest, { user, supabase }) => {
@@ -91,6 +91,14 @@ export const POST = withAuth(
             }),
           );
           if (rpcError) error = rpcError.message;
+        } else if (cmd.command === "CREATE_VARIANTS") {
+          type VariantInsert =
+            Database["public"]["Tables"]["product_variants"]["Insert"];
+          const variants = p.variants as unknown as VariantInsert[];
+          const { error: insertError } = await withTimeout(
+            supabase.from("product_variants").insert(variants),
+          );
+          if (insertError) error = insertError.message;
         } else {
           error = `Unknown command: ${cmd.command}`;
         }

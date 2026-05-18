@@ -2,6 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { getDb } from "@/lib/db/instance";
+import { enqueue } from "@/lib/sync/queue";
 import type { ProductVariant } from "@/types/app";
 
 export const variantKeys = {
@@ -10,18 +12,28 @@ export const variantKeys = {
 };
 
 // All variants for the active shop — RLS scopes this automatically.
+// Falls back to IndexedDB when offline.
 export function useShopVariants(shopId: string | null) {
   const supabase = createClient();
   return useQuery({
     queryKey: shopId ? variantKeys.byShop(shopId) : ["variants-disabled"],
     queryFn: async (): Promise<ProductVariant[]> => {
-      const { data, error } = await supabase
-        .from("product_variants")
-        .select("*")
-        .order("product_id")
-        .order("size");
-      if (error) throw error;
-      return (data ?? []) as ProductVariant[];
+      try {
+        const { data, error } = await supabase
+          .from("product_variants")
+          .select("*")
+          .order("product_id")
+          .order("size");
+        if (error) throw error;
+        const variants = (data ?? []) as ProductVariant[];
+        // Seed local cache
+        const db = getDb();
+        await db.product_variants.bulkPut(variants).catch(() => {});
+        return variants;
+      } catch {
+        const db = getDb();
+        return db.product_variants.toArray();
+      }
     },
     enabled: !!shopId,
     staleTime: 1000 * 60 * 2,
@@ -36,20 +48,28 @@ export function useProductVariants(productId: string | null) {
       ? variantKeys.byProduct(productId)
       : ["variants-disabled"],
     queryFn: async (): Promise<ProductVariant[]> => {
-      const { data, error } = await supabase
-        .from("product_variants")
-        .select("*")
-        .eq("product_id", productId!)
-        .order("size");
-      if (error) throw error;
-      return (data ?? []) as ProductVariant[];
+      try {
+        const { data, error } = await supabase
+          .from("product_variants")
+          .select("*")
+          .eq("product_id", productId!)
+          .order("size");
+        if (error) throw error;
+        return (data ?? []) as ProductVariant[];
+      } catch {
+        const db = getDb();
+        return db.product_variants
+          .where("product_id")
+          .equals(productId!)
+          .toArray();
+      }
     },
     enabled: !!productId,
     staleTime: 1000 * 60 * 2,
   });
 }
 
-// Batch-create variants for a product.
+// Batch-create variants for a product — with offline fallback.
 export function useCreateVariants(shopId: string | null) {
   const qc = useQueryClient();
   const supabase = createClient();
@@ -67,14 +87,41 @@ export function useCreateVariants(shopId: string | null) {
         quantity: number;
         min_stock: number;
       }>;
-    }) => {
-      const rows = variants.map((v) => ({ product_id: productId, ...v }));
-      const { data, error } = await supabase
+    }): Promise<{ offline: boolean; variants: ProductVariant[] }> => {
+      const now = new Date().toISOString();
+      const rows: ProductVariant[] = variants.map((v) => ({
+        id: crypto.randomUUID(),
+        product_id: productId,
+        size: v.size,
+        sku: v.sku ?? null,
+        price: v.price,
+        quantity: v.quantity,
+        min_stock: v.min_stock,
+        created_at: now,
+      }));
+
+      const { error } = await supabase
         .from("product_variants")
         .insert(rows)
         .select();
-      if (error) throw error;
-      return data as ProductVariant[];
+
+      const db = getDb();
+
+      if (error) {
+        // Offline: persist locally and queue for sync
+        await db.product_variants.bulkPut(rows);
+        if (shopId) {
+          await enqueue(shopId, "CREATE_VARIANTS", {
+            productId,
+            variants: rows,
+          });
+        }
+        return { offline: true, variants: rows };
+      }
+
+      // Online: seed local cache
+      await db.product_variants.bulkPut(rows).catch(() => {});
+      return { offline: false, variants: rows };
     },
     onSuccess: (_, { productId }) => {
       qc.invalidateQueries({ queryKey: variantKeys.byProduct(productId) });
