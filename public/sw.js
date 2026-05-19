@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v4";
 const STATIC_CACHE = `autoshop-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `autoshop-runtime-${CACHE_VERSION}`;
 

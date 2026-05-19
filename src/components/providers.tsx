@@ -54,13 +54,22 @@ export function Providers({ children }: { children: ReactNode }) {
     useAuthStore.persist.rehydrate();
   }, []);
 
-  // Register Service Worker
+  // Register Service Worker — only in production.
+  // In dev, cache-first for /_next/static/ causes hydration mismatches because
+  // the SW serves stale JS bundles after every hot-reload/recompile.
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
+    if (!("serviceWorker" in navigator)) return;
+    if (process.env.NODE_ENV !== "production") {
+      // Unregister any previously installed SW so it stops intercepting fetches.
       navigator.serviceWorker
-        .register("/sw.js")
-        .catch((err) => console.warn("[SW] Registration failed:", err));
+        .getRegistrations()
+        .then((regs) => regs.forEach((r) => r.unregister()))
+        .catch(() => {});
+      return;
     }
+    navigator.serviceWorker
+      .register("/sw.js")
+      .catch((err) => console.warn("[SW] Registration failed:", err));
   }, []);
 
   // Sync on reconnect and tab focus
