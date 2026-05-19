@@ -60,11 +60,12 @@ function HeroSection() {
 
   return (
     <section
+      className="pt-16 sm:pt-20 pb-12 sm:pb-20"
       style={{
-        padding: "80px 0 0",
         background: "linear-gradient(160deg, #eef2ff 0%, #f5f0ff 100%)",
         position: "relative",
         overflow: "hidden",
+        isolation: "isolate",
       }}
     >
       {/* Radial glow at top-center */}
@@ -72,6 +73,7 @@ function HeroSection() {
         style={{
           position: "absolute",
           inset: 0,
+          zIndex: 0,
           background:
             "radial-gradient(ellipse 90% 70% at 50% -5%, #dce6fe 0%, #ede9fe 45%, transparent 72%)",
           pointerEvents: "none",
@@ -82,6 +84,7 @@ function HeroSection() {
         style={{
           position: "absolute",
           inset: 0,
+          zIndex: 0,
           backgroundImage:
             "radial-gradient(circle, rgba(99,102,241,0.18) 1px, transparent 1px)",
           backgroundSize: "32px 32px",
@@ -95,6 +98,7 @@ function HeroSection() {
           position: "absolute",
           top: 60,
           left: -160,
+          zIndex: 0,
           width: 420,
           height: 420,
           borderRadius: "50%",
@@ -111,6 +115,7 @@ function HeroSection() {
           position: "absolute",
           top: 40,
           right: -160,
+          zIndex: 0,
           width: 380,
           height: 380,
           borderRadius: "50%",
@@ -122,9 +127,16 @@ function HeroSection() {
         }}
       />
 
-      <Container style={{ position: "relative" }}>
+      <Container style={{ position: "relative", zIndex: 1 }}>
         {/* ── Top content ── */}
-        <div style={{ textAlign: "center", paddingBottom: 56 }}>
+        <div
+          style={{
+            textAlign: "center",
+            paddingBottom: 40,
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
           {/* Pill badge */}
           <div className="h-badge" style={{ marginBottom: 28 }}>
             <span
@@ -213,7 +225,7 @@ function HeroSection() {
               fontSize: "1.1875rem",
               color: "var(--color-ink-secondary)",
               maxWidth: 520,
-              margin: "0 auto 44px",
+              margin: "0 auto 32px",
               lineHeight: 1.78,
             }}
           >
@@ -229,7 +241,7 @@ function HeroSection() {
               gap: 14,
               justifyContent: "center",
               flexWrap: "wrap",
-              marginBottom: 52,
+              marginBottom: 28,
             }}
           >
             <Link
@@ -394,15 +406,18 @@ function HeroSection() {
           </div>
         </div>
 
-        {/* ── Dashboard screenshot ── */}
-        <div style={{ position: "relative", maxWidth: 960, margin: "0 auto" }}>
+        {/* ── Dashboard screenshot — hidden on mobile ── */}
+        <div
+          className="hero-preview-wrap"
+          style={{ position: "relative", maxWidth: 960, margin: "0 auto" }}
+        >
           {/* Floating stat card — Revenue */}
           <div
             className="h-card1 hidden sm:block"
             style={{
               position: "absolute",
               top: 40,
-              left: -48,
+              left: -20,
               zIndex: 10,
             }}
           >
@@ -484,7 +499,7 @@ function HeroSection() {
             style={{
               position: "absolute",
               top: 40,
-              right: -48,
+              right: -20,
               zIndex: 10,
             }}
           >
@@ -575,7 +590,7 @@ function HeroSection() {
             style={{
               position: "absolute",
               bottom: 40,
-              left: -36,
+              left: -16,
               zIndex: 10,
             }}
           >
@@ -639,8 +654,9 @@ function HeroSection() {
 
           {/* Browser frame */}
           <div
-            className="h-screen"
+            className="hero-screen"
             style={{
+              width: "100%",
               borderRadius: "var(--radius-lg)",
               overflow: "hidden",
               border: "1px solid rgba(99,102,241,0.15)",
@@ -715,26 +731,26 @@ function HeroSection() {
                 </span>
               </div>
             </div>
-            <Image
-              src="/dashboard.png"
-              alt="AutoShop Pro dashboard"
-              width={960}
-              height={540}
-              className="w-full h-auto block"
-              priority
-            />
+            <div className="hero-dash-clip">
+              <Image
+                src="/dashboard.png"
+                alt="AutoShop Pro dashboard"
+                width={960}
+                height={540}
+                className="w-full h-auto block"
+                priority
+              />
+            </div>
           </div>
         </div>
 
         {/* ── Stats bar ── */}
         <div
-          className="grid grid-cols-2 sm:grid-cols-4 gap-px"
+          className="grid grid-cols-2 sm:grid-cols-4 gap-px hero-stats-bar"
           style={{
             background: "rgba(99,102,241,0.12)",
-            border: "1px solid rgba(99,102,241,0.15)",
-            borderTop: "none",
-            borderRadius: "0 0 var(--radius-lg) var(--radius-lg)",
             overflow: "hidden",
+            marginTop: 20,
           }}
         >
           {[
@@ -745,11 +761,8 @@ function HeroSection() {
           ].map((stat) => (
             <div
               key={stat.label}
-              style={{
-                background: "white",
-                padding: "18px 24px",
-                textAlign: "center",
-              }}
+              className="hero-stat-cell"
+              style={{ background: "white" }}
             >
               <p
                 style={{

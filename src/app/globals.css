@@ -124,37 +124,37 @@ body {
 }
 
 .h-badge {
-  animation: heroFadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: heroFadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .h-line1 {
-  animation: heroFadeUp 0.65s 0.08s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: heroFadeUp 0.65s 0.08s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .h-line2 {
-  animation: heroFadeUp 0.65s 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: heroFadeUp 0.65s 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .h-line3 {
-  animation: heroFadeUp 0.65s 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: heroFadeUp 0.65s 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .h-sub {
-  animation: heroFadeUp 0.65s 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: heroFadeUp 0.65s 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .h-cta {
-  animation: heroFadeUp 0.65s 0.44s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: heroFadeUp 0.65s 0.44s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .h-trust {
-  animation: heroFadeUp 0.65s 0.52s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: heroFadeUp 0.65s 0.52s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-.h-screen {
-  animation: heroScale 1s 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+.hero-screen {
+  animation: heroScale 1s 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .h-card1 {
-  animation: heroFadeUp 0.6s 0.72s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: heroFadeUp 0.6s 0.72s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .h-card2 {
-  animation: heroFadeUp 0.6s 0.82s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: heroFadeUp 0.6s 0.82s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .h-card3 {
-  animation: heroFadeUp 0.6s 0.92s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: heroFadeUp 0.6s 0.92s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .h-float1 {
   animation: heroFloat 4s 1.4s ease-in-out infinite;
@@ -167,6 +167,57 @@ body {
 }
 .h-glow {
   animation: glowPulse 6s ease-in-out infinite;
+}
+
+/* preview wrap: gap on mobile/tablet, flush on desktop (stats bar attaches) */
+.hero-preview-wrap {
+  display: block;
+  margin-bottom: 12px;
+}
+@media (min-width: 640px) {
+  .hero-preview-wrap {
+    margin-bottom: 8px;
+  }
+}
+@media (min-width: 1024px) {
+  .hero-preview-wrap {
+    margin-bottom: 0;
+  }
+}
+
+/* dashboard image clip — 3-step responsive */
+.hero-preview-wrap .hero-dash-clip {
+  max-height: 190px;
+  overflow: hidden;
+}
+@media (min-width: 640px) {
+  .hero-preview-wrap .hero-dash-clip {
+    max-height: 320px;
+    overflow: hidden;
+  }
+}
+@media (min-width: 1024px) {
+  .hero-preview-wrap .hero-dash-clip {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+/* stats bar: fully rounded standalone card on all sizes */
+.hero-stats-bar {
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+/* stat cell responsive padding */
+.hero-stat-cell {
+  padding: 16px 12px;
+  text-align: center;
+}
+@media (min-width: 640px) {
+  .hero-stat-cell {
+    padding: 18px 24px;
+  }
 }
 
 .h-cursor {
