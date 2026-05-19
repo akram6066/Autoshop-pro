@@ -27,7 +27,10 @@ function HowItWorksSection() {
   return (
     <section
       id="how-it-works"
-      style={{ padding: "88px 0", background: "var(--color-surface-0)" }}
+      style={{
+        padding: "88px 0",
+        background: "linear-gradient(160deg, #fafbff 0%, #f5f0ff 100%)",
+      }}
     >
       <Container>
         <SectionHead
@@ -48,8 +51,7 @@ function HowItWorksSection() {
                     left: "calc(50% + 32px)",
                     width: "calc(100% - 64px)",
                     height: 2,
-                    background:
-                      "linear-gradient(to right, var(--color-brand-200), var(--color-brand-100))",
+                    background: "linear-gradient(to right, #a5b4fc, #c4b5fd)",
                     zIndex: 0,
                   }}
                 />
@@ -64,12 +66,12 @@ function HowItWorksSection() {
                     width: 56,
                     height: 56,
                     borderRadius: "50%",
-                    background: "var(--color-brand-500)",
+                    background: "linear-gradient(135deg, #3b6ef5, #8b5cf6)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     margin: "0 auto 24px",
-                    boxShadow: "0 0 0 8px var(--color-brand-50)",
+                    boxShadow: "0 0 0 8px rgba(139,92,246,0.12)",
                   }}
                 >
                   <span

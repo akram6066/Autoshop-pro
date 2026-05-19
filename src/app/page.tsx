@@ -4,10 +4,9 @@ import ProblemSection from "@/components/landing/ProblemSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
-import WaitlistSection from "@/components/landing/WaitlistSection";
 import FAQSection from "@/components/landing/FAQSection";
-import FinalCTASection from "@/components/landing/FinalCTASection";
 import FooterSection from "@/components/landing/FooterSection";
+import WhatsAppButton from "@/components/landing/WhatsAppButton";
 
 export default function LandingPage() {
   return (
@@ -19,11 +18,10 @@ export default function LandingPage() {
         <FeaturesSection />
         <HowItWorksSection />
         <TestimonialsSection />
-        <WaitlistSection />
         <FAQSection />
-        <FinalCTASection />
       </main>
       <FooterSection />
+      <WhatsAppButton />
     </div>
   );
 }

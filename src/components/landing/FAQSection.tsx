@@ -37,7 +37,10 @@ function FAQSection() {
   return (
     <section
       id="faq"
-      style={{ padding: "88px 0", background: "var(--color-surface-0)" }}
+      style={{
+        padding: "88px 0",
+        background: "linear-gradient(160deg, #f5f0ff 0%, #eef2ff 100%)",
+      }}
     >
       <Container>
         <SectionHead

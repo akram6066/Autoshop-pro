@@ -5,6 +5,8 @@ const features = [
   {
     title: "Lightning-fast POS",
     desc: "Complete a sale in seconds. Accept cash, M-Pesa, card, or credit — and share receipts instantly.",
+    iconBg: "linear-gradient(135deg, #3b6ef5, #6366f1)",
+    accentBorder: "#3b6ef5",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
         <rect
@@ -28,6 +30,8 @@ const features = [
   {
     title: "Smart Inventory",
     desc: "Track stock by room or shelf. Set reorder alerts and never run out of your fastest-moving items.",
+    iconBg: "linear-gradient(135deg, #059669, #10b981)",
+    accentBorder: "#059669",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
         <path
@@ -43,6 +47,8 @@ const features = [
   {
     title: "Multi-branch ready",
     desc: "Manage all your shops from one account. Switch between branches instantly from the nav bar.",
+    iconBg: "linear-gradient(135deg, #7c3aed, #8b5cf6)",
+    accentBorder: "#8b5cf6",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
         <path
@@ -64,6 +70,8 @@ const features = [
   {
     title: "Sales Reports",
     desc: "Daily and weekly revenue, top-selling products, and low-stock alerts — all in one clear view.",
+    iconBg: "linear-gradient(135deg, #d97706, #f59e0b)",
+    accentBorder: "#d97706",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
         <path
@@ -78,6 +86,8 @@ const features = [
   {
     title: "Customer Debt Tracking",
     desc: "Record credit sales and track outstanding balances per customer. No more forgotten tabs.",
+    iconBg: "linear-gradient(135deg, #e11d48, #f43f5e)",
+    accentBorder: "#e11d48",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
         <rect
@@ -101,6 +111,8 @@ const features = [
   {
     title: "Works Offline",
     desc: "Built as a PWA. Every sale and stock change saves locally and syncs automatically when you reconnect.",
+    iconBg: "linear-gradient(135deg, #0891b2, #06b6d4)",
+    accentBorder: "#0891b2",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
         <path
@@ -127,7 +139,7 @@ function FeaturesSection() {
       id="features"
       style={{
         padding: "88px 0",
-        background: "var(--color-surface-1)",
+        background: "linear-gradient(160deg, #eef2ff 0%, #f5f0ff 100%)",
         position: "relative",
         overflow: "hidden",
       }}
@@ -141,8 +153,7 @@ function FeaturesSection() {
           width: 700,
           height: 700,
           borderRadius: "50%",
-          background: "var(--color-brand-50)",
-          opacity: 0.4,
+          background: "radial-gradient(circle, #e0e7ff 0%, transparent 70%)",
           pointerEvents: "none",
         }}
       />
@@ -159,12 +170,13 @@ function FeaturesSection() {
               style={{
                 padding: "28px 24px",
                 borderRadius: "var(--radius-lg)",
-                background: "var(--color-surface-0)",
-                border: "1px solid var(--color-border)",
-                boxShadow: "var(--shadow-card)",
+                background: "white",
+                border: "1px solid rgba(99,102,241,0.1)",
+                borderTop: `3px solid ${f.accentBorder}`,
+                boxShadow:
+                  "0 4px 16px rgba(99,102,241,0.07), 0 1px 4px rgba(0,0,0,0.04)",
                 display: "flex",
                 flexDirection: "column",
-                gap: 0,
               }}
             >
               <div
@@ -175,7 +187,7 @@ function FeaturesSection() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: "var(--color-brand-500)",
+                  background: f.iconBg,
                   color: "white",
                   marginBottom: 18,
                   flexShrink: 0,

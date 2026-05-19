@@ -7,34 +7,33 @@ function HeroSection() {
     <section
       style={{
         padding: "80px 0 0",
-        background: "var(--color-surface-0)",
+        background: "linear-gradient(160deg, #eef2ff 0%, #f5f0ff 100%)",
         position: "relative",
         overflow: "hidden",
       }}
     >
-      {/* Gradient backdrop */}
+      {/* Radial glow at top-center — blue fading into violet */}
       <div
         style={{
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(ellipse 80% 60% at 50% -10%, #dce6fe 0%, transparent 70%)",
+            "radial-gradient(ellipse 90% 70% at 50% -5%, #dce6fe 0%, #ede9fe 45%, transparent 72%)",
           pointerEvents: "none",
         }}
       />
-      {/* Grid dot pattern */}
+      {/* Dot grid */}
       <div
         style={{
           position: "absolute",
           inset: 0,
           backgroundImage:
-            "radial-gradient(circle, var(--color-brand-200) 1px, transparent 1px)",
+            "radial-gradient(circle, rgba(99,102,241,0.18) 1px, transparent 1px)",
           backgroundSize: "32px 32px",
-          opacity: 0.22,
           pointerEvents: "none",
         }}
       />
-      {/* Side glows */}
+      {/* Left glow — blue */}
       <div
         style={{
           position: "absolute",
@@ -43,12 +42,13 @@ function HeroSection() {
           width: 420,
           height: 420,
           borderRadius: "50%",
-          background: "var(--color-brand-100)",
-          opacity: 0.45,
-          filter: "blur(60px)",
+          background: "#bacffe",
+          opacity: 0.35,
+          filter: "blur(64px)",
           pointerEvents: "none",
         }}
       />
+      {/* Right glow — violet */}
       <div
         style={{
           position: "absolute",
@@ -57,9 +57,9 @@ function HeroSection() {
           width: 380,
           height: 380,
           borderRadius: "50%",
-          background: "var(--color-brand-200)",
-          opacity: 0.35,
-          filter: "blur(60px)",
+          background: "#c4b5fd",
+          opacity: 0.3,
+          filter: "blur(64px)",
           pointerEvents: "none",
         }}
       />
@@ -77,8 +77,8 @@ function HeroSection() {
                 padding: "6px 18px",
                 borderRadius: 999,
                 background: "white",
-                border: "1px solid var(--color-brand-200)",
-                boxShadow: "0 1px 8px rgba(59,110,245,0.12)",
+                border: "1px solid rgba(99,102,241,0.2)",
+                boxShadow: "0 1px 8px rgba(99,102,241,0.1)",
                 fontSize: "0.75rem",
                 fontWeight: 700,
                 color: "var(--color-brand-700)",
@@ -118,7 +118,10 @@ function HeroSection() {
               fontFamily: "var(--font-display)",
               fontSize: "clamp(2.75rem, 6vw, 4.5rem)",
               lineHeight: 1.06,
-              color: "var(--color-brand-500)",
+              background: "linear-gradient(135deg, #3b6ef5 0%, #8b5cf6 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
               maxWidth: 820,
               margin: "0 auto 28px",
               letterSpacing: "-0.02em",
@@ -159,12 +162,13 @@ function HeroSection() {
                 gap: 10,
                 padding: "15px 34px",
                 borderRadius: "var(--radius-md)",
-                background: "var(--color-brand-500)",
+                background: "linear-gradient(135deg, #3b6ef5 0%, #8b5cf6 100%)",
                 color: "white",
                 fontWeight: 700,
                 fontSize: "1rem",
                 textDecoration: "none",
-                boxShadow: "0 4px 20px rgba(59,110,245,0.35)",
+                boxShadow:
+                  "0 4px 20px rgba(99,102,241,0.35), 0 1px 4px rgba(59,110,245,0.2)",
                 letterSpacing: "0.01em",
               }}
             >
@@ -192,7 +196,7 @@ function HeroSection() {
                 fontWeight: 600,
                 fontSize: "1rem",
                 textDecoration: "none",
-                border: "1.5px solid var(--color-border)",
+                border: "1.5px solid rgba(99,102,241,0.18)",
                 boxShadow: "var(--shadow-card)",
               }}
             >
@@ -218,16 +222,14 @@ function HeroSection() {
               justifyContent: "center",
               gap: 8,
               flexWrap: "wrap",
-              marginBottom: 0,
             }}
           >
-            {/* Avatars */}
             <div style={{ display: "flex", marginRight: 4 }}>
               {[
                 "var(--color-brand-500)",
                 "var(--color-success)",
                 "var(--color-warning)",
-                "var(--color-danger)",
+                "#8b5cf6",
               ].map((bg, i) => (
                 <div
                   key={i}
@@ -241,7 +243,7 @@ function HeroSection() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
                   }}
                 >
                   <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
@@ -326,8 +328,9 @@ function HeroSection() {
               background: "white",
               borderRadius: "var(--radius-lg)",
               padding: "14px 18px",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.14)",
-              border: "1px solid var(--color-border)",
+              boxShadow:
+                "0 8px 32px rgba(99,102,241,0.12), 0 2px 8px rgba(0,0,0,0.06)",
+              border: "1px solid rgba(99,102,241,0.1)",
               minWidth: 160,
             }}
           >
@@ -400,8 +403,9 @@ function HeroSection() {
               background: "white",
               borderRadius: "var(--radius-lg)",
               padding: "14px 18px",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.14)",
-              border: "1px solid var(--color-border)",
+              boxShadow:
+                "0 8px 32px rgba(99,102,241,0.12), 0 2px 8px rgba(0,0,0,0.06)",
+              border: "1px solid rgba(99,102,241,0.1)",
               minWidth: 150,
             }}
           >
@@ -483,8 +487,9 @@ function HeroSection() {
               background: "white",
               borderRadius: "var(--radius-lg)",
               padding: "12px 16px",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.14)",
-              border: "1px solid var(--color-border)",
+              boxShadow:
+                "0 8px 32px rgba(99,102,241,0.12), 0 2px 8px rgba(0,0,0,0.06)",
+              border: "1px solid rgba(99,102,241,0.1)",
               display: "flex",
               alignItems: "center",
               gap: 10,
@@ -538,13 +543,12 @@ function HeroSection() {
             style={{
               borderRadius: "var(--radius-lg)",
               overflow: "hidden",
-              border: "1px solid var(--color-border)",
+              border: "1px solid rgba(99,102,241,0.15)",
               boxShadow:
-                "0 32px 100px -16px rgba(39,82,232,0.22), 0 8px 32px rgba(0,0,0,0.1)",
+                "0 32px 100px -16px rgba(99,102,241,0.22), 0 8px 32px rgba(0,0,0,0.08)",
               background: "var(--color-surface-0)",
             }}
           >
-            {/* Chrome */}
             <div
               style={{
                 background: "var(--color-surface-1)",
@@ -626,12 +630,11 @@ function HeroSection() {
         <div
           className="grid grid-cols-2 sm:grid-cols-4 gap-px"
           style={{
-            background: "var(--color-border)",
-            border: "1px solid var(--color-border)",
+            background: "rgba(99,102,241,0.12)",
+            border: "1px solid rgba(99,102,241,0.15)",
             borderTop: "none",
             borderRadius: "0 0 var(--radius-lg) var(--radius-lg)",
             overflow: "hidden",
-            marginBottom: 0,
           }}
         >
           {[
@@ -643,7 +646,7 @@ function HeroSection() {
             <div
               key={stat.label}
               style={{
-                background: "var(--color-surface-0)",
+                background: "white",
                 padding: "18px 24px",
                 textAlign: "center",
               }}
@@ -652,7 +655,10 @@ function HeroSection() {
                 style={{
                   fontWeight: 800,
                   fontSize: "1.25rem",
-                  color: "var(--color-brand-600)",
+                  background: "linear-gradient(135deg, #3b6ef5, #8b5cf6)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
                   marginBottom: 2,
                 }}
               >

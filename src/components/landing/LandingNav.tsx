@@ -72,9 +72,11 @@ function LandingNav() {
           </div>
 
           <button
-            className="sm:hidden btn btn-icon btn-ghost"
+            type="button"
+            className="sm:hidden btn btn-ghost"
             onClick={() => setMenuOpen((v) => !v)}
             aria-label={menuOpen ? "Close menu" : "Open menu"}
+            style={{ width: 44, height: 44, padding: 0 }}
           >
             {menuOpen ? (
               <svg width="20" height="20" fill="none" viewBox="0 0 24 24">

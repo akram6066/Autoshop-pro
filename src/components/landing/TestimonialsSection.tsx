@@ -33,7 +33,7 @@ function TestimonialsSection() {
     <section
       style={{
         padding: "88px 0",
-        background: "var(--color-surface-1)",
+        background: "linear-gradient(160deg, #eef2ff 0%, #f0e9ff 100%)",
         position: "relative",
         overflow: "hidden",
       }}
@@ -46,7 +46,7 @@ function TestimonialsSection() {
           width: 300,
           height: 300,
           borderRadius: "50%",
-          background: "var(--color-brand-100)",
+          background: "#c4b5fd",
           opacity: 0.3,
           pointerEvents: "none",
         }}

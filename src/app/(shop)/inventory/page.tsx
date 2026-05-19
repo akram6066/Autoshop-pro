@@ -7,12 +7,13 @@ import { useAuthStore, selectShopId } from "@/stores/authStore";
 import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
 import { useRooms } from "@/hooks/useRooms";
 import { useCategories } from "@/hooks/useCategories";
+import { useShopVariants } from "@/hooks/useVariants";
 import { formatCurrency, stockStatus } from "@/lib/utils";
 import { CATEGORY_LABELS } from "@/types/app";
 import { SearchBar } from "@/components/ui/SearchBar";
-import type { Category } from "@/types/app";
+import type { Category, ProductVariant } from "@/types/app";
 
-// ─── Status Pill ──────────────────────────────────────────────────────────────
+// ─── Status Badges ────────────────────────────────────────────────────────────
 
 function StockBadge({ qty, minStock }: { qty: number; minStock: number }) {
   const status = stockStatus(qty, minStock);
@@ -25,14 +26,27 @@ function StockBadge({ qty, minStock }: { qty: number; minStock: number }) {
   return <span className={`badge ${classes[status]}`}>{labels[status]}</span>;
 }
 
+function VariantStockBadge({ variants }: { variants: ProductVariant[] }) {
+  const total = variants.reduce((s, v) => s + v.quantity, 0);
+  if (total === 0) return <span className="badge badge-danger">Out</span>;
+  if (variants.some((v) => v.quantity <= v.min_stock))
+    return <span className="badge badge-warning">Low</span>;
+  return <span className="badge badge-success">In stock</span>;
+}
+
 // ─── Inventory Page ───────────────────────────────────────────────────────────
 
 export default function InventoryPage() {
   const shopId = useAuthStore(selectShopId);
-  const { data: products = [], isLoading } = useProducts(shopId);
+  const { data: products = [], isLoading: isLoadingProducts } =
+    useProducts(shopId);
   const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProduct();
   const { data: rooms = [] } = useRooms(shopId);
   const { data: categories = [] } = useCategories();
+  const { data: allVariants = [], isLoading: isLoadingVariants } =
+    useShopVariants(shopId);
+
+  const isLoading = isLoadingProducts || isLoadingVariants;
 
   const [search, setSearch] = useState("");
   const [roomFilter, setRoomFilter] = useState<string>("all");
@@ -45,6 +59,16 @@ export default function InventoryPage() {
   } | null>(null);
 
   const PAGE_SIZE = 100;
+
+  const variantsByProduct = useMemo(() => {
+    const map = new Map<string, ProductVariant[]>();
+    for (const v of allVariants) {
+      const arr = map.get(v.product_id) ?? [];
+      arr.push(v);
+      map.set(v.product_id, arr);
+    }
+    return map;
+  }, [allVariants]);
 
   // ─── Filter + sort ──────────────────────────────────────────────────────────
 
@@ -73,9 +97,12 @@ export default function InventoryPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const lowStockCount = products.filter(
-    (p) => p.quantity <= p.min_stock,
-  ).length;
+  const lowStockCount = products.filter((p) => {
+    const variants = variantsByProduct.get(p.id);
+    if (variants?.length)
+      return variants.some((v) => v.quantity <= v.min_stock);
+    return p.quantity <= p.min_stock;
+  }).length;
 
   return (
     <div>
@@ -212,110 +239,133 @@ export default function InventoryPage() {
         <>
           {/* Mobile card list */}
           <div className="sm:hidden space-y-2">
-            {paginated.map((product) => (
-              <div key={product.id} className="card px-4 py-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      href={`/inventory/${product.id}`}
-                      className="font-medium text-sm truncate block hover:underline"
-                      style={{ color: "var(--color-brand-600)" }}
-                    >
-                      {product.name}
-                    </Link>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            {paginated.map((product) => {
+              const pVariants = variantsByProduct.get(product.id);
+              const hasVariants = !!pVariants?.length;
+              const totalQty = hasVariants
+                ? pVariants!.reduce((s, v) => s + v.quantity, 0)
+                : product.quantity;
+              return (
+                <div key={product.id} className="card px-4 py-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/inventory/${product.id}`}
+                        className="font-medium text-sm truncate block hover:underline"
+                        style={{ color: "var(--color-brand-600)" }}
+                      >
+                        {product.name}
+                      </Link>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        {hasVariants ? (
+                          <span
+                            className="text-xs"
+                            style={{ color: "var(--color-ink-tertiary)" }}
+                          >
+                            {pVariants!.length} size
+                            {pVariants!.length !== 1 ? "s" : ""}
+                          </span>
+                        ) : (
+                          <>
+                            <span
+                              className="text-xs font-mono"
+                              style={{ color: "var(--color-ink-tertiary)" }}
+                            >
+                              {product.sku}
+                            </span>
+                            {product.size && (
+                              <span
+                                className="text-xs"
+                                style={{ color: "var(--color-ink-secondary)" }}
+                              >
+                                {product.size}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {hasVariants ? (
+                      <VariantStockBadge variants={pVariants!} />
+                    ) : (
+                      <StockBadge
+                        qty={product.quantity}
+                        minStock={product.min_stock}
+                      />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-3">
                       <span
-                        className="text-xs font-mono"
+                        className="text-sm font-medium"
+                        style={{ color: "var(--color-ink-primary)" }}
+                      >
+                        {hasVariants ? "—" : formatCurrency(product.price)}
+                      </span>
+                      <span
+                        className="text-xs"
                         style={{ color: "var(--color-ink-tertiary)" }}
                       >
-                        {product.sku}
+                        qty {totalQty}
                       </span>
-                      {product.size && (
-                        <span
-                          className="text-xs"
-                          style={{ color: "var(--color-ink-secondary)" }}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Link
+                        href={`/inventory/${product.id}`}
+                        className="btn btn-ghost btn-sm btn-icon"
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          fill="none"
+                          viewBox="0 0 24 24"
                         >
-                          {product.size}
-                        </span>
-                      )}
+                          <path
+                            d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
+                            stroke="currentColor"
+                            strokeWidth="1.75"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+                            stroke="currentColor"
+                            strokeWidth="1.75"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDeletingProduct({
+                            id: product.id,
+                            name: product.name,
+                          })
+                        }
+                        className="btn btn-ghost btn-sm btn-icon"
+                        style={{ color: "var(--color-danger)" }}
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
+                            stroke="currentColor"
+                            strokeWidth="1.75"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
                     </div>
                   </div>
-                  <StockBadge
-                    qty={product.quantity}
-                    minStock={product.min_stock}
-                  />
                 </div>
-                <div className="flex items-center justify-between mt-2">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="text-sm font-medium"
-                      style={{ color: "var(--color-ink-primary)" }}
-                    >
-                      {formatCurrency(product.price)}
-                    </span>
-                    <span
-                      className="text-xs"
-                      style={{ color: "var(--color-ink-tertiary)" }}
-                    >
-                      qty {product.quantity}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Link
-                      href={`/inventory/${product.id}`}
-                      className="btn btn-ghost btn-sm btn-icon"
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
-                          stroke="currentColor"
-                          strokeWidth="1.75"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
-                          stroke="currentColor"
-                          strokeWidth="1.75"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setDeletingProduct({
-                          id: product.id,
-                          name: product.name,
-                        })
-                      }
-                      className="btn btn-ghost btn-sm btn-icon"
-                      style={{ color: "var(--color-danger)" }}
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
-                          stroke="currentColor"
-                          strokeWidth="1.75"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {totalPages > 1 && (
               <div className="flex items-center justify-between py-2">
                 <span
@@ -364,112 +414,146 @@ export default function InventoryPage() {
                 </tr>
               </thead>
               <tbody>
-                {paginated.map((product) => (
-                  <tr key={product.id}>
-                    <td>
-                      <Link
-                        href={`/inventory/${product.id}`}
-                        className="font-medium hover:underline"
-                        style={{ color: "var(--color-brand-600)" }}
-                      >
-                        {product.name}
-                      </Link>
-                    </td>
-                    <td
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 12,
-                        color: "var(--color-ink-tertiary)",
-                      }}
-                    >
-                      {product.sku}
-                    </td>
-                    <td
-                      style={{
-                        color: "var(--color-ink-secondary)",
-                        fontSize: 13,
-                      }}
-                    >
-                      {product.size || (
-                        <span style={{ color: "var(--color-ink-ghost)" }}>
-                          —
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <span className="badge badge-neutral">
-                        {CATEGORY_LABELS[product.category]}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: "right", fontWeight: 500 }}>
-                      {formatCurrency(product.price)}
-                    </td>
-                    <td style={{ textAlign: "right", fontWeight: 500 }}>
-                      {product.quantity}
-                    </td>
-                    <td>
-                      <StockBadge
-                        qty={product.quantity}
-                        minStock={product.min_stock}
-                      />
-                    </td>
-                    <td>
-                      <div className="flex items-center gap-1">
+                {paginated.map((product) => {
+                  const pVariants = variantsByProduct.get(product.id);
+                  const hasVariants = !!pVariants?.length;
+                  const totalQty = hasVariants
+                    ? pVariants!.reduce((s, v) => s + v.quantity, 0)
+                    : product.quantity;
+                  return (
+                    <tr key={product.id}>
+                      <td>
                         <Link
                           href={`/inventory/${product.id}`}
-                          className="btn btn-ghost btn-sm btn-icon"
+                          className="font-medium hover:underline"
+                          style={{ color: "var(--color-brand-600)" }}
                         >
-                          <svg
-                            width="14"
-                            height="14"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
-                              stroke="currentColor"
-                              strokeWidth="1.75"
-                              strokeLinecap="round"
-                            />
-                            <path
-                              d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
-                              stroke="currentColor"
-                              strokeWidth="1.75"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
+                          {product.name}
                         </Link>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setDeletingProduct({
-                              id: product.id,
-                              name: product.name,
-                            })
-                          }
-                          className="btn btn-ghost btn-sm btn-icon"
-                          style={{ color: "var(--color-danger)" }}
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            fill="none"
-                            viewBox="0 0 24 24"
+                      </td>
+                      <td
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 12,
+                          color: "var(--color-ink-tertiary)",
+                        }}
+                      >
+                        {hasVariants ? (
+                          <span style={{ color: "var(--color-ink-ghost)" }}>
+                            —
+                          </span>
+                        ) : (
+                          product.sku || (
+                            <span style={{ color: "var(--color-ink-ghost)" }}>
+                              —
+                            </span>
+                          )
+                        )}
+                      </td>
+                      <td
+                        style={{
+                          color: "var(--color-ink-secondary)",
+                          fontSize: 13,
+                        }}
+                      >
+                        {hasVariants ? (
+                          <span style={{ color: "var(--color-ink-tertiary)" }}>
+                            {pVariants!.length} size
+                            {pVariants!.length !== 1 ? "s" : ""}
+                          </span>
+                        ) : (
+                          product.size || (
+                            <span style={{ color: "var(--color-ink-ghost)" }}>
+                              —
+                            </span>
+                          )
+                        )}
+                      </td>
+                      <td>
+                        <span className="badge badge-neutral">
+                          {CATEGORY_LABELS[product.category]}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: "right", fontWeight: 500 }}>
+                        {hasVariants ? (
+                          <span style={{ color: "var(--color-ink-ghost)" }}>
+                            —
+                          </span>
+                        ) : (
+                          formatCurrency(product.price)
+                        )}
+                      </td>
+                      <td style={{ textAlign: "right", fontWeight: 500 }}>
+                        {totalQty}
+                      </td>
+                      <td>
+                        {hasVariants ? (
+                          <VariantStockBadge variants={pVariants!} />
+                        ) : (
+                          <StockBadge
+                            qty={product.quantity}
+                            minStock={product.min_stock}
+                          />
+                        )}
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-1">
+                          <Link
+                            href={`/inventory/${product.id}`}
+                            className="btn btn-ghost btn-sm btn-icon"
                           >
-                            <path
-                              d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
-                              stroke="currentColor"
-                              strokeWidth="1.75"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                            <svg
+                              width="14"
+                              height="14"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
+                                stroke="currentColor"
+                                strokeWidth="1.75"
+                                strokeLinecap="round"
+                              />
+                              <path
+                                d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+                                stroke="currentColor"
+                                strokeWidth="1.75"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDeletingProduct({
+                                id: product.id,
+                                name: product.name,
+                              })
+                            }
+                            className="btn btn-ghost btn-sm btn-icon"
+                            style={{ color: "var(--color-danger)" }}
+                          >
+                            <svg
+                              width="14"
+                              height="14"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
+                                stroke="currentColor"
+                                strokeWidth="1.75"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
 

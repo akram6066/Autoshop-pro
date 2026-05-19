@@ -12,6 +12,10 @@ type EventType =
   | "SALE"
   | "STOCK_ADJUST"
   | "PRODUCT_ADDED"
+  | "PRODUCT_UPDATED"
+  | "PRODUCT_DELETED"
+  | "VARIANT_UPDATED"
+  | "VARIANT_DELETED"
   | "MEMBER_CHANGE"
   | "MEMBER_REMOVED";
 
@@ -67,6 +71,26 @@ const EVENT_STYLES: Record<
     badge: "badge-info",
     label: "Inventory",
   },
+  PRODUCT_UPDATED: {
+    dot: "var(--color-brand-400)",
+    badge: "badge-info",
+    label: "Inventory",
+  },
+  PRODUCT_DELETED: {
+    dot: "var(--color-danger)",
+    badge: "badge-danger",
+    label: "Inventory",
+  },
+  VARIANT_UPDATED: {
+    dot: "var(--color-brand-400)",
+    badge: "badge-info",
+    label: "Inventory",
+  },
+  VARIANT_DELETED: {
+    dot: "var(--color-danger)",
+    badge: "badge-danger",
+    label: "Inventory",
+  },
   MEMBER_CHANGE: {
     dot: "var(--color-warning)",
     badge: "badge-warning",
@@ -110,6 +134,10 @@ async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
         "MEMBER_ROLE_CHANGE",
         "MEMBER_REMOVED",
         "PRODUCT_ADDED",
+        "PRODUCT_UPDATED",
+        "PRODUCT_DELETED",
+        "VARIANT_UPDATED",
+        "VARIANT_DELETED",
       ])
       .order("created_at", { ascending: false })
       .limit(LIMIT),
@@ -192,10 +220,53 @@ async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
         id: `audit-${a.id}`,
         type: "PRODUCT_ADDED",
         staffName,
-        label: "Added product to inventory",
+        label: "Added product",
         detail: String(payload.name ?? ""),
         created_at: a.created_at,
         severity: "info",
+      });
+    } else if (a.event_type === "PRODUCT_UPDATED") {
+      const name = String(payload.name ?? "");
+      const oldName = String(payload.old_name ?? "");
+      const nameChanged = name !== oldName && oldName;
+      events.push({
+        id: `audit-${a.id}`,
+        type: "PRODUCT_UPDATED",
+        staffName,
+        label: "Updated product",
+        detail: nameChanged ? `${oldName} → ${name}` : name,
+        created_at: a.created_at,
+        severity: "info",
+      });
+    } else if (a.event_type === "PRODUCT_DELETED") {
+      events.push({
+        id: `audit-${a.id}`,
+        type: "PRODUCT_DELETED",
+        staffName,
+        label: "Deleted product",
+        detail: String(payload.name ?? ""),
+        created_at: a.created_at,
+        severity: "warning",
+      });
+    } else if (a.event_type === "VARIANT_UPDATED") {
+      events.push({
+        id: `audit-${a.id}`,
+        type: "VARIANT_UPDATED",
+        staffName,
+        label: `Updated size ${String(payload.size ?? "")}`,
+        detail: String(payload.product_name ?? ""),
+        created_at: a.created_at,
+        severity: "info",
+      });
+    } else if (a.event_type === "VARIANT_DELETED") {
+      events.push({
+        id: `audit-${a.id}`,
+        type: "VARIANT_DELETED",
+        staffName,
+        label: `Deleted size ${String(payload.size ?? "")}`,
+        detail: String(payload.product_name ?? ""),
+        created_at: a.created_at,
+        severity: "warning",
       });
     } else {
       const isRemoval = a.event_type === "MEMBER_REMOVED";
@@ -225,10 +296,18 @@ async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+const INVENTORY_TYPES: EventType[] = [
+  "PRODUCT_ADDED",
+  "PRODUCT_UPDATED",
+  "PRODUCT_DELETED",
+  "VARIANT_UPDATED",
+  "VARIANT_DELETED",
+];
+
 const FILTER_OPTIONS = [
   { value: "all", label: "All activity" },
   { value: "SALE", label: "Sales" },
-  { value: "PRODUCT_ADDED", label: "Inventory" },
+  { value: "inventory", label: "Inventory" },
   { value: "STOCK_ADJUST", label: "Stock adjustments" },
   { value: "MEMBER_CHANGE", label: "Team changes" },
 ] as const;
@@ -255,11 +334,13 @@ export default function ActivityPage() {
   const filtered =
     filter === "all"
       ? events
-      : events.filter((e) =>
-          filter === "MEMBER_CHANGE"
-            ? e.type === "MEMBER_CHANGE" || e.type === "MEMBER_REMOVED"
-            : e.type === filter,
-        );
+      : events.filter((e) => {
+          if (filter === "MEMBER_CHANGE")
+            return e.type === "MEMBER_CHANGE" || e.type === "MEMBER_REMOVED";
+          if (filter === "inventory")
+            return (INVENTORY_TYPES as EventType[]).includes(e.type);
+          return e.type === filter;
+        });
 
   if (!isOwner) {
     return (

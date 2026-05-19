@@ -5,6 +5,8 @@ const problems = [
   {
     title: "Paper records get lost",
     desc: "Handwritten stock books disappear, get damaged, or become unreadable — leaving you guessing your own inventory.",
+    iconBg: "var(--color-danger-light)",
+    iconColor: "var(--color-danger)",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
         <path
@@ -26,6 +28,8 @@ const problems = [
   {
     title: "Internet cuts out at the worst time",
     desc: "Most shop software stops mid-sale when you lose connection. AutoShop Pro keeps working no matter what.",
+    iconBg: "var(--color-warning-light)",
+    iconColor: "var(--color-warning)",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
         <path
@@ -53,6 +57,8 @@ const problems = [
   {
     title: "No visibility into your team",
     desc: "You can't track what staff sold, what discounts were given, or what went missing when you weren't watching.",
+    iconBg: "#ede9fe",
+    iconColor: "#7c3aed",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
         <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.75" />
@@ -77,45 +83,62 @@ const problems = [
 function ProblemSection() {
   return (
     <section
-      style={{ padding: "88px 0", background: "var(--color-surface-0)" }}
+      style={{
+        padding: "88px 0",
+        background:
+          "linear-gradient(160deg, #f5f3ff 0%, #ede9fe 50%, #eef2ff 100%)",
+        position: "relative",
+        overflow: "hidden",
+      }}
     >
-      <Container>
+      {/* Soft glow accents */}
+      <div
+        style={{
+          position: "absolute",
+          top: -80,
+          right: -80,
+          width: 400,
+          height: 400,
+          borderRadius: "50%",
+          background: "#ddd6fe",
+          opacity: 0.4,
+          filter: "blur(70px)",
+          pointerEvents: "none",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          bottom: -60,
+          left: -60,
+          width: 320,
+          height: 320,
+          borderRadius: "50%",
+          background: "#c7d2fe",
+          opacity: 0.35,
+          filter: "blur(60px)",
+          pointerEvents: "none",
+        }}
+      />
+      <Container style={{ position: "relative" }}>
         <SectionHead
           eyebrow="The problem"
           title="Paper and spreadsheets are holding you back"
           subtitle="Every day without the right tools costs you time, money, and peace of mind."
         />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {problems.map((p, i) => (
+          {problems.map((p) => (
             <div
               key={p.title}
               style={{
                 padding: "32px 28px",
                 borderRadius: "var(--radius-lg)",
-                background: "var(--color-surface-1)",
-                border: "1px solid var(--color-border)",
-                position: "relative",
-                overflow: "hidden",
+                background: "white",
+                border: "1px solid rgba(139,92,246,0.12)",
+                boxShadow:
+                  "0 4px 20px rgba(99,102,241,0.08), 0 1px 4px rgba(0,0,0,0.04)",
               }}
             >
-              {/* Subtle corner accent */}
-              <div
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  right: 0,
-                  width: 80,
-                  height: 80,
-                  background:
-                    i === 0
-                      ? "var(--color-danger)"
-                      : i === 1
-                        ? "var(--color-warning)"
-                        : "var(--color-brand-500)",
-                  opacity: 0.06,
-                  borderBottomLeftRadius: "100%",
-                }}
-              />
               <div
                 style={{
                   width: 48,
@@ -124,18 +147,8 @@ function ProblemSection() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background:
-                    i === 0
-                      ? "color-mix(in srgb, var(--color-danger) 12%, transparent)"
-                      : i === 1
-                        ? "color-mix(in srgb, var(--color-warning) 12%, transparent)"
-                        : "var(--color-brand-50)",
-                  color:
-                    i === 0
-                      ? "var(--color-danger)"
-                      : i === 1
-                        ? "var(--color-warning)"
-                        : "var(--color-brand-600)",
+                  background: p.iconBg,
+                  color: p.iconColor,
                   marginBottom: 20,
                   flexShrink: 0,
                 }}
