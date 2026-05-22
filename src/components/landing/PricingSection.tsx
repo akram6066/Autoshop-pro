@@ -191,31 +191,11 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
             ? "rgba(255,255,255,0.72)"
             : "var(--color-ink-tertiary)",
           lineHeight: 1.6,
-          marginBottom: 24,
+          marginBottom: 20,
         }}
       >
         {plan.description}
       </p>
-
-      {/* CTA */}
-      <Link
-        href={plan.ctaHref}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "11px 20px",
-          borderRadius: "var(--radius-md)",
-          background: plan.highlighted ? "white" : "var(--color-brand-600)",
-          color: plan.highlighted ? "#7c3aed" : "white",
-          fontWeight: 700,
-          fontSize: "0.9375rem",
-          textDecoration: "none",
-          marginBottom: 28,
-        }}
-      >
-        {plan.cta}
-      </Link>
 
       {/* Divider */}
       <div
@@ -236,6 +216,7 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
           display: "flex",
           flexDirection: "column",
           gap: 12,
+          flex: 1,
         }}
       >
         {plan.features.map((f) => (
@@ -260,6 +241,26 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
           </li>
         ))}
       </ul>
+
+      {/* CTA — always at bottom */}
+      <Link
+        href={plan.ctaHref}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "11px 20px",
+          borderRadius: "var(--radius-md)",
+          background: plan.highlighted ? "white" : "var(--color-brand-600)",
+          color: plan.highlighted ? "#7c3aed" : "white",
+          fontWeight: 700,
+          fontSize: "0.9375rem",
+          textDecoration: "none",
+          marginTop: 24,
+        }}
+      >
+        {plan.cta}
+      </Link>
     </div>
   );
 }
@@ -321,7 +322,7 @@ export function PricingSection({ plans }: PricingSectionProps) {
         {/* Cards */}
         <div
           className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          style={{ alignItems: "start" }}
+          style={{ alignItems: "stretch" }}
         >
           {plans.map((plan) => (
             <PlanCard key={plan.id} plan={plan} />
