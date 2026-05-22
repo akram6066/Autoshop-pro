@@ -17,7 +17,15 @@ export async function GET() {
     status: sub.status,
     isActive: isActive(sub),
     daysLeft: daysLeft(sub),
-    plan: sub.plan.display_name,
     isAdminOverride: sub.is_admin_override,
+    plan: {
+      name: sub.plan.name,
+      displayName: sub.plan.display_name,
+      priceKes: sub.plan.price_kes,
+      maxShops: sub.plan.max_shops,
+      maxProductsPerShop: sub.plan.max_products_per_shop,
+      maxStaffPerShop: sub.plan.max_staff_per_shop,
+      maxSalesPerMonth: sub.plan.max_sales_per_month,
+    },
   });
 }
