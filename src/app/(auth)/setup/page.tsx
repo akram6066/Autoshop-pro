@@ -7,9 +7,20 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { seedLocalCache } from "@/lib/db/instance";
 import { useAuthStore, selectShops } from "@/stores/authStore";
-import type { Room, Shop, ShopWithRole } from "@/types/app";
+import type { Room, Shop, ShopWithRole, CategoryItem } from "@/types/app";
 
-type Step = "shop" | "rooms" | "done";
+type Step = "shop" | "rooms" | "categories" | "done";
+
+const PRESET_COLORS = [
+  "#3b6ef5",
+  "#16a34a",
+  "#d97706",
+  "#dc2626",
+  "#7c3aed",
+  "#0891b2",
+  "#be185d",
+  "#374151",
+];
 
 export default function SetupPage() {
   return (
@@ -32,13 +43,24 @@ function SetupContent() {
   const [step, setStep] = useState<Step>("shop");
   const [isPending, startTransition] = useTransition();
   const mounted = useMounted();
+
+  // ── Step 1 state ──────────────────────────────────────────────────────────
   const [shopError, setShopError] = useState("");
-  const [roomsError, setRoomsError] = useState("");
   const [shopName, setShopName] = useState("");
   const [shopAddress, setShopAddress] = useState("");
   const [createdShop, setCreatedShop] = useState<Shop | null>(null);
+
+  // ── Step 2 state ──────────────────────────────────────────────────────────
+  const [roomsError, setRoomsError] = useState("");
   const [rooms, setRooms] = useState<string[]>([]);
   const [newRoom, setNewRoom] = useState("");
+
+  // ── Step 3 state ──────────────────────────────────────────────────────────
+  const [setupCategories, setSetupCategories] = useState<CategoryItem[]>([]);
+  const [catName, setCatName] = useState("");
+  const [catColor, setCatColor] = useState(PRESET_COLORS[0]);
+  const [catError, setCatError] = useState("");
+  const [catAdding, setCatAdding] = useState(false);
 
   // ─── Step 1: Create shop ──────────────────────────────────────────────────
 
@@ -122,21 +144,82 @@ function SetupContent() {
       }
 
       // Seed IndexedDB + default categories in parallel
-      await Promise.all([
+      const [, { error: catSeedError }] = await Promise.all([
         seedLocalCache(createdShop!, createdRooms as Room[], []),
-        supabase.rpc("seed_default_categories").then(({ error: e }) => {
-          if (e) console.error("[setup] seed categories:", e);
-        }),
+        supabase.rpc("seed_default_categories"),
       ]);
+      if (catSeedError) console.error("[setup] seed categories:", catSeedError);
 
-      // Fetch fresh profile
+      // Fetch the seeded categories to show on the next step
+      const { data: cats } = await supabase
+        .from("categories")
+        .select("*")
+        .order("name");
+
+      setSetupCategories((cats as CategoryItem[]) ?? []);
+      setStep("categories");
+    });
+  }
+
+  // ─── Step 3: Categories ───────────────────────────────────────────────────
+
+  async function handleAddCategory(e: React.FormEvent) {
+    e.preventDefault();
+    if (!catName.trim()) return;
+    setCatError("");
+    setCatAdding(true);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("categories")
+        .insert({ name: catName.trim(), color: catColor })
+        .select()
+        .single();
+      if (error) throw error;
+      setSetupCategories((prev) => [...prev, data as CategoryItem]);
+      setCatName("");
+      setCatColor(
+        PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)],
+      );
+    } catch (err: unknown) {
+      setCatError(
+        err instanceof Error ? err.message : "Failed to add category",
+      );
+    } finally {
+      setCatAdding(false);
+    }
+  }
+
+  async function handleDeleteCategory(id: string) {
+    setCatError("");
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("categories").delete().eq("id", id);
+      if (error) throw error;
+      setSetupCategories((prev) => prev.filter((c) => c.id !== id));
+    } catch (err: unknown) {
+      setCatError(
+        err instanceof Error ? err.message : "Failed to delete category",
+      );
+    }
+  }
+
+  // ─── Finish setup (called by both "Finish" and "Skip") ───────────────────
+
+  function handleFinishSetup() {
+    startTransition(async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data: updatedProfile } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .single();
 
-      // Build updated shops list — append new shop to existing
       const newShop: ShopWithRole = { ...createdShop!, role: "owner" };
       const updatedShops: ShopWithRole[] = [
         ...existingShops.filter((s) => s.id !== newShop.id),
@@ -144,10 +227,8 @@ function SetupContent() {
       ];
 
       setAll(user, updatedProfile as typeof profile, createdShop, updatedShops);
-
       setStep("done");
 
-      // Carry chosen plan to billing; new shop → overview; first shop → dashboard/billing
       setTimeout(() => {
         if (planParam && !isAddingNew) {
           router.push(`/billing?plan=${planParam}`);
@@ -181,7 +262,8 @@ function SetupContent() {
   const steps = [
     { key: "shop", label: "Shop details", num: 1 },
     { key: "rooms", label: "Storage rooms", num: 2 },
-    { key: "done", label: "Ready", num: 3 },
+    { key: "categories", label: "Categories", num: 3 },
+    { key: "done", label: "Ready", num: 4 },
   ] as const;
 
   const currentStepIdx = steps.findIndex((s) => s.key === step);
@@ -206,9 +288,7 @@ function SetupContent() {
         />
         <h1 className="font-display text-3xl mb-1">AutoShop Pro</h1>
         <p className="text-sm" style={{ color: "var(--color-ink-tertiary)" }}>
-          {isAddingNew
-            ? "Set up your new shop"
-            : "Let\u2019s get your shop set up"}
+          {isAddingNew ? "Set up your new shop" : "Let’s get your shop set up"}
         </p>
       </div>
 
@@ -419,12 +499,141 @@ function SetupContent() {
             >
               {isPending
                 ? "Setting up…"
-                : `Finish setup with ${rooms.length} room${rooms.length !== 1 ? "s" : ""}`}
+                : `Continue with ${rooms.length} room${rooms.length !== 1 ? "s" : ""} →`}
             </button>
           </form>
         )}
 
-        {/* Step 3 — Done */}
+        {/* Step 3 — Categories */}
+        {step === "categories" && (
+          <div className="p-6">
+            <h2 className="text-lg font-medium mb-1">Product categories</h2>
+            <p
+              className="text-sm mb-5"
+              style={{ color: "var(--color-ink-secondary)" }}
+            >
+              We&apos;ve added some defaults for your shop. Remove any you
+              don&apos;t need, or add your own.
+            </p>
+
+            {/* Category list */}
+            {setupCategories.length > 0 && (
+              <div className="mb-4">
+                {setupCategories.map((cat) => (
+                  <div
+                    key={cat.id}
+                    className="flex items-center justify-between py-2.5"
+                    style={{
+                      borderBottom: "1px solid var(--color-border-subtle)",
+                    }}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="w-4 h-4 rounded-full flex-shrink-0"
+                        style={{ background: cat.color }}
+                      />
+                      <span className="text-sm">{cat.name}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCategory(cat.id)}
+                      className="btn btn-ghost btn-sm btn-icon"
+                      style={{ color: "var(--color-danger)" }}
+                      aria-label={`Remove ${cat.name}`}
+                    >
+                      <svg
+                        width="13"
+                        height="13"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
+                          stroke="currentColor"
+                          strokeWidth="1.75"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add new category */}
+            <form onSubmit={handleAddCategory} className="space-y-3 mb-5">
+              <div className="flex gap-2">
+                <input
+                  className="input flex-1"
+                  type="text"
+                  placeholder="New category name…"
+                  value={catName}
+                  onChange={(e) => setCatName(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="btn btn-secondary"
+                  disabled={!catName.trim() || catAdding}
+                >
+                  {catAdding ? "Adding…" : "Add"}
+                </button>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className="text-xs"
+                  style={{ color: "var(--color-ink-tertiary)" }}
+                >
+                  Colour:
+                </span>
+                {PRESET_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setCatColor(c)}
+                    className="w-6 h-6 rounded-full transition-transform"
+                    style={{
+                      background: c,
+                      transform: catColor === c ? "scale(1.25)" : "scale(1)",
+                      outline: catColor === c ? `2px solid ${c}` : "none",
+                      outlineOffset: "2px",
+                    }}
+                    aria-label={c}
+                  />
+                ))}
+              </div>
+            </form>
+
+            {catError && (
+              <p
+                className="mb-4 text-sm"
+                style={{ color: "var(--color-danger)" }}
+              >
+                {catError}
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={handleFinishSetup}
+              className="btn btn-primary w-full"
+              disabled={!mounted || isPending}
+            >
+              {isPending ? "Finishing…" : "Finish setup →"}
+            </button>
+            <button
+              type="button"
+              onClick={handleFinishSetup}
+              className="w-full mt-3 text-sm text-center"
+              style={{ color: "var(--color-ink-tertiary)" }}
+              disabled={isPending}
+            >
+              Skip, I&apos;ll set up categories later
+            </button>
+          </div>
+        )}
+
+        {/* Step 4 — Done */}
         {step === "done" && (
           <div className="p-8 text-center animate-scale-in">
             <div
@@ -442,7 +651,7 @@ function SetupContent() {
               </svg>
             </div>
             <h2 className="text-xl font-medium mb-2">
-              {isAddingNew ? "New shop created!" : "You\u2019re all set!"}
+              {isAddingNew ? "New shop created!" : "You’re all set!"}
             </h2>
             <p
               className="text-sm"
