@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 030_fix_staff_delete.sql
 -- Fix staff account deletion: sales.user_id and stock_movements.user_id
@@ -39,3 +41,5 @@ ALTER TABLE public.purchase_orders
 ALTER TABLE public.purchase_orders
   ADD CONSTRAINT purchase_orders_received_by_fkey
   FOREIGN KEY (received_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+COMMIT;

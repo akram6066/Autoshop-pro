@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 010_limit_shop_creation.sql
 -- Limit each user to a maximum of 10 shops as owner.
@@ -15,3 +17,5 @@ CREATE POLICY "authenticated users can create a shop"
       WHERE user_id = auth.uid() AND role = 'owner'
     ) < 10
   );
+
+COMMIT;

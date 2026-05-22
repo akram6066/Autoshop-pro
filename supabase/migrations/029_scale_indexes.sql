@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- Scale indexes: add missing indexes that become slow at millions of rows
 
 -- products: shop+category filter (e.g. "show all tires for this shop")
@@ -28,3 +30,5 @@ CREATE INDEX IF NOT EXISTS idx_purchase_orders_shop_id
 -- sync_queue: composite status lookup used by flushQueue()
 CREATE INDEX IF NOT EXISTS idx_sync_queue_shop_status_created
   ON sync_queue(shop_id, status, created_at);
+
+COMMIT;

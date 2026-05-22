@@ -6,9 +6,10 @@ const footerCols = [
   {
     heading: "Product",
     links: [
-      { href: "#features", label: "Features" },
-      { href: "#how-it-works", label: "How It Works" },
-      { href: "#faq", label: "FAQ" },
+      { href: "/#features", label: "Features" },
+      { href: "/#how-it-works", label: "How It Works" },
+      { href: "/#pricing", label: "Pricing" },
+      { href: "/#faq", label: "FAQ" },
     ],
   },
   {
@@ -17,6 +18,14 @@ const footerCols = [
       { href: "/login", label: "Log in" },
       { href: "/signup", label: "Sign up free" },
       { href: "/setup", label: "Setup your shop" },
+    ],
+  },
+  {
+    heading: "Legal",
+    links: [
+      { href: "/privacy", label: "Privacy Policy" },
+      { href: "/terms", label: "Terms of Service" },
+      { href: "/contact", label: "Contact & Support" },
     ],
   },
 ];
@@ -220,7 +229,7 @@ function FooterSection() {
       >
         <Container>
           <div
-            className="grid grid-cols-2 lg:grid-cols-4 gap-10"
+            className="grid grid-cols-2 lg:grid-cols-5 gap-10"
             style={{ paddingTop: 60, paddingBottom: 52 }}
           >
             {/* ── Brand column ── */}
@@ -243,8 +252,8 @@ function FooterSection() {
                   maxWidth: 260,
                 }}
               >
-                Offline-first inventory and POS built for automotive parts shops
-                across East Africa.
+                Offline-first inventory and POS built for any shop, anywhere in
+                the world.
               </p>
 
               {/* Status badge */}
@@ -341,7 +350,7 @@ function FooterSection() {
                 >
                   {col.links.map((l) => (
                     <li key={l.label}>
-                      <a
+                      <Link
                         href={l.href}
                         style={{
                           fontSize: "0.9375rem",
@@ -350,7 +359,7 @@ function FooterSection() {
                         }}
                       >
                         {l.label}
-                      </a>
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -445,15 +454,43 @@ function FooterSection() {
               gap: 16,
             }}
           >
-            <p
+            <div
               style={{
-                fontSize: "0.8125rem",
-                color: "var(--color-ink-ghost)",
-                margin: 0,
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: 16,
               }}
             >
-              © {new Date().getFullYear()} AutoShop Pro. All rights reserved.
-            </p>
+              <p
+                style={{
+                  fontSize: "0.8125rem",
+                  color: "var(--color-ink-ghost)",
+                  margin: 0,
+                }}
+              >
+                © {new Date().getFullYear()} AutoShop Pro. All rights reserved.
+              </p>
+              <div style={{ display: "flex", gap: 12 }}>
+                {[
+                  { href: "/privacy", label: "Privacy" },
+                  { href: "/terms", label: "Terms" },
+                  { href: "/contact", label: "Contact" },
+                ].map((l) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    style={{
+                      fontSize: "0.8125rem",
+                      color: "var(--color-ink-ghost)",
+                      textDecoration: "none",
+                    }}
+                  >
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {["🇰🇪 Kenya", "🇺🇬 Uganda", "🇹🇿 Tanzania"].map((region) => (
                 <span

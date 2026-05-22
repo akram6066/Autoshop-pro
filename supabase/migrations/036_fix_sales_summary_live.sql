@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 036_fix_sales_summary_live.sql
 -- Migration 013 rewrote get_sales_summary to use mv_sales_daily
@@ -38,3 +40,5 @@ BEGIN
   ORDER BY date ASC;
 END;
 $$;
+
+COMMIT;

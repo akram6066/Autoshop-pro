@@ -9,6 +9,8 @@ import { useCreateProduct } from "@/hooks/useProducts";
 import { useCreateVariants } from "@/hooks/useVariants";
 import { useRooms } from "@/hooks/useRooms";
 import { useCategories } from "@/hooks/useCategories";
+import { productSchema, variantSchema } from "@/lib/validations/domain";
+import { friendlyError } from "@/lib/api/errors";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -126,6 +128,33 @@ export default function NewProductPage() {
         setError("Duplicate sizes found — each size must be unique.");
         return;
       }
+      for (const v of filled) {
+        const vParsed = variantSchema.safeParse({
+          size: v.size,
+          sku: v.sku || undefined,
+          price: v.price,
+          quantity: v.quantity,
+          min_stock: v.min_stock,
+        });
+        if (!vParsed.success) {
+          setError(`Size "${v.size}": ${vParsed.error.issues[0].message}`);
+          return;
+        }
+      }
+    } else {
+      const pParsed = productSchema.safeParse({
+        name,
+        sku,
+        category: effectiveCategory,
+        size: size || null,
+        quantity,
+        min_stock: minStock,
+        price,
+      });
+      if (!pParsed.success) {
+        setError(pParsed.error.issues[0].message);
+        return;
+      }
     }
 
     setError("");
@@ -145,7 +174,12 @@ export default function NewProductPage() {
     });
 
     if (result.status === "error") {
-      setError(result.error.message);
+      setError(
+        friendlyError(
+          result.error,
+          "Failed to save product. Please try again.",
+        ),
+      );
       return;
     }
     if (useVariants) {
@@ -171,7 +205,7 @@ export default function NewProductPage() {
           }
         } catch (err) {
           setError(
-            `Product saved, but variants failed: ${(err as Error).message}`,
+            `Product saved, but variants failed: ${friendlyError(err, "please try adding them again.")}`,
           );
           return;
         }

@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 017_customers.sql
 -- Customer accounts with balance tracking (credit / partial pay).
@@ -222,3 +224,5 @@ BEGIN
   RETURN v_payment_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMIT;

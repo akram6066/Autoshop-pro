@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 ALTER TABLE public.shops
 ADD COLUMN IF NOT EXISTS plan text NOT NULL DEFAULT 'free'
   CHECK (plan IN ('free', 'pro'));
@@ -55,3 +57,5 @@ DROP TRIGGER IF EXISTS trg_check_category_limit ON public.categories;
 CREATE TRIGGER trg_check_category_limit
   BEFORE INSERT ON public.categories
   FOR EACH ROW EXECUTE PROCEDURE public.check_category_limit();
+
+COMMIT;

@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 034_fix_categories_staff_policy.sql
 -- Migration 033's categories SELECT policy does a double JOIN on
@@ -37,3 +39,5 @@ DROP POLICY IF EXISTS "staff can read shop owner categories" ON public.categorie
 CREATE POLICY "staff can read shop owner categories"
   ON public.categories FOR SELECT
   USING (public.is_shopmate_of_owner(owner_id));
+
+COMMIT;

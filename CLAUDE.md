@@ -42,6 +42,7 @@ There are no tests configured in this project.
 ### Offline-First Data Layer
 
 Every write follows this pattern:
+
 1. Try Supabase directly.
 2. On failure: `enqueue()` to `sync_queue` in IndexedDB + optimistic write to the local table.
 3. On reconnect: `flushQueue()` replays pending ops in order (max 5 attempts, then `failed`).
@@ -78,6 +79,7 @@ Singleton: `getDb()` in `src/lib/db/instance.ts`. `pruneOldData()` removes data 
   - `003_functions.sql` — RPCs: `record_sale`, `apply_stock_deltas`, `get_low_stock_products`, `get_sales_summary`
   - `004_categories_multishop.sql` — `categories` table, `shop_members` table, multi-shop helpers
 - `products.category` is now free-text (was an enum) — filter by text string, not enum value.
+- **All new migrations with more than one statement must be wrapped in `BEGIN;` / `COMMIT;`** so a partial failure rolls back atomically. Single-statement migrations (`ALTER TABLE`, `CREATE INDEX`, `DROP FUNCTION`, `CREATE POLICY`) are already atomic and do not need wrapping. Never use `CREATE INDEX CONCURRENTLY` inside a transaction block — it must run outside one.
 
 ### Styling
 

@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { categorySchema, parseOrThrow } from "@/lib/validations/domain";
 import type { CategoryItem } from "@/types/app";
 
 export const categoryKeys = {
@@ -32,9 +33,10 @@ export function useCreateCategory() {
 
   return useMutation({
     mutationFn: async ({ name, color }: { name: string; color: string }) => {
+      const validated = parseOrThrow(categorySchema, { name, color });
       const { data, error } = await supabase
         .from("categories")
-        .insert({ name: name.trim(), color })
+        .insert({ name: validated.name, color: validated.color })
         .select()
         .single();
       if (error) throw error;
@@ -78,9 +80,10 @@ export function useUpdateCategory() {
       name: string;
       color: string;
     }) => {
+      const validated = parseOrThrow(categorySchema, { name, color });
       const { error } = await supabase
         .from("categories")
-        .update({ name: name.trim(), color })
+        .update({ name: validated.name, color: validated.color })
         .eq("id", categoryId);
       if (error) throw error;
     },

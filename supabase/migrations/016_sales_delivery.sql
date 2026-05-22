@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 016_sales_delivery.sql
 -- Adds delivery_address to sales and updates record_sale RPC.
@@ -87,3 +89,5 @@ BEGIN
   RETURN v_sale_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMIT;

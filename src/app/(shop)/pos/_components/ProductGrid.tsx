@@ -1,10 +1,19 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { ProductCard } from "@/components/pos/ProductCard";
-import { VariantPickerModal } from "./VariantPickerModal";
 import type { Product, ProductVariant } from "@/types/app";
+
+// Only shown when a multi-size product is tapped — defer from initial POS bundle.
+const VariantPickerModal = dynamic(
+  () =>
+    import("./VariantPickerModal").then((m) => ({
+      default: m.VariantPickerModal,
+    })),
+  { ssr: false },
+);
 
 interface Props {
   products: Product[];

@@ -3,6 +3,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { enqueue } from "@/lib/sync/queue";
+import {
+  customerSchema,
+  paymentSchema,
+  parseOrThrow,
+} from "@/lib/validations/domain";
 import type { Customer } from "@/types/app";
 import type { Json } from "@/types/database";
 
@@ -130,11 +135,12 @@ export function useCreateCustomer() {
       name: string;
       phone?: string;
     }): Promise<Customer> => {
+      const validated = parseOrThrow(customerSchema, { name, phone });
       const payload: Customer = {
         id: crypto.randomUUID(),
         shop_id: shopId,
-        name: name.trim(),
-        phone: phone?.trim() || null,
+        name: validated.name,
+        phone: validated.phone ?? null,
         balance: 0,
         created_at: new Date().toISOString(),
       };
@@ -173,7 +179,8 @@ export function useUpdateCustomer() {
       customerId: string;
       changes: { name?: string; phone?: string | null };
     }) => {
-      const payload = { id: customerId, shop_id: shopId, ...changes };
+      const validated = parseOrThrow(customerSchema.partial(), changes);
+      const payload = { id: customerId, shop_id: shopId, ...validated };
       const { error } = await supabase.rpc("manage_customer", {
         p_op: "UPDATE",
         p_customer: payload as unknown as Json,
@@ -213,13 +220,14 @@ export function useRecordCustomerPayment() {
       amount: number;
       note?: string;
     }) => {
+      const validated = parseOrThrow(paymentSchema, { amount, note });
       const payload = {
         id: crypto.randomUUID(),
         shop_id: shopId,
         customer_id: customerId,
         user_id: userId,
-        amount,
-        note: note?.trim() || null,
+        amount: validated.amount,
+        note: validated.note ?? null,
         created_at: new Date().toISOString(),
       };
 

@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 039_audit_update_delete.sql
 -- Extend product audit trigger to cover UPDATE and DELETE.
@@ -127,3 +129,5 @@ DROP TRIGGER IF EXISTS on_variant_change ON public.product_variants;
 CREATE TRIGGER on_variant_change
   AFTER UPDATE OR DELETE ON public.product_variants
   FOR EACH ROW EXECUTE PROCEDURE public.audit_variant_change();
+
+COMMIT;

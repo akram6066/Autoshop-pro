@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 022_audit_and_monitoring.sql
 -- Implements an enterprise-grade audit logging system.
@@ -151,3 +153,5 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_stock_adjustment
   AFTER INSERT ON public.stock_movements
   FOR EACH ROW EXECUTE PROCEDURE public.audit_stock_adjustment();
+
+COMMIT;

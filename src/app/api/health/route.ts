@@ -41,7 +41,7 @@ export async function GET() {
   const body: HealthStatus = {
     status: isHealthy ? "ok" : "degraded",
     timestamp: new Date().toISOString(),
-    version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "dev",
+    version: "1",
     checks: {
       database: dbStatus,
       latency_ms: latency,

@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 018_rpc_security_refactor.sql
 -- Refactors critical SECURITY DEFINER RPCs to enforce:
@@ -414,3 +416,5 @@ BEGIN
   WHERE id = auth.uid();
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMIT;

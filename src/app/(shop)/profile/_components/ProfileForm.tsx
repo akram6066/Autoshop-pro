@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { useMounted } from "@/hooks/useMounted";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore, selectProfile, selectUser } from "@/stores/authStore";
+import { profileSchema } from "@/lib/validations/domain";
+import { friendlyError } from "@/lib/api/errors";
 import { toast } from "sonner";
 
 export function ProfileForm() {
@@ -22,19 +24,30 @@ export function ProfileForm() {
     e.preventDefault();
     if (!user || !profile) return;
 
+    const parsed = profileSchema.safeParse({ full_name: fullName });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0].message);
+      return;
+    }
+
     startTransition(async () => {
       const supabase = createClient();
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ full_name: fullName.trim() })
+        .update({ full_name: parsed.data.full_name })
         .eq("id", user.id);
 
       if (updateError) {
-        toast.error(updateError.message);
+        toast.error(friendlyError(updateError));
         return;
       }
 
-      setAll(user, { ...profile, full_name: fullName.trim() }, shop, shops);
+      setAll(
+        user,
+        { ...profile, full_name: parsed.data.full_name },
+        shop,
+        shops,
+      );
       toast.success("Profile updated successfully.");
     });
   }
@@ -53,10 +66,9 @@ export function ProfileForm() {
         <input
           className="input"
           value={fullName}
-          onChange={(e) => {
-            setFullName(e.target.value);
-          }}
+          onChange={(e) => setFullName(e.target.value)}
           placeholder="e.g. Jane Doe"
+          maxLength={200}
           required
         />
       </div>

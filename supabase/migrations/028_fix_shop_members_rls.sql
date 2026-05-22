@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 028_fix_shop_members_rls.sql
 -- Fix infinite recursion in shop_members RLS policies.
@@ -40,3 +42,5 @@ DROP POLICY IF EXISTS "owners can remove members" ON public.shop_members;
 CREATE POLICY "owners can remove members"
   ON public.shop_members FOR DELETE
   USING (public.is_shop_owner(shop_id));
+
+COMMIT;

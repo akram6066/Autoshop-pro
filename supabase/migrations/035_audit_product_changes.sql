@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 035_audit_product_changes.sql
 -- Fires an audit_logs row on every product INSERT so the
@@ -37,3 +39,5 @@ DROP TRIGGER IF EXISTS on_product_added ON public.products;
 CREATE TRIGGER on_product_added
   AFTER INSERT ON public.products
   FOR EACH ROW EXECUTE PROCEDURE public.audit_product_change();
+
+COMMIT;

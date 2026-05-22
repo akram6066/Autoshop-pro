@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 013_sales_summary_matview.sql
 --
@@ -116,3 +118,5 @@ $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 --
 -- To verify: SELECT * FROM cron.job;
 -- To remove:  SELECT cron.unschedule('refresh-sales-summary');
+
+COMMIT;

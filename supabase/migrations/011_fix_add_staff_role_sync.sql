@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 011_fix_add_staff_role_sync.sql
 -- Keep profiles.role in sync when adding staff.
@@ -53,3 +55,5 @@ BEGIN
   RETURN 'added';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMIT;

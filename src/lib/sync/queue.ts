@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db/instance";
+import { captureException } from "@/lib/monitoring/sentry";
 import type { SyncCommandType } from "@/types/app";
 
 const MAX_ATTEMPTS = 5;
@@ -158,6 +159,7 @@ async function _doFlush(shopId: string): Promise<void> {
       }
     } catch (err) {
       console.warn("[sync] chunk flush error:", err);
+      captureException(err, { context: "flushQueue", shopId });
       // Stop processing further chunks if we hit a network/server error
       break;
     }

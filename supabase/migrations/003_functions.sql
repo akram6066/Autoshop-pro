@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 003_functions.sql — AutoShop Pro database functions
 -- ============================================================
@@ -171,3 +173,5 @@ begin
   order by date asc;
 end;
 $$ language plpgsql stable security definer;
+
+COMMIT;

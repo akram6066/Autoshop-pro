@@ -1,16 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { PaymentMethod } from "@/types/app";
+import type { SaleSummary } from "./_components/SaleDetailModal";
 import { PaymentBadge } from "./_components/PaymentBadge";
-import {
-  SaleDetailModal,
-  type SaleSummary,
-} from "./_components/SaleDetailModal";
+
+// Only loaded when the user clicks a sale row — keep it out of the initial bundle.
+const SaleDetailModal = dynamic(
+  () =>
+    import("./_components/SaleDetailModal").then((m) => ({
+      default: m.SaleDetailModal,
+    })),
+  { ssr: false },
+);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

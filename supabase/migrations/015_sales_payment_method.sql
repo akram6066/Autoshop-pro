@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 015_sales_payment_method.sql
 -- Adds payment_method column to sales and updates record_sale
@@ -93,3 +95,5 @@ BEGIN
   RETURN v_sale_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMIT;

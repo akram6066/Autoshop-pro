@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 005_security_fixes.sql
 -- ============================================================
@@ -36,3 +38,5 @@ drop policy if exists "service role can insert profiles" on public.profiles;
 create policy "users can insert own profile"
   on public.profiles for insert
   with check (id = auth.uid());
+
+COMMIT;

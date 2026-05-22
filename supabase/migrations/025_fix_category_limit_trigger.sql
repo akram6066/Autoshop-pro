@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 025_fix_category_limit_trigger.sql
 -- Migration 014 created check_category_limit() referencing NEW.shop_id.
@@ -25,3 +27,5 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+COMMIT;

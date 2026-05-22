@@ -50,6 +50,16 @@ export default defineConfig({
       dependencies: ["setup"],
       testMatch: "**/pos.spec.ts",
     },
+
+    // ── Tablet: full suite at 810px — sits between sm: and lg: breakpoints ──
+    {
+      name: "tablet",
+      use: {
+        ...devices["iPad (gen 7)"],
+        storageState: "e2e/.auth/user.json",
+      },
+      dependencies: ["setup"],
+    },
   ],
 
   // Start dev server if not already running

@@ -3,15 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { sanitizeError } from "@/lib/api/errors";
 import { logRequest } from "@/lib/api/logger";
+import { resetStaffPasswordSchema } from "@/lib/validations/api";
 import { withAuth } from "@/lib/api/with-auth";
 
-function getAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } },
-  );
-}
+const adminClient = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } },
+);
 
 export const POST = withAuth(
   async (request: NextRequest, { user, supabase }) => {
@@ -26,25 +25,19 @@ export const POST = withAuth(
       if (limited) return limited;
 
       const body = await request.json().catch(() => null);
-
-      if (!body?.shop_id || !body?.user_id || !body?.new_password) {
+      const result = resetStaffPasswordSchema.safeParse(body);
+      if (!result.success) {
         return NextResponse.json(
-          { error: "shop_id, user_id, and new_password are required" },
+          { error: result.error.issues[0].message },
           { status: 400 },
         );
       }
-
-      if (body.new_password.length < 8) {
-        return NextResponse.json(
-          { error: "Password must be at least 8 characters" },
-          { status: 400 },
-        );
-      }
+      const input = result.data;
 
       const { data: membership, error: memberError } = await supabase
         .from("shop_members")
         .select("role")
-        .eq("shop_id", body.shop_id)
+        .eq("shop_id", input.shop_id)
         .eq("user_id", user.id)
         .single();
 
@@ -58,8 +51,8 @@ export const POST = withAuth(
       const { data: targetMembership, error: targetError } = await supabase
         .from("shop_members")
         .select("role")
-        .eq("shop_id", body.shop_id)
-        .eq("user_id", body.user_id)
+        .eq("shop_id", input.shop_id)
+        .eq("user_id", input.user_id)
         .single();
 
       if (targetError || !targetMembership) {
@@ -69,18 +62,16 @@ export const POST = withAuth(
         );
       }
 
-      if (targetMembership.role === "owner" && body.user_id !== user.id) {
+      if (targetMembership.role === "owner" && input.user_id !== user.id) {
         return NextResponse.json(
           { error: "You cannot reset another owner's password" },
           { status: 403 },
         );
       }
 
-      const adminClient = getAdminClient();
-
       const updateResult = await Promise.race([
-        adminClient.auth.admin.updateUserById(body.user_id, {
-          password: body.new_password,
+        adminClient.auth.admin.updateUserById(input.user_id, {
+          password: input.new_password,
         }),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("update_timeout")), 8000),

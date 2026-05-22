@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 020_invite_system.sql
 -- Implements a secure, invite-based staff onboarding flow.
@@ -160,3 +162,5 @@ DROP FUNCTION IF EXISTS public.add_staff_member(uuid, text);
 GRANT EXECUTE ON FUNCTION public.create_shop_invite(uuid, text, user_role) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.accept_shop_invite(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.reject_shop_invite(uuid) TO authenticated;
+
+COMMIT;

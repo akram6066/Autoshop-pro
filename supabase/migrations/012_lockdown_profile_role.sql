@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 012_lockdown_profile_role.sql
 --
@@ -105,3 +107,5 @@ where p.role = 'owner'
       and sm.shop_id = p.shop_id
       and sm.role = 'owner'
   );
+
+COMMIT;

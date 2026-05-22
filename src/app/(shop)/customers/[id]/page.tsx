@@ -14,6 +14,7 @@ import {
 } from "@/hooks/useCustomers";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/app";
+import { friendlyError } from "@/lib/api/errors";
 
 // ─── Delete Confirmation Dialog ───────────────────────────────────────────────
 
@@ -121,7 +122,7 @@ function RecordPaymentForm({
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to record payment");
+      setError(friendlyError(err, "Failed to record payment"));
     }
   }
 
@@ -236,7 +237,7 @@ function EditCustomerForm({
       });
       onSaved();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setError(friendlyError(err, "Failed to save"));
     }
   }
 

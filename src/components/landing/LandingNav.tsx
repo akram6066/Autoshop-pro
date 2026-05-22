@@ -9,9 +9,16 @@ function LandingNav() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const navLinks = [
-    { href: "#features", label: "Features" },
-    { href: "#how-it-works", label: "How It Works" },
-    { href: "#faq", label: "FAQ" },
+    { href: "/#features", label: "Features" },
+    { href: "/#how-it-works", label: "How It Works" },
+    { href: "/#pricing", label: "Pricing" },
+    { href: "/#faq", label: "FAQ" },
+    { href: "/contact", label: "Contact" },
+  ];
+
+  const legalLinks = [
+    { href: "/privacy", label: "Privacy Policy" },
+    { href: "/terms", label: "Terms of Service" },
   ];
 
   return (
@@ -136,6 +143,23 @@ function LandingNav() {
                   {l.label}
                 </a>
               ))}
+              <div style={{ paddingTop: 8, display: "flex", gap: 16 }}>
+                {legalLinks.map((l) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    onClick={() => setMenuOpen(false)}
+                    style={{
+                      padding: "12px 0",
+                      fontSize: "0.8125rem",
+                      color: "var(--color-ink-tertiary)",
+                      textDecoration: "none",
+                    }}
+                  >
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
               <div
                 style={{
                   paddingTop: 16,

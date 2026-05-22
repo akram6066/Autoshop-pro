@@ -5,6 +5,7 @@ import { useMounted } from "@/hooks/useMounted";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
+import { productSchema } from "@/lib/validations/domain";
 import { useProduct, useUpdateProduct } from "@/hooks/useProducts";
 import {
   useProductVariants,
@@ -50,20 +51,34 @@ function EditForm({
     if (!shopId || !user) return;
     setError("");
 
-    const quantityDelta = quantity - product.quantity;
+    const parsed = productSchema.safeParse({
+      name,
+      sku,
+      category,
+      size: size.trim() || null,
+      quantity,
+      min_stock: minStock,
+      price,
+    });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0].message);
+      return;
+    }
+
+    const quantityDelta = parsed.data.quantity - product.quantity;
 
     const result = await updateProduct({
       shopId,
       productId: product.id,
       changes: {
-        name,
-        sku,
-        category,
+        name: parsed.data.name,
+        sku: parsed.data.sku,
+        category: parsed.data.category,
         room_id: roomId,
-        quantity,
-        min_stock: minStock,
-        price,
-        size: size.trim() || null,
+        quantity: parsed.data.quantity,
+        min_stock: parsed.data.min_stock,
+        price: parsed.data.price,
+        size: parsed.data.size,
       },
       quantityDelta,
     });

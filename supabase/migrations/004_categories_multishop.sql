@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 004_categories_multishop.sql
 -- B) Flexible categories per shop
@@ -196,3 +198,5 @@ begin
   order by p.quantity asc, p.name asc;
 end;
 $$ language plpgsql stable security definer;
+
+COMMIT;

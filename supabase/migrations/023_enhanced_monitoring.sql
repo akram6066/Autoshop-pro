@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 023_enhanced_monitoring.sql
 -- Expands audit coverage to sensitive business data
@@ -195,3 +197,5 @@ CREATE INDEX idx_system_health_component ON public.system_health(component, crea
 -- RLS: Only admins (system-level) or via RPC. Let's keep it simple for now.
 ALTER TABLE public.system_health ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Everyone can see health" ON public.system_health FOR SELECT USING (true);
+
+COMMIT;

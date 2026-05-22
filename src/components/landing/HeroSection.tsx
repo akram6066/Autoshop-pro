@@ -6,11 +6,14 @@ import Link from "next/link";
 import Container from "./Container";
 
 const ROTATING_WORDS = [
-  "Auto Shop",
-  "Spare Parts Store",
-  "Tires Shop",
-  "Battery Shop",
-  "Auto Business",
+  "Clothing Store",
+  "Electronics Shop",
+  "Hardware Store",
+  "Pharmacy",
+  "Grocery Shop",
+  "Auto Parts Shop",
+  "Shoe Shop",
+  "General Store",
 ];
 
 type Phase = "typing" | "paused" | "deleting";
@@ -383,9 +386,9 @@ function HeroSection() {
               }}
             >
               <strong style={{ color: "var(--color-ink-primary)" }}>
-                50+ shops
+                Any shop
               </strong>{" "}
-              trust AutoShop Pro
+              — any product, any country
             </span>
             <div
               style={{
@@ -737,6 +740,7 @@ function HeroSection() {
                 alt="AutoShop Pro dashboard"
                 width={960}
                 height={540}
+                sizes="(min-width: 1280px) 900px, (min-width: 768px) 85vw, 100vw"
                 className="w-full h-auto block"
                 priority
               />
@@ -754,10 +758,13 @@ function HeroSection() {
           }}
         >
           {[
-            { value: "50+", label: "Active shops" },
-            { value: "3 cities", label: "Nairobi · Mombasa · Kampala" },
+            {
+              value: "Any shop",
+              label: "Clothes, electronics, hardware & more",
+            },
+            { value: "Any country", label: "No region lock — works worldwide" },
             { value: "100%", label: "Offline capable" },
-            { value: "Free", label: "To start, always" },
+            { value: "1 month", label: "Free trial, no card needed" },
           ].map((stat) => (
             <div
               key={stat.label}

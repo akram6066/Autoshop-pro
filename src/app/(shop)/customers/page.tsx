@@ -9,7 +9,7 @@ import { SearchBar } from "@/components/ui/SearchBar";
 
 export default function CustomersPage() {
   const shopId = useAuthStore(selectShopId);
-  const { data: customers = [], isLoading } = useCustomers(shopId);
+  const { data: customers = [], isLoading, isError } = useCustomers(shopId);
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -103,6 +103,18 @@ export default function CustomersPage() {
               style={{ background: "var(--color-surface-2)" }}
             />
           ))}
+        </div>
+      ) : isError ? (
+        <div className="card p-8 text-center">
+          <p
+            className="font-medium mb-1"
+            style={{ color: "var(--color-danger)" }}
+          >
+            Could not load customers
+          </p>
+          <p className="text-sm" style={{ color: "var(--color-ink-tertiary)" }}>
+            Check your connection and try refreshing the page.
+          </p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="card p-12 text-center">

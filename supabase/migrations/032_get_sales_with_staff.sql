@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 032_get_sales_with_staff.sql
 -- Returns paginated sales with staff name resolved server-side.
@@ -50,3 +52,5 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_sales_with_staff(uuid, int, int) TO authenticated;
+
+COMMIT;

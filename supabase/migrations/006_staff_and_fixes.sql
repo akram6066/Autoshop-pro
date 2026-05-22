@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 006_staff_and_fixes.sql
 -- A) Backfill shop_members for existing owners
@@ -282,3 +284,5 @@ BEGIN
   WHERE id = auth.uid();
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMIT;

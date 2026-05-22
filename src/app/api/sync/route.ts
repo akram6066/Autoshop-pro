@@ -3,6 +3,7 @@ import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { logRequest, logger } from "@/lib/api/logger";
 import { syncPayloadSchema } from "@/lib/validations/api";
 import { withAuth } from "@/lib/api/with-auth";
+import { friendlyError } from "@/lib/api/errors";
 import type { Json, Database } from "@/types/database";
 
 export const POST = withAuth(
@@ -33,6 +34,17 @@ export const POST = withAuth(
 
     const { shop_id, commands } = result.data;
 
+    const { data: membership } = await supabase
+      .from("shop_members")
+      .select("role")
+      .eq("shop_id", shop_id)
+      .eq("user_id", user.id)
+      .single();
+
+    if (!membership) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const RPC_TIMEOUT_MS = 10_000;
     const CONCURRENCY = 5;
 
@@ -60,21 +72,27 @@ export const POST = withAuth(
               p_items: p.items as Json,
             }),
           );
-          if (rpcError) error = rpcError.message;
+          if (rpcError)
+            error = friendlyError(rpcError, "Sale could not be recorded");
         } else if (cmd.command === "RECORD_CUSTOMER_PAYMENT") {
           const { error: rpcError } = await withTimeout(
             supabase.rpc("record_customer_payment", {
               p_payment: p.payment as Json,
             }),
           );
-          if (rpcError) error = rpcError.message;
+          if (rpcError)
+            error = friendlyError(rpcError, "Payment could not be recorded");
         } else if (cmd.command === "RECORD_STOCK_MOVEMENT") {
           const { error: rpcError } = await withTimeout(
             supabase.rpc("record_stock_movement", {
               p_movement: p.movement as Json,
             }),
           );
-          if (rpcError) error = rpcError.message;
+          if (rpcError)
+            error = friendlyError(
+              rpcError,
+              "Stock movement could not be recorded",
+            );
         } else if (cmd.command === "MANAGE_PRODUCT") {
           const { error: rpcError } = await withTimeout(
             supabase.rpc("manage_product", {
@@ -82,7 +100,8 @@ export const POST = withAuth(
               p_product: p.product as Json,
             }),
           );
-          if (rpcError) error = rpcError.message;
+          if (rpcError)
+            error = friendlyError(rpcError, "Product operation failed");
         } else if (cmd.command === "MANAGE_CUSTOMER") {
           const { error: rpcError } = await withTimeout(
             supabase.rpc("manage_customer", {
@@ -90,7 +109,8 @@ export const POST = withAuth(
               p_customer: p.customer as Json,
             }),
           );
-          if (rpcError) error = rpcError.message;
+          if (rpcError)
+            error = friendlyError(rpcError, "Customer operation failed");
         } else if (cmd.command === "CREATE_VARIANTS") {
           type VariantInsert =
             Database["public"]["Tables"]["product_variants"]["Insert"];
@@ -98,12 +118,13 @@ export const POST = withAuth(
           const { error: insertError } = await withTimeout(
             supabase.from("product_variants").insert(variants),
           );
-          if (insertError) error = insertError.message;
+          if (insertError)
+            error = friendlyError(insertError, "Variants could not be saved");
         } else {
           error = `Unknown command: ${cmd.command}`;
         }
       } catch (err) {
-        error = err instanceof Error ? err.message : "Internal server error";
+        error = friendlyError(err, "Internal server error");
         logger.error("Sync command failed", err, {
           command: cmd.command,
           shop_id,

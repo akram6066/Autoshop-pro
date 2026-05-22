@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 037_product_variants.sql
 -- Adds per-size variants to products.
@@ -223,3 +225,5 @@ BEGIN
   RETURN v_sale_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMIT;

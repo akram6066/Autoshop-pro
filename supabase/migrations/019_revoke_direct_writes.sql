@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 019_revoke_direct_writes.sql
 -- Revokes direct INSERT/UPDATE/DELETE permissions from the 'authenticated' role
@@ -226,3 +228,5 @@ GRANT EXECUTE ON FUNCTION public.manage_customer(text, jsonb) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.record_sale(jsonb, jsonb) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.record_customer_payment(jsonb) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.record_stock_movement(jsonb) TO authenticated;
+
+COMMIT;

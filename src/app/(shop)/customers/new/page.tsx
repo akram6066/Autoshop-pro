@@ -5,6 +5,7 @@ import { useMounted } from "@/hooks/useMounted";
 import { useRouter } from "next/navigation";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import { useCreateCustomer } from "@/hooks/useCustomers";
+import { friendlyError } from "@/lib/api/errors";
 
 export default function NewCustomerPage() {
   const router = useRouter();
@@ -28,9 +29,7 @@ export default function NewCustomerPage() {
       });
       router.push(`/customers/${customer.id}`);
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to create customer",
-      );
+      setError(friendlyError(err, "Failed to create customer"));
     }
   }
 

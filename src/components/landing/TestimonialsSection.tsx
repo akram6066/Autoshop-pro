@@ -1,36 +1,37 @@
 import Container from "./Container";
 import SectionHead from "./SectionHead";
 
-function TestimonialsSection() {
-  const quotes = [
-    {
-      body: "Before AutoShop Pro, I had no idea what stock was left by Friday. Now I check my phone and know exactly what to reorder.",
-      name: "Musa A.",
-      shop: "Tyre & Battery Shop",
-      city: "Nairobi",
-      initials: "MA",
-      color: "var(--color-brand-500)",
-    },
-    {
-      body: "My staff used to 'borrow' items and I'd only find out months later. Now every movement is tracked and accounted for.",
-      name: "Fatuma K.",
-      shop: "Auto Parts Store",
-      city: "Mombasa",
-      initials: "FK",
-      color: "var(--color-success)",
-    },
-    {
-      body: "The offline mode saved me during a power cut last month. Customers had no idea anything was wrong.",
-      name: "James O.",
-      shop: "Rim Centre",
-      city: "Kampala",
-      initials: "JO",
-      color: "var(--color-warning)",
-    },
-  ];
+const quotes = [
+  {
+    body: "Before this, I had no idea what stock was left by Friday. Now I check my phone and know exactly what to reorder — even when the internet is down.",
+    name: "Amina K.",
+    shop: "Clothing & Accessories",
+    city: "Nairobi",
+    initials: "AK",
+    color: "var(--color-brand-500)",
+  },
+  {
+    body: "My staff used to 'borrow' items and I'd only find out months later. Now every movement is tracked and I get alerts the moment stock runs low.",
+    name: "James O.",
+    shop: "Electronics Shop",
+    city: "Kampala",
+    initials: "JO",
+    color: "var(--color-success)",
+  },
+  {
+    body: "The offline mode saved me during a blackout last month. Customers had no idea anything was wrong — sales kept going without a single glitch.",
+    name: "Fatuma M.",
+    shop: "Hardware Store",
+    city: "Mombasa",
+    initials: "FM",
+    color: "#7c3aed",
+  },
+];
 
+function TestimonialsSection() {
   return (
     <section
+      id="testimonials"
       style={{
         padding: "88px 0",
         background: "linear-gradient(160deg, #eef2ff 0%, #f0e9ff 100%)",
@@ -38,6 +39,7 @@ function TestimonialsSection() {
         overflow: "hidden",
       }}
     >
+      {/* Background glow */}
       <div
         style={{
           position: "absolute",
@@ -48,15 +50,18 @@ function TestimonialsSection() {
           borderRadius: "50%",
           background: "#c4b5fd",
           opacity: 0.3,
+          filter: "blur(70px)",
           pointerEvents: "none",
         }}
       />
+
       <Container style={{ position: "relative" }}>
         <SectionHead
           eyebrow="Testimonials"
-          title="Shops across East Africa trust AutoShop Pro"
-          subtitle="Real stories from owners who switched from paper to digital."
+          title="Shop owners love running their business smarter"
+          subtitle="Real stories from owners who switched from paper and spreadsheets to AutoShop Pro."
         />
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {quotes.map((q) => (
             <div
@@ -86,7 +91,7 @@ function TestimonialsSection() {
                 ))}
               </div>
 
-              {/* Large opening quote */}
+              {/* Opening quote mark */}
               <svg
                 width="28"
                 height="22"
@@ -113,6 +118,7 @@ function TestimonialsSection() {
                 {q.body}
               </p>
 
+              {/* Author */}
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div
                   style={{

@@ -1,7 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/api/auth/callback", "/offline"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/signup",
+  "/api/auth/callback",
+  "/offline",
+  "/privacy",
+  "/terms",
+  "/contact",
+  "/api/contact",
+];
 
 const SUSPICIOUS_PATHS = [
   "/.env",
@@ -97,6 +106,9 @@ export async function proxy(request: NextRequest) {
               headers: requestHeaders,
             },
           });
+          // Re-apply CSP after response recreation so the header is never lost
+          // when session cookies are rotated mid-request.
+          response.headers.set("Content-Security-Policy", cspHeader);
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
           );
@@ -128,6 +140,19 @@ export async function proxy(request: NextRequest) {
   if (!user) {
     if (pathname === "/" || pathname === "/offline") return response;
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Guard /admin routes — check is_admin on the profile
+  if (pathname.startsWith("/admin")) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile?.is_admin) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
   }
 
   // Root redirect for authenticated users

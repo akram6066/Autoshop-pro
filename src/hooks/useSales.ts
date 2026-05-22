@@ -9,6 +9,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { getDb } from "@/lib/db/instance";
 import { enqueue } from "@/lib/sync/queue";
+import { sanitizeText } from "@/lib/sanitize";
 import { getDeviceId } from "@/lib/utils";
 import type {
   CartItem,
@@ -132,13 +133,17 @@ export function useRecordSale() {
             ? (amountPaid ?? 0)
             : total;
 
+      const sanitizedAddress = deliveryAddress
+        ? sanitizeText(deliveryAddress).slice(0, 500) || null
+        : null;
+
       const salePayload = {
         id: saleId,
         shop_id: shopId,
         user_id: userId,
         total_amount: total,
         payment_method: paymentMethod,
-        delivery_address: deliveryAddress ?? null,
+        delivery_address: sanitizedAddress,
         customer_id: customerId ?? null,
         amount_paid: computedAmountPaid,
         created_at: now,

@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 002_rls.sql — Row Level Security policies
 -- ============================================================
@@ -173,3 +175,5 @@ create policy "owners can manage po items"
       select id from public.purchase_orders where shop_id = public.auth_shop_id()
     )
   );
+
+COMMIT;

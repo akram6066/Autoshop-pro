@@ -101,6 +101,7 @@ function HowItWorksSection() {
                     alt={step.title}
                     width={400}
                     height={300}
+                    sizes="(min-width: 640px) 33vw, 100vw"
                     className="w-full h-auto"
                   />
                 </div>

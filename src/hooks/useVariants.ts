@@ -4,6 +4,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { getDb } from "@/lib/db/instance";
 import { enqueue } from "@/lib/sync/queue";
+import {
+  variantSchema,
+  variantUpdateSchema,
+  parseOrThrow,
+} from "@/lib/validations/domain";
 import type { ProductVariant } from "@/types/app";
 
 export const variantKeys = {
@@ -89,7 +94,10 @@ export function useCreateVariants(shopId: string | null) {
       }>;
     }): Promise<{ offline: boolean; variants: ProductVariant[] }> => {
       const now = new Date().toISOString();
-      const rows: ProductVariant[] = variants.map((v) => ({
+      const validatedVariants = variants.map((v) =>
+        parseOrThrow(variantSchema, v),
+      );
+      const rows: ProductVariant[] = validatedVariants.map((v) => ({
         id: crypto.randomUUID(),
         product_id: productId,
         size: v.size,
@@ -150,9 +158,10 @@ export function useUpdateVariant(shopId: string | null) {
         >
       >;
     }) => {
+      const validated = parseOrThrow(variantUpdateSchema, updates);
       const { error } = await supabase
         .from("product_variants")
-        .update(updates)
+        .update(validated)
         .eq("id", variantId);
       if (error) throw error;
       return { variantId, productId };

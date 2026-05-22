@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import { useSalesSummary } from "@/hooks/useSales";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { escapeCsvField } from "@/lib/sanitize";
 import type { SalesSummaryRow } from "@/types/app";
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
@@ -107,7 +108,11 @@ export default function ReportsPage() {
     return { from: startOf(start), to: endOf(now) };
   }, [range, customFrom, customTo]);
 
-  const { data: summary = [], isLoading } = useSalesSummary(shopId, from, to);
+  const {
+    data: summary = [],
+    isLoading,
+    isError,
+  } = useSalesSummary(shopId, from, to);
 
   const totals = useMemo(
     () => ({
@@ -132,10 +137,10 @@ export default function ReportsPage() {
       ...summary.map((r) => [
         r.date,
         r.total_revenue.toFixed(2),
-        r.order_count,
+        String(r.order_count),
       ]),
     ];
-    const csv = rows.map((r) => r.join(",")).join("\n");
+    const csv = rows.map((r) => r.map(escapeCsvField).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -266,6 +271,12 @@ export default function ReportsPage() {
             className="h-40 rounded-lg animate-pulse-soft"
             style={{ background: "var(--color-surface-2)" }}
           />
+        ) : isError ? (
+          <div className="h-40 flex items-center justify-center">
+            <p className="text-sm" style={{ color: "var(--color-danger)" }}>
+              Could not load sales data. Please try again.
+            </p>
+          </div>
         ) : summary.length === 0 ? (
           <div className="h-40 flex items-center justify-center">
             <p

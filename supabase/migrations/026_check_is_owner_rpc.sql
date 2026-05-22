@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 026_check_is_owner_rpc.sql
 -- Function to allow checking if an email belongs to an owner
@@ -36,3 +38,5 @@ BEGIN
   RETURN v_is_owner;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMIT;

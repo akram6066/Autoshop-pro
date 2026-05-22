@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 CREATE OR REPLACE FUNCTION public.record_sale(
   p_sale jsonb,
   p_items jsonb
@@ -76,3 +78,5 @@ BEGIN
   RETURN v_sale_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMIT;

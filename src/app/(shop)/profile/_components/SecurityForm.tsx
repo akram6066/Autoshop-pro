@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useMounted } from "@/hooks/useMounted";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/api/errors";
 import { useAuthStore, selectUser } from "@/stores/authStore";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -52,7 +53,9 @@ export function SecurityForm() {
         redirectTo: `${window.location.origin}/api/auth/callback?next=/update-password`,
       });
       if (error) {
-        toast.error(error.message);
+        toast.error(
+          friendlyError(error, "Failed to send reset email. Please try again."),
+        );
       } else {
         toast.success("A password reset link has been sent to your email.");
       }
@@ -71,7 +74,9 @@ export function SecurityForm() {
       const supabase = createClient();
       const { error } = await supabase.auth.updateUser({ email: email.trim() });
       if (error) {
-        toast.error(error.message);
+        toast.error(
+          friendlyError(error, "Failed to update email. Please try again."),
+        );
         return;
       }
       toast.success(
@@ -118,7 +123,9 @@ export function SecurityForm() {
       });
 
       if (error) {
-        toast.error(error.message);
+        toast.error(
+          friendlyError(error, "Failed to update password. Please try again."),
+        );
         return;
       }
       toast.success("Password updated successfully.");
@@ -227,7 +234,51 @@ export function SecurityForm() {
                     : {}),
                 }}
               />
-              {/* Keep the same show/hide logic applied to all password inputs below */}
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                style={{
+                  position: "absolute",
+                  right: 12,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--color-ink-tertiary)",
+                  display: "flex",
+                }}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                    <path
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                    />
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                    <path
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M2.458 12C3.732 7.943 7.522 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.478 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                )}
+              </button>
             </div>
             {pwdFieldErrors.oldPassword && (
               <p
@@ -326,22 +377,70 @@ export function SecurityForm() {
             >
               Confirm New Password
             </label>
-            <input
-              className="input"
-              type={showPassword ? "text" : "password"}
-              value={confirmPassword}
-              onChange={(e) => {
-                setConfirmPassword(e.target.value);
-                if (pwdFieldErrors.confirmPassword)
-                  setPwdFieldErrors((p) => ({ ...p, confirmPassword: "" }));
-              }}
-              placeholder="Confirm password"
-              style={
-                pwdFieldErrors.confirmPassword
-                  ? { borderColor: "var(--color-danger)" }
-                  : {}
-              }
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                className="input"
+                type={showPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  if (pwdFieldErrors.confirmPassword)
+                    setPwdFieldErrors((p) => ({ ...p, confirmPassword: "" }));
+                }}
+                placeholder="Confirm password"
+                style={{
+                  paddingRight: 44,
+                  ...(pwdFieldErrors.confirmPassword
+                    ? { borderColor: "var(--color-danger)" }
+                    : {}),
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                style={{
+                  position: "absolute",
+                  right: 12,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--color-ink-tertiary)",
+                  display: "flex",
+                }}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                    <path
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                    />
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                    <path
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M2.458 12C3.732 7.943 7.522 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.478 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
             {pwdFieldErrors.confirmPassword && (
               <p
                 className="text-xs mt-1"

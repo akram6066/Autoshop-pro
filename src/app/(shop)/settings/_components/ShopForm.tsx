@@ -3,6 +3,8 @@ import { useState, useTransition } from "react";
 import { useMounted } from "@/hooks/useMounted";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore, selectShop, selectShopId } from "@/stores/authStore";
+import { shopSchema } from "@/lib/validations/domain";
+import { friendlyError } from "@/lib/api/errors";
 import type { Shop } from "@/types/app";
 
 export function ShopForm() {
@@ -18,17 +20,30 @@ export function ShopForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!shopId || !shopName.trim()) return;
+    if (!shopId) return;
     setMsg("");
+
+    const parsed = shopSchema.safeParse({
+      name: shopName,
+      address: shopAddress,
+    });
+    if (!parsed.success) {
+      setMsg(parsed.error.issues[0].message);
+      return;
+    }
+
     startTransition(async () => {
       const { data, error } = await supabase
         .from("shops")
-        .update({ name: shopName.trim(), address: shopAddress.trim() || null })
+        .update({
+          name: parsed.data.name,
+          address: parsed.data.address ?? null,
+        })
         .eq("id", shopId)
         .select()
         .single();
       if (error) {
-        setMsg(error.message);
+        setMsg(friendlyError(error));
         return;
       }
       setShop(data as Shop);
@@ -45,6 +60,7 @@ export function ShopForm() {
           className="input"
           value={shopName}
           onChange={(e) => setShopName(e.target.value)}
+          maxLength={200}
           required
         />
       </div>
@@ -55,6 +71,7 @@ export function ShopForm() {
           value={shopAddress}
           onChange={(e) => setShopAddress(e.target.value)}
           placeholder="Optional"
+          maxLength={500}
         />
       </div>
       <div className="flex items-center gap-3">

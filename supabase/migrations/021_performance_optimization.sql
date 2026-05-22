@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 021_performance_optimization.sql
 -- Optimizes RLS and Indexing for high-scale multi-tenancy.
@@ -95,3 +97,5 @@ ANALYZE public.products;
 ANALYZE public.sales;
 ANALYZE public.stock_movements;
 ANALYZE public.shop_members;
+
+COMMIT;

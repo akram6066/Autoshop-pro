@@ -3,6 +3,8 @@ import { useState, useTransition } from "react";
 import { useMounted } from "@/hooks/useMounted";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore, selectUser, selectShops } from "@/stores/authStore";
+import { shopSchema } from "@/lib/validations/domain";
+import { friendlyError } from "@/lib/api/errors";
 import type { Shop, ShopWithRole } from "@/types/app";
 
 export function CreateShopForm() {
@@ -19,21 +21,27 @@ export function CreateShopForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!user || !name.trim()) return;
+    if (!user) return;
     setMsg("");
+
+    const parsed = shopSchema.safeParse({ name, address });
+    if (!parsed.success) {
+      setMsg(parsed.error.issues[0].message);
+      return;
+    }
+
     startTransition(async () => {
       const { data: shop, error: shopError } = await supabase
         .from("shops")
-        .insert({ name: name.trim(), address: address.trim() || null })
+        .insert({
+          name: parsed.data.name,
+          address: parsed.data.address ?? null,
+        })
         .select()
         .single();
 
       if (shopError) {
-        setMsg(
-          shopError.code === "23505"
-            ? "A shop with that name already exists."
-            : shopError.message,
-        );
+        setMsg(friendlyError(shopError));
         return;
       }
 
@@ -42,7 +50,7 @@ export function CreateShopForm() {
         .insert({ shop_id: shop.id, user_id: user.id, role: "owner" });
 
       if (memberError) {
-        setMsg(memberError.message);
+        setMsg(friendlyError(memberError));
         return;
       }
 
@@ -65,6 +73,7 @@ export function CreateShopForm() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Main Branch"
+          maxLength={200}
           required
         />
       </div>
@@ -75,6 +84,7 @@ export function CreateShopForm() {
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder="Optional"
+          maxLength={500}
         />
       </div>
       <div className="flex items-center gap-3">

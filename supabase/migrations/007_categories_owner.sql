@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 007_categories_owner.sql
 -- Recreate categories table with owner_id (per-user, not per-shop).
@@ -35,3 +37,5 @@ BEGIN
   ON CONFLICT (owner_id, name) DO NOTHING;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMIT;

@@ -51,6 +51,22 @@ export const syncPayloadSchema = z.object({
     .max(50, "Batch too large (max 50 commands)"),
 });
 
+export const deleteStaffSchema = z.object({
+  shop_id: z.string().uuid("Invalid shop ID"),
+  user_id: z.string().uuid("Invalid user ID"),
+});
+
+export const resetStaffPasswordSchema = z.object({
+  shop_id: z.string().uuid("Invalid shop ID"),
+  user_id: z.string().uuid("Invalid user ID"),
+  new_password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password is too long"),
+});
+
 export type StaffInviteInput = z.infer<typeof staffInviteSchema>;
 export type AccountDeleteInput = z.infer<typeof accountDeleteSchema>;
 export type SyncPayloadInput = z.infer<typeof syncPayloadSchema>;
+export type DeleteStaffInput = z.infer<typeof deleteStaffSchema>;
+export type ResetStaffPasswordInput = z.infer<typeof resetStaffPasswordSchema>;

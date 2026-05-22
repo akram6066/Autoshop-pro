@@ -9,6 +9,7 @@ import { z } from "zod";
 import ErrorBox from "../login/components/ErrorBox";
 import FieldError from "../login/components/FieldError";
 import EyeButton from "../login/components/EyeButton";
+import { friendlyError } from "@/lib/api/errors";
 
 const updatePasswordSchema = z
   .object({
@@ -66,7 +67,12 @@ export default function UpdatePasswordPage() {
       });
 
       if (updateError) {
-        setError(updateError.message);
+        setError(
+          friendlyError(
+            updateError,
+            "Failed to update password. Please try again.",
+          ),
+        );
         return;
       }
 
@@ -75,7 +81,7 @@ export default function UpdatePasswordPage() {
         router.replace("/dashboard");
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(friendlyError(err, "Something went wrong."));
     } finally {
       setIsLoading(false);
     }

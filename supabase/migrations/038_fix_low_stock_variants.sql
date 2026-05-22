@@ -1,3 +1,5 @@
+﻿BEGIN;
+
 -- ============================================================
 -- 038_fix_low_stock_variants.sql
 -- Update get_low_stock_products to handle variant products.
@@ -58,3 +60,5 @@ BEGIN
   ORDER BY quantity ASC, name ASC;
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+COMMIT;
