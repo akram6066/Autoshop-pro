@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { adminDb } from "@/lib/admin/db";
 import { initiateStkPush, normalizePhone } from "@/lib/mpesa";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -10,6 +11,14 @@ export async function POST(req: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // 5 STK push attempts per user per 15 minutes — prevents phone harassment
+  const limited = await enforceRateLimit(
+    req,
+    { name: "mpesa-initiate", limit: 5, windowSec: 900 },
+    user.id,
+  );
+  if (limited) return limited;
 
   const body = await req.json();
   const phone = normalizePhone(body.phone ?? "");

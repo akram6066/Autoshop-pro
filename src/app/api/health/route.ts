@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { adminDb } from "@/lib/admin/db";
 import { NextResponse } from "next/server";
 
 /**
@@ -27,9 +27,9 @@ export async function GET() {
   let dbStatus: "ok" | "error" = "error";
 
   try {
-    const supabase = await createServerSupabaseClient();
-    // Cheapest possible DB round-trip — no table scan, just auth ping
-    const { error } = await supabase.auth.getSession();
+    const db = adminDb();
+    // Real DB round-trip — confirms PostgREST + service role are reachable
+    const { error } = await db.from("subscription_plans").select("id").limit(1);
     if (!error) dbStatus = "ok";
   } catch {
     dbStatus = "error";
@@ -51,9 +51,7 @@ export async function GET() {
   return NextResponse.json(body, {
     status: isHealthy ? 200 : 503,
     headers: {
-      // Never cache health responses
       "Cache-Control": "no-store",
-      // Don't require auth for health checks
       "X-Robots-Tag": "noindex",
     },
   });

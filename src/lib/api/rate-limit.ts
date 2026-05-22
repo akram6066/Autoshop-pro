@@ -23,7 +23,17 @@ export function getClientId(request: NextRequest): string {
   return forwardedFor?.split(",")[0]?.trim() ?? realIp?.trim() ?? "unknown";
 }
 
+function pruneMemoryStore() {
+  const now = Date.now();
+  for (const [key, entry] of memoryStore) {
+    if (entry.resetAt <= now) memoryStore.delete(key);
+  }
+}
+
 function memoryLimit(key: string, cfg: LimitConfig): LimitResult {
+  // Prune stale entries when the map grows large to prevent unbounded growth
+  if (memoryStore.size > 500) pruneMemoryStore();
+
   const now = Date.now();
   const existing = memoryStore.get(key);
 

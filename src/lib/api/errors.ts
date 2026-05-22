@@ -71,7 +71,7 @@ const KNOWN_PATTERNS: Array<{
   },
   {
     pattern: /product limit/i,
-    message: "Product limit reached. Free plan allows 500 products.",
+    message: "Product limit reached. Free plan allows 50 products.",
     status: 403,
   },
   {

@@ -9,7 +9,14 @@ function apiBase() {
   ];
 }
 
+// Cache the token and its expiry — Daraja tokens expire in 60 min, refresh at 55 min
+let _tokenCache: { token: string; expiresAt: number } | null = null;
+
 export async function getDarajaToken(): Promise<string> {
+  if (_tokenCache && Date.now() < _tokenCache.expiresAt) {
+    return _tokenCache.token;
+  }
+
   const key = process.env.MPESA_CONSUMER_KEY;
   const secret = process.env.MPESA_CONSUMER_SECRET;
   if (!key || !secret) {
@@ -25,13 +32,20 @@ export async function getDarajaToken(): Promise<string> {
     `${apiBase()}/oauth/v1/generate?grant_type=client_credentials`,
     {
       headers: { Authorization: `Basic ${credentials}` },
+      signal: AbortSignal.timeout(8000),
       cache: "no-store",
     },
   );
 
   if (!res.ok) throw new Error(`Daraja token error: ${res.status}`);
   const data = await res.json();
-  return data.access_token as string;
+
+  _tokenCache = {
+    token: data.access_token as string,
+    expiresAt: Date.now() + 55 * 60 * 1000,
+  };
+
+  return _tokenCache.token;
 }
 
 export interface StkPushResult {
@@ -50,10 +64,12 @@ export async function initiateStkPush(params: {
   const shortCode = process.env.MPESA_SHORTCODE;
   const passkey = process.env.MPESA_PASSKEY;
   const callbackBase = process.env.MPESA_CALLBACK_BASE_URL;
+  const callbackSecret = process.env.MPESA_CALLBACK_SECRET;
   const missing = [
     !shortCode && "MPESA_SHORTCODE",
     !passkey && "MPESA_PASSKEY",
     !callbackBase && "MPESA_CALLBACK_BASE_URL",
+    !callbackSecret && "MPESA_CALLBACK_SECRET",
   ].filter(Boolean);
   if (missing.length > 0) {
     throw new Error(`Missing env vars: ${missing.join(", ")}`);
@@ -83,10 +99,11 @@ export async function initiateStkPush(params: {
       PartyA: params.phone,
       PartyB: shortCode,
       PhoneNumber: params.phone,
-      CallBackURL: `${callbackBase}/api/mpesa/callback`,
+      CallBackURL: `${callbackBase}/api/mpesa/callback/${callbackSecret}`,
       AccountReference: params.accountRef,
       TransactionDesc: params.description,
     }),
+    signal: AbortSignal.timeout(8000),
   });
 
   if (!res.ok) throw new Error(`STK push error: ${res.status}`);
