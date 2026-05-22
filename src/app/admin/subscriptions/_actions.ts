@@ -80,10 +80,32 @@ export async function extendTrial(userId: string, days: number) {
   revalidatePath("/admin/subscriptions");
 }
 
-export async function updatePlanPrice(planId: string, priceKes: number) {
-  await adminDb()
-    .from("subscription_plans")
-    .update({ price_kes: priceKes })
-    .eq("id", planId);
+export async function updatePlan(planId: string, fd: FormData) {
+  const toInt = (key: string) => {
+    const v = fd.get(key);
+    if (v === null || v === "") return undefined;
+    const n = parseInt(String(v), 10);
+    return isNaN(n) ? undefined : n;
+  };
+
+  const patch: Record<string, string | number> = {};
+  const displayName = fd.get("display_name");
+  if (displayName) patch.display_name = String(displayName);
+
+  const fields: Array<keyof typeof patch> = [
+    "price_kes",
+    "trial_days",
+    "max_shops",
+    "max_products_per_shop",
+    "max_staff_per_shop",
+    "max_sales_per_month",
+  ];
+  for (const f of fields) {
+    const v = toInt(f as string);
+    if (v !== undefined) patch[f] = v;
+  }
+
+  if (Object.keys(patch).length === 0) return;
+  await adminDb().from("subscription_plans").update(patch).eq("id", planId);
   revalidatePath("/admin/subscriptions");
 }
