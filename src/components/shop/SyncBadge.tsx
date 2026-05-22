@@ -9,68 +9,36 @@ export function SyncBadge({ shopId }: { shopId: string | null }) {
 
   if (!isOnline)
     return (
-      <div
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-        style={{
-          background: "var(--color-warning-light)",
-          color: "var(--color-warning)",
-        }}
-      >
-        <span
-          className="w-1.5 h-1.5 rounded-full"
-          style={{ background: "var(--color-warning)" }}
-        />
-        Offline
-      </div>
+      <span
+        className="w-2 h-2 rounded-full flex-shrink-0"
+        style={{ background: "var(--color-warning)" }}
+        title="Offline"
+      />
     );
 
   if (failed > 0)
     return (
-      <div
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-        style={{
-          background: "var(--color-danger-light)",
-          color: "var(--color-danger)",
-        }}
-      >
-        <span
-          className="w-1.5 h-1.5 rounded-full animate-pulse-soft"
-          style={{ background: "var(--color-danger)" }}
-        />
-        {failed} failed
-      </div>
+      <span
+        className="w-2 h-2 rounded-full flex-shrink-0 animate-pulse-soft"
+        style={{ background: "var(--color-danger)" }}
+        title={`${failed} failed to sync`}
+      />
     );
 
   if (pending > 0)
     return (
-      <div
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-        style={{
-          background: "var(--color-brand-50)",
-          color: "var(--color-brand-600)",
-        }}
-      >
-        <span
-          className="w-1.5 h-1.5 rounded-full animate-pulse-soft"
-          style={{ background: "var(--color-brand-400)" }}
-        />
-        Syncing
-      </div>
+      <span
+        className="w-2 h-2 rounded-full flex-shrink-0 animate-pulse-soft"
+        style={{ background: "var(--color-brand-400)" }}
+        title="Syncing…"
+      />
     );
 
   return (
-    <div
-      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-      style={{
-        background: "var(--color-success-light)",
-        color: "var(--color-success)",
-      }}
-    >
-      <span
-        className="w-1.5 h-1.5 rounded-full"
-        style={{ background: "var(--color-success)" }}
-      />
-      Synced
-    </div>
+    <span
+      className="w-2 h-2 rounded-full flex-shrink-0"
+      style={{ background: "var(--color-success)" }}
+      title="Synced"
+    />
   );
 }
