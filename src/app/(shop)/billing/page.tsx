@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { adminDb } from "@/lib/admin/db";
@@ -9,17 +10,40 @@ export const metadata = { title: "Billing — AutoShop Pro" };
 
 const PLAN_DETAILS: Record<
   string,
-  { displayName: string; priceKes: number; description: string }
+  {
+    displayName: string;
+    priceKes: number;
+    description: string;
+    features: string[];
+    badge?: string;
+  }
 > = {
   pro: {
     displayName: "Pro",
     priceKes: 1000,
-    description: "Up to 5 shops, 500 products, 10 staff, unlimited sales.",
+    description: "Everything you need to run and grow your shop.",
+    features: [
+      "Up to 5 shops",
+      "500 products per shop",
+      "10 staff accounts",
+      "Unlimited sales",
+      "Full reports & analytics",
+      "Customer debt tracking",
+    ],
+    badge: "Most Popular",
   },
   ultra_pro: {
     displayName: "Ultra Pro",
     priceKes: 2500,
-    description: "Unlimited shops, products, staff, and sales.",
+    description: "For multi-branch operations and growing shop chains.",
+    features: [
+      "Unlimited shops",
+      "Unlimited products",
+      "Unlimited staff accounts",
+      "Unlimited sales",
+      "Full reports & analytics",
+      "Priority WhatsApp support",
+    ],
   },
 };
 
@@ -343,111 +367,335 @@ export default async function BillingPage({
         </div>
       </div>
 
-      {/* ── Payment card ─────────────────────────────────────── */}
+      {/* ── Plan chooser + payment ─────────────────────────── */}
       {canPay && (
-        <div className="card" style={{ padding: "24px" }}>
-          {/* Renew notice for already-active users */}
-          {isPro && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "10px 14px",
-                borderRadius: 8,
-                background: "#f0fdf4",
-                border: "1px solid #bbf7d0",
-                marginBottom: 20,
-                fontSize: "0.875rem",
-                color: "#15803d",
-              }}
-            >
-              <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
-                <path
-                  d="M22 11.08V12a10 10 0 11-5.93-9.14"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M22 4L12 14.01l-3-3"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <span>
-                Active until{" "}
-                <strong>
-                  {sub.current_period_end
-                    ? new Date(sub.current_period_end).toLocaleDateString(
-                        "en-KE",
-                        { day: "numeric", month: "long", year: "numeric" },
-                      )
-                    : "—"}
-                </strong>
-                . Paying again extends it by 30 days.
-              </span>
-            </div>
-          )}
-
+        <>
+          {/* Plan cards */}
           <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              marginBottom: 20,
-            }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+            style={{ marginBottom: 16 }}
           >
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                background: "#dcfce7",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M2 8.5h20M6 12h.01M10 12h.01M2 6a2 2 0 012-2h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
-                  stroke="#16a34a"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            <div>
-              <p
-                style={{
-                  fontWeight: 700,
-                  fontSize: "1rem",
-                  color: "var(--color-ink-primary)",
-                }}
-              >
-                {isPro ? "Renew" : "Subscribe"} {targetPlan.displayName} — KES{" "}
-                {targetPlan.priceKes.toLocaleString()}/month
-              </p>
-              <p
-                style={{
-                  fontSize: "0.875rem",
-                  color: "var(--color-ink-tertiary)",
-                }}
-              >
-                {targetPlan.description} Pay via M-Pesa.
-              </p>
-            </div>
+            {(
+              Object.entries(PLAN_DETAILS) as [
+                string,
+                (typeof PLAN_DETAILS)[string],
+              ][]
+            ).map(([key, plan]) => {
+              const selected = key === targetPlanKey;
+              const isUltra = key === "ultra_pro";
+              return (
+                <Link
+                  key={key}
+                  href={`?plan=${key}`}
+                  style={{ textDecoration: "none" }}
+                >
+                  <div
+                    style={{
+                      position: "relative",
+                      padding: "20px 22px",
+                      borderRadius: "var(--radius-lg)",
+                      border: selected
+                        ? isUltra
+                          ? "2px solid #7c3aed"
+                          : "2px solid var(--color-brand-500)"
+                        : "1.5px solid var(--color-border)",
+                      background: selected
+                        ? isUltra
+                          ? "linear-gradient(135deg,#faf5ff 0%,#ede9fe 100%)"
+                          : "linear-gradient(135deg,#eff6ff 0%,#eef2ff 100%)"
+                        : "var(--color-surface-0)",
+                      boxShadow: selected
+                        ? isUltra
+                          ? "0 4px 20px rgba(124,58,237,0.12)"
+                          : "0 4px 20px rgba(99,102,241,0.12)"
+                        : "none",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                      height: "100%",
+                    }}
+                  >
+                    {/* Badge */}
+                    {plan.badge && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: -11,
+                          left: 18,
+                          background: "var(--color-brand-500)",
+                          color: "white",
+                          fontSize: "0.6875rem",
+                          fontWeight: 700,
+                          letterSpacing: "0.07em",
+                          textTransform: "uppercase",
+                          padding: "3px 10px",
+                          borderRadius: 999,
+                        }}
+                      >
+                        {plan.badge}
+                      </span>
+                    )}
+
+                    {/* Selected indicator */}
+                    {selected && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 16,
+                          right: 16,
+                          width: 20,
+                          height: 20,
+                          borderRadius: "50%",
+                          background: isUltra
+                            ? "#7c3aed"
+                            : "var(--color-brand-500)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <svg
+                          width="11"
+                          height="11"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M20 6L9 17l-5-5"
+                            stroke="white"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                    )}
+
+                    {/* Plan name */}
+                    <p
+                      style={{
+                        fontSize: "0.6875rem",
+                        fontWeight: 700,
+                        letterSpacing: "0.12em",
+                        textTransform: "uppercase",
+                        color: selected
+                          ? isUltra
+                            ? "#7c3aed"
+                            : "var(--color-brand-600)"
+                          : "var(--color-ink-tertiary)",
+                        marginBottom: 6,
+                      }}
+                    >
+                      {plan.displayName}
+                    </p>
+
+                    {/* Price */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "baseline",
+                        gap: 3,
+                        marginBottom: 6,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "0.8125rem",
+                          fontWeight: 600,
+                          color: "var(--color-ink-tertiary)",
+                        }}
+                      >
+                        KES
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: "1.75rem",
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          color: "var(--color-ink-primary)",
+                        }}
+                      >
+                        {plan.priceKes.toLocaleString()}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "0.8125rem",
+                          color: "var(--color-ink-tertiary)",
+                        }}
+                      >
+                        /mo
+                      </span>
+                    </div>
+
+                    {/* Description */}
+                    <p
+                      style={{
+                        fontSize: "0.8125rem",
+                        color: "var(--color-ink-tertiary)",
+                        lineHeight: 1.5,
+                        marginBottom: 12,
+                      }}
+                    >
+                      {plan.description}
+                    </p>
+
+                    {/* Features */}
+                    <ul
+                      style={{
+                        listStyle: "none",
+                        padding: 0,
+                        margin: 0,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 6,
+                      }}
+                    >
+                      {plan.features.map((f) => (
+                        <li
+                          key={f}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 7,
+                            fontSize: "0.8125rem",
+                            color: "var(--color-ink-secondary)",
+                          }}
+                        >
+                          <svg
+                            width="13"
+                            height="13"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            style={{
+                              flexShrink: 0,
+                              color: isUltra
+                                ? "#7c3aed"
+                                : "var(--color-success)",
+                            }}
+                          >
+                            <path
+                              d="M20 6L9 17l-5-5"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
 
-          <SubscribeForm
-            priceKes={targetPlan.priceKes}
-            planName={targetPlanKey}
-          />
-        </div>
+          {/* Payment form */}
+          <div className="card" style={{ padding: "24px" }}>
+            {/* Renew notice for already-active users */}
+            {isPro && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "10px 14px",
+                  borderRadius: 8,
+                  background: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  marginBottom: 20,
+                  fontSize: "0.875rem",
+                  color: "#15803d",
+                }}
+              >
+                <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
+                  <path
+                    d="M22 11.08V12a10 10 0 11-5.93-9.14"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M22 4L12 14.01l-3-3"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span>
+                  Active until{" "}
+                  <strong>
+                    {sub.current_period_end
+                      ? new Date(sub.current_period_end).toLocaleDateString(
+                          "en-KE",
+                          { day: "numeric", month: "long", year: "numeric" },
+                        )
+                      : "—"}
+                  </strong>
+                  . Paying again extends it by 30 days.
+                </span>
+              </div>
+            )}
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: 20,
+              }}
+            >
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: "#dcfce7",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M2 8.5h20M6 12h.01M10 12h.01M2 6a2 2 0 012-2h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                    stroke="#16a34a"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p
+                  style={{
+                    fontWeight: 700,
+                    fontSize: "1rem",
+                    color: "var(--color-ink-primary)",
+                  }}
+                >
+                  {isPro ? "Renew" : "Subscribe"} {targetPlan.displayName} — KES{" "}
+                  {targetPlan.priceKes.toLocaleString()}/month
+                </p>
+                <p
+                  style={{
+                    fontSize: "0.875rem",
+                    color: "var(--color-ink-tertiary)",
+                  }}
+                >
+                  {targetPlan.description} Pay via M-Pesa.
+                </p>
+              </div>
+            </div>
+
+            <SubscribeForm
+              priceKes={targetPlan.priceKes}
+              planName={targetPlanKey}
+            />
+          </div>
+        </>
       )}
 
       {sub.is_admin_override && (
