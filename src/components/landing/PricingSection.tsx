@@ -320,8 +320,8 @@ export function PricingSection({ plans }: PricingSectionProps) {
 
         {/* Cards */}
         <div
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          style={{ alignItems: "start" }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
+          style={{ maxWidth: 760, margin: "0 auto", alignItems: "start" }}
         >
           {plans.map((plan) => (
             <PlanCard key={plan.id} plan={plan} />
