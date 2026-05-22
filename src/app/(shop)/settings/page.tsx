@@ -185,7 +185,7 @@ function PlanUsageSection({
     { label: string; bg: string; color: string; dot: string }
   > = {
     trial: {
-      label: "Free Trial",
+      label: "Free",
       bg: "#fef9c3",
       color: "#a16207",
       dot: "#d97706",
@@ -632,7 +632,7 @@ export default function SettingsPage() {
         <RoomsSection />
       </Section>
       <Section title="Team">
-        <TeamSection />
+        <TeamSection maxStaff={sub?.plan.maxStaffPerShop ?? 2} />
       </Section>
 
       <Section title="Danger zone" danger>

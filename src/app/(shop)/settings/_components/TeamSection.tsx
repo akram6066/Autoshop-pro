@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import {
   useTeam,
@@ -11,11 +12,11 @@ import type { TeamMember } from "@/types/app";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Modal } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Users } from "lucide-react";
+import { Users, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/api/errors";
 
-export function TeamSection() {
+export function TeamSection({ maxStaff }: { maxStaff: number }) {
   const shopId = useAuthStore(selectShopId);
   const {
     data: teamMembers = [],
@@ -31,6 +32,12 @@ export function TeamSection() {
   const [staffName, setStaffName] = useState("");
   const [staffPassword, setStaffPassword] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+
+  // Limit checks (count only actual staff, not owner)
+  const staffCount = teamMembers.filter((m) => m.role === "staff").length;
+  const unlimited = maxStaff >= 999999;
+  const atLimit = !unlimited && staffCount >= maxStaff;
+  const nearLimit = !unlimited && !atLimit && staffCount / maxStaff >= 0.8;
 
   // Management Modal State
   const [managingMember, setManagingMember] = useState<TeamMember | null>(null);
@@ -289,70 +296,132 @@ export function TeamSection() {
             teamMembers.length > 0 ? "1px solid var(--color-border)" : "none",
         }}
       >
-        <p className="text-sm font-medium mb-3">Create staff account</p>
-        <form onSubmit={handleAdd} className="space-y-3">
-          <div>
-            <label
-              className="block text-xs font-medium mb-1"
-              style={{ color: "var(--color-ink-secondary)" }}
-            >
-              Full name
-            </label>
-            <input
-              className="input"
-              type="text"
-              placeholder="e.g. John Kamau"
-              value={staffName}
-              onChange={(e) => setStaffName(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label
-              className="block text-xs font-medium mb-1"
-              style={{ color: "var(--color-ink-secondary)" }}
-            >
-              Email
-            </label>
-            <input
-              className="input"
-              type="email"
-              placeholder="staff@email.com"
-              value={staffEmail}
-              onChange={(e) => setStaffEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label
-              className="block text-xs font-medium mb-1"
-              style={{ color: "var(--color-ink-secondary)" }}
-            >
-              Password
-            </label>
-            <input
-              className="input"
-              type="password"
-              placeholder="Min. 8 characters"
-              value={staffPassword}
-              onChange={(e) => setStaffPassword(e.target.value)}
-              minLength={8}
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="btn btn-primary w-full"
-            disabled={
-              !staffEmail.trim() ||
-              staffPassword.length < 8 ||
-              !staffName.trim() ||
-              isAdding
-            }
+        {atLimit ? (
+          /* Limit reached — show upgrade prompt */
+          <div
+            className="flex items-start gap-3 p-3 rounded-lg"
+            style={{
+              background: "var(--color-surface-2)",
+              border: "1px solid var(--color-border)",
+            }}
           >
-            {isAdding ? "Creating account…" : "Create staff account"}
-          </button>
-        </form>
+            <AlertTriangle
+              size={16}
+              style={{
+                color: "var(--color-warning)",
+                flexShrink: 0,
+                marginTop: 2,
+              }}
+            />
+            <div className="flex-1 min-w-0">
+              <p
+                className="text-sm font-medium"
+                style={{ color: "var(--color-ink-primary)" }}
+              >
+                Staff limit reached ({staffCount} / {maxStaff})
+              </p>
+              <p
+                className="text-xs mt-0.5"
+                style={{ color: "var(--color-ink-tertiary)" }}
+              >
+                Upgrade your plan to add more staff accounts.
+              </p>
+            </div>
+            <Link
+              href="/billing"
+              className="btn btn-primary btn-sm"
+              style={{ whiteSpace: "nowrap" }}
+            >
+              Upgrade
+            </Link>
+          </div>
+        ) : (
+          <>
+            {nearLimit && (
+              <div
+                className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg text-xs font-medium"
+                style={{
+                  background: "#fffbeb",
+                  border: "1px solid #fcd34d",
+                  color: "#92400e",
+                }}
+              >
+                <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+                {staffCount} of {maxStaff} staff slots used — approaching limit.{" "}
+                <Link
+                  href="/billing"
+                  style={{ color: "#7c3aed", textDecoration: "underline" }}
+                >
+                  Upgrade
+                </Link>
+              </div>
+            )}
+            <p className="text-sm font-medium mb-3">Create staff account</p>
+            <form onSubmit={handleAdd} className="space-y-3">
+              <div>
+                <label
+                  className="block text-xs font-medium mb-1"
+                  style={{ color: "var(--color-ink-secondary)" }}
+                >
+                  Full name
+                </label>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="e.g. John Kamau"
+                  value={staffName}
+                  onChange={(e) => setStaffName(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-xs font-medium mb-1"
+                  style={{ color: "var(--color-ink-secondary)" }}
+                >
+                  Email
+                </label>
+                <input
+                  className="input"
+                  type="email"
+                  placeholder="staff@email.com"
+                  value={staffEmail}
+                  onChange={(e) => setStaffEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-xs font-medium mb-1"
+                  style={{ color: "var(--color-ink-secondary)" }}
+                >
+                  Password
+                </label>
+                <input
+                  className="input"
+                  type="password"
+                  placeholder="Min. 8 characters"
+                  value={staffPassword}
+                  onChange={(e) => setStaffPassword(e.target.value)}
+                  minLength={8}
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="btn btn-primary w-full"
+                disabled={
+                  !staffEmail.trim() ||
+                  staffPassword.length < 8 ||
+                  !staffName.trim() ||
+                  isAdding
+                }
+              >
+                {isAdding ? "Creating account…" : "Create staff account"}
+              </button>
+            </form>
+          </>
+        )}
       </div>
     </>
   );

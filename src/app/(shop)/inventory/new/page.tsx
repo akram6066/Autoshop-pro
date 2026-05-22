@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMounted } from "@/hooks/useMounted";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { AlertTriangle } from "lucide-react";
+import Link from "next/link";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import { useCreateProduct } from "@/hooks/useProducts";
 import { useCreateVariants } from "@/hooks/useVariants";
@@ -11,6 +13,7 @@ import { useRooms } from "@/hooks/useRooms";
 import { useCategories } from "@/hooks/useCategories";
 import { productSchema, variantSchema } from "@/lib/validations/domain";
 import { friendlyError } from "@/lib/api/errors";
+import { createClient } from "@/lib/supabase/client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -75,6 +78,43 @@ export default function NewProductPage() {
 
   const [error, setError] = useState("");
   const mounted = useMounted();
+
+  // Product limit check
+  const [productLimit, setProductLimit] = useState<{
+    max: number;
+    current: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!shopId) return;
+    const supabase = createClient();
+    Promise.all([
+      fetch("/api/subscription/status").then((r) => r.json()),
+      supabase
+        .from("products")
+        .select("id", { count: "exact", head: true })
+        .eq("shop_id", shopId),
+    ]).then(([subData, productsRes]) => {
+      if (!subData.error) {
+        setProductLimit({
+          max: subData.plan?.maxProductsPerShop ?? 999999,
+          current: productsRes.count ?? 0,
+        });
+      }
+    });
+  }, [shopId]);
+
+  const productLimitUnlimited = productLimit
+    ? productLimit.max >= 999999
+    : true;
+  const productAtLimit =
+    !productLimitUnlimited && productLimit
+      ? productLimit.current >= productLimit.max
+      : false;
+  const productNearLimit =
+    !productLimitUnlimited && !productAtLimit && productLimit
+      ? productLimit.current / productLimit.max >= 0.8
+      : false;
 
   // ── Product-level fields ──
   const [name, setName] = useState("");
@@ -244,6 +284,59 @@ export default function NewProductPage() {
       >
         Add product
       </h1>
+
+      {productAtLimit && (
+        <div
+          className="mb-4 flex items-start gap-3 p-4 rounded-xl"
+          style={{
+            background: "#fee2e2",
+            border: "1px solid #fca5a5",
+          }}
+        >
+          <AlertTriangle
+            size={16}
+            style={{ color: "#dc2626", flexShrink: 0, marginTop: 1 }}
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold" style={{ color: "#991b1b" }}>
+              Product limit reached ({productLimit!.current} /{" "}
+              {productLimit!.max})
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: "#b91c1c" }}>
+              You&apos;ve used all your product slots. Upgrade your plan to add
+              more products.
+            </p>
+          </div>
+          <Link
+            href="/billing"
+            className="btn btn-primary btn-sm"
+            style={{ whiteSpace: "nowrap" }}
+          >
+            Upgrade
+          </Link>
+        </div>
+      )}
+
+      {productNearLimit && (
+        <div
+          className="mb-4 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
+          style={{
+            background: "#fffbeb",
+            border: "1px solid #fcd34d",
+            color: "#92400e",
+          }}
+        >
+          <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+          {productLimit!.current} of {productLimit!.max} products used —
+          approaching limit.{" "}
+          <Link
+            href="/billing"
+            style={{ color: "#7c3aed", textDecoration: "underline" }}
+          >
+            Upgrade
+          </Link>
+        </div>
+      )}
 
       <div className="card p-6 animate-scale-in">
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -623,6 +716,7 @@ export default function NewProductPage() {
               disabled={
                 !mounted ||
                 isPending ||
+                productAtLimit ||
                 !name.trim() ||
                 (!useVariants && !sku.trim()) ||
                 !effectiveRoomId ||
