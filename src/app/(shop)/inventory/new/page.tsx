@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { useMounted } from "@/hooks/useMounted";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AlertTriangle } from "lucide-react";
-import Link from "next/link";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import { useCreateProduct } from "@/hooks/useProducts";
 import { useCreateVariants } from "@/hooks/useVariants";
@@ -14,17 +12,11 @@ import { useCategories } from "@/hooks/useCategories";
 import { productSchema, variantSchema } from "@/lib/validations/domain";
 import { friendlyError } from "@/lib/api/errors";
 import { createClient } from "@/lib/supabase/client";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface VariantRow {
-  _key: string; // local React key only
-  size: string;
-  sku: string;
-  quantity: number;
-  min_stock: number;
-  price: number;
-}
+import { NumInput } from "./_components/NumInput";
+import { ProductLimitBanner } from "./_components/ProductLimitBanner";
+import { VariantTable } from "./_components/VariantTable";
+import type { VariantRow } from "./_components/VariantTable";
+import { SimpleProductFields } from "./_components/SimpleProductFields";
 
 function newRow(): VariantRow {
   return {
@@ -36,35 +28,6 @@ function newRow(): VariantRow {
     price: 0,
   };
 }
-
-// Select-all on focus so the user doesn't have to delete 0 first
-function NumInput({
-  value,
-  onChange,
-  min = 0,
-  placeholder,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-  min?: number;
-  placeholder?: string;
-}) {
-  return (
-    <input
-      className="input"
-      type="number"
-      min={min}
-      value={value}
-      placeholder={placeholder}
-      onFocus={(e) => e.target.select()}
-      onChange={(e) =>
-        onChange(isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber)
-      }
-    />
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -285,58 +248,11 @@ export default function NewProductPage() {
         Add product
       </h1>
 
-      {productAtLimit && (
-        <div
-          className="mb-4 flex items-start gap-3 p-4 rounded-xl"
-          style={{
-            background: "#fee2e2",
-            border: "1px solid #fca5a5",
-          }}
-        >
-          <AlertTriangle
-            size={16}
-            style={{ color: "#dc2626", flexShrink: 0, marginTop: 1 }}
-          />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold" style={{ color: "#991b1b" }}>
-              Product limit reached ({productLimit!.current} /{" "}
-              {productLimit!.max})
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: "#b91c1c" }}>
-              You&apos;ve used all your product slots. Upgrade your plan to add
-              more products.
-            </p>
-          </div>
-          <Link
-            href="/billing"
-            className="btn btn-primary btn-sm"
-            style={{ whiteSpace: "nowrap" }}
-          >
-            Upgrade
-          </Link>
-        </div>
-      )}
-
-      {productNearLimit && (
-        <div
-          className="mb-4 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
-          style={{
-            background: "#fffbeb",
-            border: "1px solid #fcd34d",
-            color: "#92400e",
-          }}
-        >
-          <AlertTriangle size={13} style={{ flexShrink: 0 }} />
-          {productLimit!.current} of {productLimit!.max} products used —
-          approaching limit.{" "}
-          <Link
-            href="/billing"
-            style={{ color: "#7c3aed", textDecoration: "underline" }}
-          >
-            Upgrade
-          </Link>
-        </div>
-      )}
+      <ProductLimitBanner
+        productLimit={productLimit}
+        productAtLimit={productAtLimit}
+        productNearLimit={productNearLimit}
+      />
 
       <div className="card p-6 animate-scale-in">
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -448,259 +364,28 @@ export default function NewProductPage() {
             </button>
           </div>
 
-          {/* ── Variant rows ── */}
+          {/* ── Variant rows or Simple fields ── */}
           {useVariants ? (
-            <div className="space-y-3">
-              {/* Desktop header */}
-              <div
-                className="hidden sm:grid gap-2 text-xs font-medium"
-                style={{
-                  gridTemplateColumns: "1fr 90px 70px 70px 90px 32px",
-                  color: "var(--color-ink-tertiary)",
-                  paddingBottom: 4,
-                  borderBottom: "1px solid var(--color-surface-2)",
-                }}
-              >
-                <span>Size *</span>
-                <span>SKU</span>
-                <span>Qty</span>
-                <span>Min</span>
-                <span>Price (KES)</span>
-                <span />
-              </div>
-
-              {variants.map((row) => (
-                <div key={row._key}>
-                  {/* Desktop row */}
-                  <div
-                    className="hidden sm:grid gap-2 items-center"
-                    style={{
-                      gridTemplateColumns: "1fr 90px 70px 70px 90px 32px",
-                    }}
-                  >
-                    <input
-                      className="input"
-                      type="text"
-                      placeholder="e.g. 205/55R16"
-                      value={row.size}
-                      onChange={(e) =>
-                        updateVariantRow(row._key, { size: e.target.value })
-                      }
-                      required
-                    />
-                    <input
-                      className="input"
-                      type="text"
-                      placeholder="SKU"
-                      value={row.sku}
-                      style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}
-                      onChange={(e) =>
-                        updateVariantRow(row._key, { sku: e.target.value })
-                      }
-                    />
-                    <NumInput
-                      value={row.quantity}
-                      onChange={(v) =>
-                        updateVariantRow(row._key, { quantity: v })
-                      }
-                    />
-                    <NumInput
-                      value={row.min_stock}
-                      onChange={(v) =>
-                        updateVariantRow(row._key, { min_stock: v })
-                      }
-                    />
-                    <NumInput
-                      value={row.price}
-                      onChange={(v) => updateVariantRow(row._key, { price: v })}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeVariantRow(row._key)}
-                      disabled={variants.length === 1}
-                      className="btn-icon"
-                      style={{
-                        color: "var(--color-danger)",
-                        opacity: variants.length === 1 ? 0.3 : 1,
-                      }}
-                      aria-label="Remove size"
-                    >
-                      ✕
-                    </button>
-                  </div>
-
-                  {/* Mobile card */}
-                  <div
-                    className="sm:hidden rounded-xl p-3 space-y-2"
-                    style={{
-                      background: "var(--color-surface-1)",
-                      border: "1px solid var(--color-border-input)",
-                    }}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <input
-                        className="input flex-1"
-                        type="text"
-                        placeholder="Size e.g. 205/55R16 *"
-                        value={row.size}
-                        onChange={(e) =>
-                          updateVariantRow(row._key, { size: e.target.value })
-                        }
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeVariantRow(row._key)}
-                        disabled={variants.length === 1}
-                        className="btn btn-ghost btn-sm btn-icon flex-shrink-0"
-                        style={{
-                          color: "var(--color-danger)",
-                          opacity: variants.length === 1 ? 0.3 : 1,
-                        }}
-                        aria-label="Remove size"
-                      >
-                        <svg
-                          width="14"
-                          height="14"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            d="M18 6L6 18M6 6l12 12"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                    <input
-                      className="input w-full"
-                      type="text"
-                      placeholder="SKU (optional)"
-                      value={row.sku}
-                      style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}
-                      onChange={(e) =>
-                        updateVariantRow(row._key, { sku: e.target.value })
-                      }
-                    />
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label
-                          className="block text-xs mb-1"
-                          style={{ color: "var(--color-ink-tertiary)" }}
-                        >
-                          Qty
-                        </label>
-                        <NumInput
-                          value={row.quantity}
-                          onChange={(v) =>
-                            updateVariantRow(row._key, { quantity: v })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label
-                          className="block text-xs mb-1"
-                          style={{ color: "var(--color-ink-tertiary)" }}
-                        >
-                          Min
-                        </label>
-                        <NumInput
-                          value={row.min_stock}
-                          onChange={(v) =>
-                            updateVariantRow(row._key, { min_stock: v })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label
-                          className="block text-xs mb-1"
-                          style={{ color: "var(--color-ink-tertiary)" }}
-                        >
-                          Price
-                        </label>
-                        <NumInput
-                          value={row.price}
-                          onChange={(v) =>
-                            updateVariantRow(row._key, { price: v })
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              <button
-                type="button"
-                onClick={addVariantRow}
-                className="btn btn-secondary btn-sm"
-              >
-                + Add size
-              </button>
-            </div>
+            <VariantTable
+              variants={variants}
+              onAddRow={addVariantRow}
+              onRemoveRow={removeVariantRow}
+              onUpdateRow={updateVariantRow}
+            />
           ) : (
-            /* ── Simple product fields ── */
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    SKU <span style={{ color: "var(--color-danger)" }}>*</span>
-                  </label>
-                  <input
-                    className="input"
-                    type="text"
-                    value={sku}
-                    onChange={(e) => setSku(e.target.value)}
-                    required={!useVariants}
-                    placeholder="e.g. TYR-MPS4S-245-40-18"
-                    style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    Size{" "}
-                    <span
-                      style={{
-                        color: "var(--color-ink-ghost)",
-                        fontWeight: 400,
-                      }}
-                    >
-                      (optional)
-                    </span>
-                  </label>
-                  <input
-                    className="input"
-                    type="text"
-                    placeholder="e.g. 245/40R18"
-                    value={size}
-                    onChange={(e) => setSize(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    Initial qty
-                  </label>
-                  <NumInput value={quantity} onChange={setQuantity} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    Min stock
-                  </label>
-                  <NumInput value={minStock} onChange={setMinStock} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    Price (KES)
-                  </label>
-                  <NumInput value={price} onChange={setPrice} />
-                </div>
-              </div>
-            </>
+            <SimpleProductFields
+              sku={sku}
+              size={size}
+              quantity={quantity}
+              minStock={minStock}
+              price={price}
+              useVariants={useVariants}
+              onSkuChange={setSku}
+              onSizeChange={setSize}
+              onQuantityChange={setQuantity}
+              onMinStockChange={setMinStock}
+              onPriceChange={setPrice}
+            />
           )}
 
           {error && (
