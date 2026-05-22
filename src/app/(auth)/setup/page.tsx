@@ -8,19 +8,22 @@ import { createClient } from "@/lib/supabase/client";
 import { seedLocalCache } from "@/lib/db/instance";
 import { useAuthStore, selectShops } from "@/stores/authStore";
 import type { Room, Shop, ShopWithRole, CategoryItem } from "@/types/app";
+import SetupProgressBar from "./_components/SetupProgressBar";
+import SetupShopStep from "./_components/SetupShopStep";
+import SetupRoomsStep from "./_components/SetupRoomsStep";
+import SetupCategoriesStep, {
+  PRESET_COLORS,
+} from "./_components/SetupCategoriesStep";
+import SetupDoneStep from "./_components/SetupDoneStep";
 
 type Step = "shop" | "rooms" | "categories" | "done";
 
-const PRESET_COLORS = [
-  "#3b6ef5",
-  "#16a34a",
-  "#d97706",
-  "#dc2626",
-  "#7c3aed",
-  "#0891b2",
-  "#be185d",
-  "#374151",
-];
+const STEPS = [
+  { key: "shop", label: "Shop details", num: 1 },
+  { key: "rooms", label: "Storage rooms", num: 2 },
+  { key: "categories", label: "Categories", num: 3 },
+  { key: "done", label: "Ready", num: 4 },
+] as const;
 
 export default function SetupPage() {
   return (
@@ -44,25 +47,25 @@ function SetupContent() {
   const [isPending, startTransition] = useTransition();
   const mounted = useMounted();
 
-  // ── Step 1 state ──────────────────────────────────────────────────────────
-  const [shopError, setShopError] = useState("");
+  // Step 1
   const [shopName, setShopName] = useState("");
   const [shopAddress, setShopAddress] = useState("");
+  const [shopError, setShopError] = useState("");
   const [createdShop, setCreatedShop] = useState<Shop | null>(null);
 
-  // ── Step 2 state ──────────────────────────────────────────────────────────
-  const [roomsError, setRoomsError] = useState("");
+  // Step 2
   const [rooms, setRooms] = useState<string[]>([]);
   const [newRoom, setNewRoom] = useState("");
+  const [roomsError, setRoomsError] = useState("");
 
-  // ── Step 3 state ──────────────────────────────────────────────────────────
+  // Step 3
   const [setupCategories, setSetupCategories] = useState<CategoryItem[]>([]);
   const [catName, setCatName] = useState("");
   const [catColor, setCatColor] = useState(PRESET_COLORS[0]);
   const [catError, setCatError] = useState("");
   const [catAdding, setCatAdding] = useState(false);
 
-  // ─── Step 1: Create shop ──────────────────────────────────────────────────
+  // ── Step 1 handler ────────────────────────────────────────────────────────
 
   async function handleCreateShop(e: React.FormEvent) {
     e.preventDefault();
@@ -71,10 +74,8 @@ function SetupContent() {
       setShopError("Shop name is required");
       return;
     }
-
     startTransition(async () => {
       const supabase = createClient();
-
       const {
         data: { user },
         error: userError,
@@ -83,25 +84,21 @@ function SetupContent() {
         setShopError("Not logged in");
         return;
       }
-
       const { data: shopId, error } = await supabase.rpc("setup_owner_shop", {
         p_user_id: user.id,
         p_shop_name: shopName.trim(),
         p_shop_address: shopAddress.trim() || null,
         p_full_name: profile?.full_name ?? "",
       });
-
       if (error || !shopId) {
         setShopError(error?.message ?? "Failed to create shop");
         return;
       }
-
       const { data: shop } = await supabase
         .from("shops")
         .select("*")
         .eq("id", shopId)
         .single<Shop>();
-
       setCreatedShop(
         shop ?? {
           id: shopId as string,
@@ -114,7 +111,7 @@ function SetupContent() {
     });
   }
 
-  // ─── Step 2: Create rooms ─────────────────────────────────────────────────
+  // ── Step 2 handler ────────────────────────────────────────────────────────
 
   async function handleCreateRooms(e: React.FormEvent) {
     e.preventDefault();
@@ -123,10 +120,8 @@ function SetupContent() {
       setRoomsError("Create at least one room");
       return;
     }
-
     startTransition(async () => {
       const supabase = createClient();
-
       const {
         data: { user },
         error: userError,
@@ -137,31 +132,27 @@ function SetupContent() {
         .from("rooms")
         .insert(rooms.map((name) => ({ shop_id: createdShop!.id, name })))
         .select();
-
       if (error) {
         setRoomsError(error.message);
         return;
       }
 
-      // Seed IndexedDB + default categories in parallel
       const [, { error: catSeedError }] = await Promise.all([
         seedLocalCache(createdShop!, createdRooms as Room[], []),
         supabase.rpc("seed_default_categories"),
       ]);
       if (catSeedError) console.error("[setup] seed categories:", catSeedError);
 
-      // Fetch the seeded categories to show on the next step
       const { data: cats } = await supabase
         .from("categories")
         .select("*")
         .order("name");
-
       setSetupCategories((cats as CategoryItem[]) ?? []);
       setStep("categories");
     });
   }
 
-  // ─── Step 3: Categories ───────────────────────────────────────────────────
+  // ── Step 3 handlers ───────────────────────────────────────────────────────
 
   async function handleAddCategory(e: React.FormEvent) {
     e.preventDefault();
@@ -204,7 +195,7 @@ function SetupContent() {
     }
   }
 
-  // ─── Finish setup (called by both "Finish" and "Skip") ───────────────────
+  // ── Finish (Finish button + Skip both call this) ──────────────────────────
 
   function handleFinishSetup() {
     startTransition(async () => {
@@ -225,7 +216,6 @@ function SetupContent() {
         ...existingShops.filter((s) => s.id !== newShop.id),
         newShop,
       ];
-
       setAll(user, updatedProfile as typeof profile, createdShop, updatedShops);
       setStep("done");
 
@@ -239,7 +229,7 @@ function SetupContent() {
     });
   }
 
-  // ─── Room helpers ─────────────────────────────────────────────────────────
+  // ── Room helpers ──────────────────────────────────────────────────────────
 
   function addRoom() {
     const name = newRoom.trim();
@@ -253,29 +243,15 @@ function SetupContent() {
     setRoomsError("");
   }
 
-  function removeRoom(name: string) {
-    setRooms((prev) => prev.filter((r) => r !== name));
-  }
+  const currentStepIdx = STEPS.findIndex((s) => s.key === step);
 
-  // ─── Progress steps ───────────────────────────────────────────────────────
-
-  const steps = [
-    { key: "shop", label: "Shop details", num: 1 },
-    { key: "rooms", label: "Storage rooms", num: 2 },
-    { key: "categories", label: "Categories", num: 3 },
-    { key: "done", label: "Ready", num: 4 },
-  ] as const;
-
-  const currentStepIdx = steps.findIndex((s) => s.key === step);
-
-  // ─── Render ───────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center p-6"
       style={{ background: "var(--color-surface-1)" }}
     >
-      {/* Header */}
       <div className="mb-10 text-center animate-fade-in-up">
         <Image
           src="/logo.svg"
@@ -288,381 +264,57 @@ function SetupContent() {
         />
         <h1 className="font-display text-3xl mb-1">AutoShop Pro</h1>
         <p className="text-sm" style={{ color: "var(--color-ink-tertiary)" }}>
-          {isAddingNew ? "Set up your new shop" : "Let’s get your shop set up"}
+          {isAddingNew ? "Set up your new shop" : "Let's get your shop set up"}
         </p>
       </div>
 
-      {/* Progress bar */}
-      <div className="flex items-center gap-2 mb-8">
-        {steps.map((s, i) => (
-          <div key={s.key} className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
-              <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-all duration-300"
-                style={{
-                  background:
-                    i <= currentStepIdx
-                      ? "var(--color-brand-500)"
-                      : "var(--color-surface-3)",
-                  color:
-                    i <= currentStepIdx ? "white" : "var(--color-ink-tertiary)",
-                }}
-              >
-                {i < currentStepIdx ? (
-                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24">
-                    <path
-                      d="M5 12l5 5L20 7"
-                      stroke="white"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                ) : (
-                  s.num
-                )}
-              </div>
-              <span
-                className="text-sm hidden sm:block"
-                style={{
-                  color:
-                    i <= currentStepIdx
-                      ? "var(--color-ink-primary)"
-                      : "var(--color-ink-ghost)",
-                  fontWeight: i === currentStepIdx ? 500 : 400,
-                }}
-              >
-                {s.label}
-              </span>
-            </div>
-            {i < steps.length - 1 && (
-              <div
-                className="w-8 h-px"
-                style={{
-                  background:
-                    i < currentStepIdx
-                      ? "var(--color-brand-400)"
-                      : "var(--color-border)",
-                }}
-              />
-            )}
-          </div>
-        ))}
-      </div>
+      <SetupProgressBar steps={STEPS} currentStepIdx={currentStepIdx} />
 
-      {/* Card */}
       <div className="card w-full max-w-md animate-scale-in">
-        {/* Step 1 — Shop details */}
         {step === "shop" && (
-          <form onSubmit={handleCreateShop} className="p-6">
-            <h2 className="text-lg font-medium mb-1">Shop details</h2>
-            <p
-              className="text-sm mb-6"
-              style={{ color: "var(--color-ink-secondary)" }}
-            >
-              Your shop name will appear on receipts and reports.
-            </p>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1.5">
-                  Shop name{" "}
-                  <span style={{ color: "var(--color-danger)" }}>*</span>
-                </label>
-                <input
-                  className="input"
-                  type="text"
-                  placeholder="e.g. Nairobi Tyre Centre"
-                  value={shopName}
-                  onChange={(e) => setShopName(e.target.value)}
-                  autoFocus
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5">
-                  Address{" "}
-                  <span
-                    style={{ color: "var(--color-ink-ghost)", fontWeight: 400 }}
-                  >
-                    (optional)
-                  </span>
-                </label>
-                <input
-                  className="input"
-                  type="text"
-                  placeholder="e.g. Mombasa Road, Nairobi"
-                  value={shopAddress}
-                  onChange={(e) => setShopAddress(e.target.value)}
-                />
-              </div>
-            </div>
-            {shopError && (
-              <p
-                className="mt-3 text-sm"
-                style={{ color: "var(--color-danger)" }}
-              >
-                {shopError}
-              </p>
-            )}
-            <button
-              type="submit"
-              className="btn btn-primary w-full mt-6"
-              disabled={!mounted || isPending || !shopName.trim()}
-            >
-              {isPending ? "Creating…" : "Continue →"}
-            </button>
-          </form>
+          <SetupShopStep
+            shopName={shopName}
+            shopAddress={shopAddress}
+            error={shopError}
+            isPending={isPending}
+            mounted={mounted}
+            onShopNameChange={setShopName}
+            onShopAddressChange={setShopAddress}
+            onSubmit={handleCreateShop}
+          />
         )}
-
-        {/* Step 2 — Rooms */}
         {step === "rooms" && (
-          <form onSubmit={handleCreateRooms} className="p-6">
-            <h2 className="text-lg font-medium mb-1">Storage rooms</h2>
-            <p
-              className="text-sm mb-5"
-              style={{ color: "var(--color-ink-secondary)" }}
-            >
-              Rooms help you organise where parts are stored. Add as many as you
-              need.
-            </p>
-            <div className="space-y-2 mb-4">
-              {rooms.length === 0 && (
-                <p
-                  className="text-sm"
-                  style={{ color: "var(--color-ink-ghost)" }}
-                >
-                  No rooms added yet. Add at least one below.
-                </p>
-              )}
-              {rooms.map((name) => (
-                <div
-                  key={name}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-lg"
-                  style={{
-                    background: "var(--color-surface-1)",
-                    border: "1px solid var(--color-border)",
-                  }}
-                >
-                  <span className="text-sm">{name}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeRoom(name)}
-                    className="btn btn-ghost btn-sm btn-icon"
-                    aria-label={`Remove ${name}`}
-                  >
-                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
-                      <path
-                        d="M18 6L6 18M6 6l12 12"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input
-                className="input flex-1"
-                type="text"
-                placeholder="Room name…"
-                value={newRoom}
-                onChange={(e) => setNewRoom(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addRoom();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={addRoom}
-                className="btn btn-secondary"
-              >
-                Add
-              </button>
-            </div>
-            {roomsError && (
-              <p
-                className="mt-2 text-sm"
-                style={{ color: "var(--color-danger)" }}
-              >
-                {roomsError}
-              </p>
-            )}
-            <button
-              type="submit"
-              className="btn btn-primary w-full mt-6"
-              disabled={!mounted || isPending || rooms.length === 0}
-            >
-              {isPending
-                ? "Setting up…"
-                : `Continue with ${rooms.length} room${rooms.length !== 1 ? "s" : ""} →`}
-            </button>
-          </form>
+          <SetupRoomsStep
+            rooms={rooms}
+            newRoom={newRoom}
+            error={roomsError}
+            isPending={isPending}
+            mounted={mounted}
+            onNewRoomChange={setNewRoom}
+            onAddRoom={addRoom}
+            onRemoveRoom={(name) =>
+              setRooms((p) => p.filter((r) => r !== name))
+            }
+            onSubmit={handleCreateRooms}
+          />
         )}
-
-        {/* Step 3 — Categories */}
         {step === "categories" && (
-          <div className="p-6">
-            <h2 className="text-lg font-medium mb-1">Product categories</h2>
-            <p
-              className="text-sm mb-5"
-              style={{ color: "var(--color-ink-secondary)" }}
-            >
-              We&apos;ve added some defaults for your shop. Remove any you
-              don&apos;t need, or add your own.
-            </p>
-
-            {/* Category list */}
-            {setupCategories.length > 0 && (
-              <div className="mb-4">
-                {setupCategories.map((cat) => (
-                  <div
-                    key={cat.id}
-                    className="flex items-center justify-between py-2.5"
-                    style={{
-                      borderBottom: "1px solid var(--color-border-subtle)",
-                    }}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className="w-4 h-4 rounded-full flex-shrink-0"
-                        style={{ background: cat.color }}
-                      />
-                      <span className="text-sm">{cat.name}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteCategory(cat.id)}
-                      className="btn btn-ghost btn-sm btn-icon"
-                      style={{ color: "var(--color-danger)" }}
-                      aria-label={`Remove ${cat.name}`}
-                    >
-                      <svg
-                        width="13"
-                        height="13"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
-                          stroke="currentColor"
-                          strokeWidth="1.75"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Add new category */}
-            <form onSubmit={handleAddCategory} className="space-y-3 mb-5">
-              <div className="flex gap-2">
-                <input
-                  className="input flex-1"
-                  type="text"
-                  placeholder="New category name…"
-                  value={catName}
-                  onChange={(e) => setCatName(e.target.value)}
-                />
-                <button
-                  type="submit"
-                  className="btn btn-secondary"
-                  disabled={!catName.trim() || catAdding}
-                >
-                  {catAdding ? "Adding…" : "Add"}
-                </button>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span
-                  className="text-xs"
-                  style={{ color: "var(--color-ink-tertiary)" }}
-                >
-                  Colour:
-                </span>
-                {PRESET_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setCatColor(c)}
-                    className="w-6 h-6 rounded-full transition-transform"
-                    style={{
-                      background: c,
-                      transform: catColor === c ? "scale(1.25)" : "scale(1)",
-                      outline: catColor === c ? `2px solid ${c}` : "none",
-                      outlineOffset: "2px",
-                    }}
-                    aria-label={c}
-                  />
-                ))}
-              </div>
-            </form>
-
-            {catError && (
-              <p
-                className="mb-4 text-sm"
-                style={{ color: "var(--color-danger)" }}
-              >
-                {catError}
-              </p>
-            )}
-
-            <button
-              type="button"
-              onClick={handleFinishSetup}
-              className="btn btn-primary w-full"
-              disabled={!mounted || isPending}
-            >
-              {isPending ? "Finishing…" : "Finish setup →"}
-            </button>
-            <button
-              type="button"
-              onClick={handleFinishSetup}
-              className="w-full mt-3 text-sm text-center"
-              style={{ color: "var(--color-ink-tertiary)" }}
-              disabled={isPending}
-            >
-              Skip, I&apos;ll set up categories later
-            </button>
-          </div>
+          <SetupCategoriesStep
+            categories={setupCategories}
+            catName={catName}
+            catColor={catColor}
+            error={catError}
+            catAdding={catAdding}
+            isPending={isPending}
+            mounted={mounted}
+            onCatNameChange={setCatName}
+            onCatColorChange={setCatColor}
+            onAddCategory={handleAddCategory}
+            onDeleteCategory={handleDeleteCategory}
+            onFinish={handleFinishSetup}
+          />
         )}
-
-        {/* Step 4 — Done */}
-        {step === "done" && (
-          <div className="p-8 text-center animate-scale-in">
-            <div
-              className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4"
-              style={{ background: "var(--color-success-light)" }}
-            >
-              <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
-                <path
-                  d="M5 12l5 5L20 7"
-                  stroke="var(--color-success)"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            <h2 className="text-xl font-medium mb-2">
-              {isAddingNew ? "New shop created!" : "You’re all set!"}
-            </h2>
-            <p
-              className="text-sm"
-              style={{ color: "var(--color-ink-secondary)" }}
-            >
-              {isAddingNew
-                ? "Taking you to your overview…"
-                : "Taking you to your dashboard…"}
-            </p>
-          </div>
-        )}
+        {step === "done" && <SetupDoneStep isAddingNew={isAddingNew} />}
       </div>
     </div>
   );
