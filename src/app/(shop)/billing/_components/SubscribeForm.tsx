@@ -4,7 +4,13 @@ import { useState } from "react";
 
 type Stage = "idle" | "pending" | "waiting" | "success" | "error";
 
-export function SubscribeForm({ priceKes }: { priceKes: number }) {
+export function SubscribeForm({
+  priceKes,
+  planName,
+}: {
+  priceKes: number;
+  planName?: string;
+}) {
   const [phone, setPhone] = useState("");
   const [stage, setStage] = useState<Stage>("idle");
   const [message, setMessage] = useState("");
@@ -18,7 +24,7 @@ export function SubscribeForm({ priceKes }: { priceKes: number }) {
       const res = await fetch("/api/subscription/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone, plan: planName ?? "pro" }),
       });
       const data = await res.json();
 

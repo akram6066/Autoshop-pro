@@ -23,6 +23,7 @@ function SetupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAddingNew = searchParams.get("new") === "1";
+  const planParam = searchParams.get("plan");
 
   const setAll = useAuthStore((s) => s.setAll);
   const profile = useAuthStore((s) => s.profile);
@@ -146,9 +147,13 @@ function SetupContent() {
 
       setStep("done");
 
-      // New shop → overview (if exists), first shop → dashboard
+      // Carry chosen plan to billing; new shop → overview; first shop → dashboard/billing
       setTimeout(() => {
-        router.push(isAddingNew ? "/overview" : "/dashboard");
+        if (planParam && !isAddingNew) {
+          router.push(`/billing?plan=${planParam}`);
+        } else {
+          router.push(isAddingNew ? "/overview" : "/dashboard");
+        }
       }, 1200);
     });
   }

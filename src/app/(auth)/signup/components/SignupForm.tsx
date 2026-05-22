@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -39,6 +39,8 @@ function friendlySignupError(message: string): string {
 
 export default function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const planParam = searchParams.get("plan");
   const setAll = useAuthStore((s) => s.setAll);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -122,7 +124,7 @@ export default function SignupForm() {
       }
 
       const sessionState = await withAuthTimeout(
-        loadAuthSessionState(supabase, authData.user),
+        loadAuthSessionState(supabase, authData.user, planParam),
         "Loading your account",
       );
       setAll(
@@ -557,7 +559,7 @@ export default function SignupForm() {
           >
             Already have an account?{" "}
             <Link
-              href="/login"
+              href={planParam ? `/login?plan=${planParam}` : "/login"}
               style={{
                 color: "var(--color-brand-600)",
                 fontWeight: 600,

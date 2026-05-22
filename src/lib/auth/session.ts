@@ -85,6 +85,7 @@ async function fetchProfileWithRetry(
 export async function loadAuthSessionState(
   supabase: SupabaseBrowserClient,
   user: User,
+  planParam?: string | null,
 ): Promise<AuthSessionState> {
   const profile = await fetchProfileWithRetry(supabase, user.id);
 
@@ -114,15 +115,20 @@ export async function loadAuthSessionState(
 
   const activeShop = activeShopWithRole as Shop | null;
 
-  return {
-    user,
-    profile,
-    activeShop,
-    shops,
-    destination: !activeShopWithRole
-      ? "/setup"
-      : activeShopWithRole.role === "staff"
-        ? "/pos"
-        : "/dashboard",
-  };
+  const plan = planParam && /^[a-z_]+$/.test(planParam) ? planParam : null;
+
+  const base = !activeShopWithRole
+    ? "/setup"
+    : activeShopWithRole.role === "staff"
+      ? "/pos"
+      : "/dashboard";
+
+  const destination =
+    plan && base !== "/pos"
+      ? base === "/setup"
+        ? `/setup?plan=${plan}`
+        : `/billing?plan=${plan}`
+      : base;
+
+  return { user, profile, activeShop, shops, destination };
 }

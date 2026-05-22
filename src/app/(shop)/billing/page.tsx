@@ -7,6 +7,22 @@ import { SubscribeForm } from "./_components/SubscribeForm";
 
 export const metadata = { title: "Billing — AutoShop Pro" };
 
+const PLAN_DETAILS: Record<
+  string,
+  { displayName: string; priceKes: number; description: string }
+> = {
+  pro: {
+    displayName: "Pro",
+    priceKes: 1000,
+    description: "Up to 5 shops, 500 products, 10 staff, unlimited sales.",
+  },
+  ultra_pro: {
+    displayName: "Ultra Pro",
+    priceKes: 2500,
+    description: "Unlimited shops, products, staff, and sales.",
+  },
+};
+
 function UsageBar({
   label,
   current,
@@ -78,7 +94,16 @@ function UsageBar({
   );
 }
 
-export default async function BillingPage() {
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ plan?: string }>;
+}) {
+  const { plan: planParam } = await searchParams;
+  const targetPlanKey =
+    planParam && planParam in PLAN_DETAILS ? planParam : "pro";
+  const targetPlan = PLAN_DETAILS[targetPlanKey];
+
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
@@ -92,6 +117,8 @@ export default async function BillingPage() {
   const days = daysLeft(sub);
   const isPro =
     sub.status === "active" || sub.is_admin_override || sub.status === "free";
+  // Allow renewing even if already Pro
+  const canPay = !sub.is_admin_override;
 
   // Get current shop for per-shop usage
   const { data: profile } = await supabase
@@ -303,9 +330,54 @@ export default async function BillingPage() {
         </div>
       </div>
 
-      {/* ── Payment card (show only on free/trial/expired) ───── */}
-      {!isPro && (
+      {/* ── Payment card ─────────────────────────────────────── */}
+      {canPay && (
         <div className="card" style={{ padding: "24px" }}>
+          {/* Renew notice for already-active users */}
+          {isPro && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 14px",
+                borderRadius: 8,
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                marginBottom: 20,
+                fontSize: "0.875rem",
+                color: "#15803d",
+              }}
+            >
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
+                <path
+                  d="M22 11.08V12a10 10 0 11-5.93-9.14"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M22 4L12 14.01l-3-3"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <span>
+                Active until{" "}
+                <strong>
+                  {sub.current_period_end
+                    ? new Date(sub.current_period_end).toLocaleDateString(
+                        "en-KE",
+                        { day: "numeric", month: "long", year: "numeric" },
+                      )
+                    : "—"}
+                </strong>
+                . Paying again extends it by 30 days.
+              </span>
+            </div>
+          )}
+
           <div
             style={{
               display: "flex",
@@ -326,7 +398,6 @@ export default async function BillingPage() {
                 flexShrink: 0,
               }}
             >
-              {/* M-Pesa green */}
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                 <path
                   d="M2 8.5h20M6 12h.01M10 12h.01M2 6a2 2 0 012-2h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
@@ -345,7 +416,8 @@ export default async function BillingPage() {
                   color: "var(--color-ink-primary)",
                 }}
               >
-                Subscribe — KES {sub.plan.price_kes.toLocaleString()}/month
+                {isPro ? "Renew" : "Subscribe"} {targetPlan.displayName} — KES{" "}
+                {targetPlan.priceKes.toLocaleString()}/month
               </p>
               <p
                 style={{
@@ -353,57 +425,15 @@ export default async function BillingPage() {
                   color: "var(--color-ink-tertiary)",
                 }}
               >
-                Unlimited products, staff, and sales. Pay via M-Pesa.
+                {targetPlan.description} Pay via M-Pesa.
               </p>
             </div>
           </div>
 
-          <SubscribeForm priceKes={sub.plan.price_kes} />
-        </div>
-      )}
-
-      {/* Already Pro */}
-      {isPro && !sub.is_admin_override && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            background: "#f0fdf4",
-            border: "1px solid #bbf7d0",
-            borderRadius: 10,
-            padding: "14px 18px",
-            fontSize: "0.875rem",
-            color: "#15803d",
-          }}
-        >
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-            <path
-              d="M22 11.08V12a10 10 0 11-5.93-9.14"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-            />
-            <path
-              d="M22 4L12 14.01l-3-3"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-            />
-          </svg>
-          <span>
-            Your Pro subscription is active until{" "}
-            <strong>
-              {sub.current_period_end
-                ? new Date(sub.current_period_end).toLocaleDateString("en-KE", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })
-                : "—"}
-            </strong>
-            . You will need to pay again before it expires to keep Pro access.
-          </span>
+          <SubscribeForm
+            priceKes={targetPlan.priceKes}
+            planName={targetPlanKey}
+          />
         </div>
       )}
 

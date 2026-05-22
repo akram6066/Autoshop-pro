@@ -20,12 +20,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Validate requested plan (default pro)
+  const requestedPlan: string = body.plan === "ultra_pro" ? "ultra_pro" : "pro";
+
   const db = adminDb();
 
-  // Get current subscription + plan price
+  // Get current subscription record (for subscription_id)
   const { data: sub } = (await db
     .from("subscriptions")
-    .select("id, subscription_plans(price_kes, display_name, name)")
+    .select("id")
     .eq("user_id", user.id)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .single()) as { data: any };
@@ -35,9 +38,17 @@ export async function POST(req: NextRequest) {
       { error: "Subscription not found" },
       { status: 404 },
     );
-  const plan = sub.subscription_plans;
+
+  // Fetch the target plan price from DB (source of truth)
+  const { data: plan } = (await db
+    .from("subscription_plans")
+    .select("price_kes, display_name, name")
+    .eq("name", requestedPlan)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .single()) as { data: any };
+
   if (!plan?.price_kes)
-    return NextResponse.json({ error: "Plan has no charge" }, { status: 400 });
+    return NextResponse.json({ error: "Plan not found" }, { status: 400 });
 
   // Initiate M-Pesa STK push
   let result;
@@ -69,6 +80,7 @@ export async function POST(req: NextRequest) {
     amount_kes: plan.price_kes,
     phone_number: phone,
     status: "pending",
+    target_plan_name: requestedPlan,
   });
 
   return NextResponse.json({

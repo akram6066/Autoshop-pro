@@ -110,6 +110,7 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const sessionBanner =
     SESSION_BANNERS[searchParams.get("reason") ?? ""] ?? null;
+  const planParam = searchParams.get("plan");
   const setAll = useAuthStore((s) => s.setAll);
 
   // Login state
@@ -190,7 +191,7 @@ export default function LoginForm() {
       }
 
       const sessionState = await withAuthTimeout(
-        loadAuthSessionState(supabase, authData.user),
+        loadAuthSessionState(supabase, authData.user, planParam),
         "Loading your account",
       );
       setAll(

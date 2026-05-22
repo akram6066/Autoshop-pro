@@ -43,16 +43,20 @@ export async function POST(req: NextRequest) {
       completed_at: new Date().toISOString(),
     })
     .eq("checkout_request_id", CheckoutRequestID)
-    .select("subscription_id, user_id")
+    .select("subscription_id, user_id, target_plan_name")
     .single();
 
   if (!payment) return NextResponse.json({ ResultCode: 0 });
 
-  // Activate Pro subscription for 30 days
+  // Activate the plan the user chose (pro or ultra_pro), default pro
+  const planName =
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (payment as any).target_plan_name === "ultra_pro" ? "ultra_pro" : "pro";
+
   const { data: proPlan } = await db
     .from("subscription_plans")
     .select("id")
-    .eq("name", "pro")
+    .eq("name", planName)
     .single();
 
   const periodEnd = new Date();
