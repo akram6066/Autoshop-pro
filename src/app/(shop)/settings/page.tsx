@@ -190,7 +190,12 @@ function PlanUsageSection({
       color: "#a16207",
       dot: "#d97706",
     },
-    active: { label: "Pro", bg: "#ede9fe", color: "#7c3aed", dot: "#7c3aed" },
+    active: {
+      label: sub?.plan.displayName ?? "Pro",
+      bg: sub?.plan.name === "ultra_pro" ? "#ede9fe" : "#dcfce7",
+      color: sub?.plan.name === "ultra_pro" ? "#6d28d9" : "#15803d",
+      dot: sub?.plan.name === "ultra_pro" ? "#7c3aed" : "#16a34a",
+    },
     free: { label: "Free", bg: "#dbeafe", color: "#1d4ed8", dot: "#2563eb" },
     expired: {
       label: "Expired",
@@ -280,11 +285,19 @@ function PlanUsageSection({
               )}
             </div>
             {!isPro && (
-              <Link href="/billing" className="btn btn-primary btn-sm">
-                Upgrade to Pro — KES 1,000/mo
+              <Link href="/billing?plan=pro" className="btn btn-primary btn-sm">
+                Upgrade to Pro
               </Link>
             )}
-            {isPro && !sub.isAdminOverride && (
+            {isPro && sub.plan.name === "pro" && !sub.isAdminOverride && (
+              <Link
+                href="/billing?plan=ultra_pro"
+                className="btn btn-secondary btn-sm"
+              >
+                Upgrade to Ultra Pro →
+              </Link>
+            )}
+            {isPro && sub.plan.name !== "pro" && !sub.isAdminOverride && (
               <Link href="/billing" className="btn btn-secondary btn-sm">
                 Manage billing →
               </Link>
@@ -526,7 +539,7 @@ function MyShopsSection({ sub }: { sub: SubInfo | null }) {
             </p>
           </div>
           <Link
-            href="/billing"
+            href="/billing?plan=pro"
             className="btn btn-primary btn-sm"
             style={{ whiteSpace: "nowrap" }}
           >

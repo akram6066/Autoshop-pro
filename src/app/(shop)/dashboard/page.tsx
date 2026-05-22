@@ -254,14 +254,14 @@ async function DashboardContent() {
               }}
             >
               {!subActive
-                ? "Upgrade to Pro to continue using all features."
-                : "Upgrade to Pro — KES 1,000/month via M-Pesa."}
+                ? "Upgrade to keep all features — pay via M-Pesa."
+                : "Upgrade now — from KES 1,000/month via M-Pesa."}
             </p>
           </div>
 
           {/* CTA */}
           <Link
-            href="/billing"
+            href="/billing?plan=pro"
             style={{
               flexShrink: 0,
               padding: "8px 16px",

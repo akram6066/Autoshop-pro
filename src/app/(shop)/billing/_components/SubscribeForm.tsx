@@ -1,8 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
-type Stage = "idle" | "pending" | "waiting" | "success" | "error";
+type Stage =
+  | "idle"
+  | "pending"
+  | "waiting"
+  | "confirming"
+  | "success"
+  | "error";
 
 export function SubscribeForm({
   priceKes,
@@ -11,6 +18,7 @@ export function SubscribeForm({
   priceKes: number;
   planName?: string;
 }) {
+  const router = useRouter();
   const [phone, setPhone] = useState("");
   const [stage, setStage] = useState<Stage>("idle");
   const [message, setMessage] = useState("");
@@ -43,13 +51,23 @@ export function SubscribeForm({
   }
 
   async function handleCheckStatus() {
-    const res = await fetch("/api/subscription/status");
-    const data = await res.json();
-    if (data.isActive && data.status !== "trial") {
-      setStage("success");
-    } else {
+    setStage("confirming");
+    setMessage("");
+    try {
+      const res = await fetch("/api/subscription/status");
+      const data = await res.json();
+      if (data.isActive && data.status !== "trial") {
+        setStage("success");
+      } else {
+        setStage("waiting");
+        setMessage(
+          "Payment not yet confirmed. Wait a few seconds and try again.",
+        );
+      }
+    } catch {
+      setStage("waiting");
       setMessage(
-        "Payment not yet confirmed. Wait a few seconds and try again.",
+        "Could not check status. Check your connection and try again.",
       );
     }
   }
@@ -107,7 +125,7 @@ export function SubscribeForm({
         <button
           className="btn btn-primary"
           style={{ marginTop: 8 }}
-          onClick={() => window.location.reload()}
+          onClick={() => router.push("/dashboard")}
         >
           Refresh page
         </button>
@@ -115,7 +133,7 @@ export function SubscribeForm({
     );
   }
 
-  if (stage === "waiting") {
+  if (stage === "waiting" || stage === "confirming") {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div
@@ -167,9 +185,39 @@ export function SubscribeForm({
           <button
             className="btn btn-primary"
             onClick={handleCheckStatus}
+            disabled={stage === "confirming"}
             style={{ flex: 1 }}
           >
-            I&apos;ve paid — confirm payment
+            {stage === "confirming" ? (
+              <>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  style={{ animation: "spin 0.7s linear infinite" }}
+                >
+                  <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeOpacity="0.25"
+                  />
+                  <path
+                    d="M12 2a10 10 0 019.8 8"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                Checking…
+              </>
+            ) : (
+              "I’ve paid — confirm payment"
+            )}
           </button>
           <button
             className="btn btn-secondary"

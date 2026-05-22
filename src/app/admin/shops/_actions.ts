@@ -42,3 +42,24 @@ export async function restoreShop(id: string) {
   revalidatePath("/admin/shops");
   revalidatePath("/admin/dashboard");
 }
+
+export async function permanentlyDeleteShop(id: string) {
+  const db = adminDb();
+  // Only allow hard-delete of already-trashed shops
+  const { data: shop } = await db
+    .from("shops")
+    .select("id, deleted_at")
+    .eq("id", id)
+    .not("deleted_at", "is", null)
+    .single();
+  if (!shop) throw new Error("Shop not found in trash");
+
+  // Delete dependent data in correct order before removing the shop
+  await db.from("shop_members").delete().eq("shop_id", id);
+
+  const { error } = await db.from("shops").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/shops");
+  revalidatePath("/admin/dashboard");
+}

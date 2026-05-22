@@ -1,7 +1,13 @@
 "use client";
 
 import { useTransition, useState } from "react";
-import { grantFreeAccess, revokeAccess, extendTrial } from "../_actions";
+import {
+  grantFreeAccess,
+  revokeAccess,
+  extendTrial,
+  activatePlan,
+  extendSubscription,
+} from "../_actions";
 
 interface Props {
   userId: string;
@@ -17,9 +23,13 @@ export function SubActions({
   isAdminOverride,
 }: Props) {
   const [pending, startTransition] = useTransition();
-  const [modal, setModal] = useState<"grant" | "extend" | null>(null);
+  const [modal, setModal] = useState<
+    "grant" | "extend" | "activate" | "extendSub" | null
+  >(null);
   const [notes, setNotes] = useState("");
   const [days, setDays] = useState(30);
+  const [months, setMonths] = useState(1);
+  const [selectedPlan, setSelectedPlan] = useState<"pro" | "ultra_pro">("pro");
 
   function handleGrant() {
     startTransition(async () => {
@@ -42,6 +52,20 @@ export function SubActions({
   function handleExtend() {
     startTransition(async () => {
       await extendTrial(userId, days);
+      setModal(null);
+    });
+  }
+
+  function handleActivate() {
+    startTransition(async () => {
+      await activatePlan(userId, selectedPlan, months);
+      setModal(null);
+    });
+  }
+
+  function handleExtendSub() {
+    startTransition(async () => {
+      await extendSubscription(userId, months);
       setModal(null);
     });
   }
@@ -70,6 +94,36 @@ export function SubActions({
             disabled={pending}
           >
             Extend Trial
+          </button>
+        )}
+        {!isAdminOverride && (
+          <button
+            className="btn btn-sm"
+            onClick={() => {
+              setMonths(1);
+              setSelectedPlan("pro");
+              setModal("activate");
+            }}
+            disabled={pending}
+            style={{
+              background: "#ede9fe",
+              color: "#6d28d9",
+              borderColor: "#c4b5fd",
+            }}
+          >
+            Activate Plan
+          </button>
+        )}
+        {status === "active" && !isAdminOverride && (
+          <button
+            className="btn btn-sm btn-secondary"
+            onClick={() => {
+              setMonths(1);
+              setModal("extendSub");
+            }}
+            disabled={pending}
+          >
+            Extend
           </button>
         )}
         {(isAdminOverride || status === "active") && (
@@ -199,6 +253,244 @@ export function SubActions({
                 disabled={pending}
               >
                 {pending ? "Granting…" : "Grant Free Access"}
+              </button>
+            </div>
+          </div>
+        </Overlay>
+      )}
+
+      {/* Activate Plan modal */}
+      {modal === "activate" && (
+        <Overlay onClose={() => !pending && setModal(null)}>
+          <div
+            className="card animate-scale-in"
+            style={{ width: 400, padding: "28px 28px 24px" }}
+          >
+            <h2
+              style={{
+                fontSize: "1.0625rem",
+                fontWeight: 700,
+                color: "var(--color-ink-primary)",
+                marginBottom: 6,
+              }}
+            >
+              Activate Plan
+            </h2>
+            <p
+              style={{
+                fontSize: "0.875rem",
+                color: "var(--color-ink-tertiary)",
+                marginBottom: 20,
+              }}
+            >
+              Manually activate a paid plan for{" "}
+              <strong style={{ color: "var(--color-ink-secondary)" }}>
+                {userName}
+              </strong>{" "}
+              without requiring M-Pesa payment.
+            </p>
+
+            {/* Plan picker */}
+            <div style={{ marginBottom: 16 }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.8125rem",
+                  fontWeight: 600,
+                  color: "var(--color-ink-secondary)",
+                  marginBottom: 8,
+                }}
+              >
+                Plan
+              </label>
+              <div style={{ display: "flex", gap: 8 }}>
+                {(["pro", "ultra_pro"] as const).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setSelectedPlan(p)}
+                    className="btn btn-sm"
+                    style={{
+                      background:
+                        selectedPlan === p
+                          ? "#6d28d9"
+                          : "var(--color-surface-2)",
+                      color:
+                        selectedPlan === p
+                          ? "white"
+                          : "var(--color-ink-secondary)",
+                      border: "1px solid",
+                      borderColor:
+                        selectedPlan === p ? "#7c3aed" : "var(--color-border)",
+                    }}
+                  >
+                    {p === "pro" ? "Pro — KES 1,000" : "Ultra Pro — KES 2,500"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Months picker */}
+            <div style={{ marginBottom: 22 }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.8125rem",
+                  fontWeight: 600,
+                  color: "var(--color-ink-secondary)",
+                  marginBottom: 8,
+                }}
+              >
+                Duration
+              </label>
+              <div style={{ display: "flex", gap: 8 }}>
+                {[1, 3, 6, 12].map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setMonths(m)}
+                    className="btn btn-sm"
+                    style={{
+                      background:
+                        months === m
+                          ? "var(--color-brand-500)"
+                          : "var(--color-surface-2)",
+                      color:
+                        months === m ? "white" : "var(--color-ink-secondary)",
+                      border: "1px solid",
+                      borderColor:
+                        months === m
+                          ? "var(--color-brand-600)"
+                          : "var(--color-border)",
+                    }}
+                  >
+                    {m}mo
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div
+              style={{
+                height: 1,
+                background: "var(--color-border-subtle)",
+                margin: "0 -28px 20px",
+              }}
+            />
+            <div
+              style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
+            >
+              <button
+                className="btn btn-secondary"
+                onClick={() => setModal(null)}
+                disabled={pending}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleActivate}
+                disabled={pending}
+              >
+                {pending
+                  ? "Activating…"
+                  : `Activate ${selectedPlan === "pro" ? "Pro" : "Ultra Pro"} for ${months}mo`}
+              </button>
+            </div>
+          </div>
+        </Overlay>
+      )}
+
+      {/* Extend Subscription modal */}
+      {modal === "extendSub" && (
+        <Overlay onClose={() => !pending && setModal(null)}>
+          <div
+            className="card animate-scale-in"
+            style={{ width: 380, padding: "28px 28px 24px" }}
+          >
+            <h2
+              style={{
+                fontSize: "1.0625rem",
+                fontWeight: 700,
+                color: "var(--color-ink-primary)",
+                marginBottom: 6,
+              }}
+            >
+              Extend Subscription
+            </h2>
+            <p
+              style={{
+                fontSize: "0.875rem",
+                color: "var(--color-ink-tertiary)",
+                marginBottom: 20,
+              }}
+            >
+              Add months to{" "}
+              <strong style={{ color: "var(--color-ink-secondary)" }}>
+                {userName}
+              </strong>
+              &apos;s active plan. Extends from the current end date.
+            </p>
+            <div style={{ marginBottom: 22 }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.8125rem",
+                  fontWeight: 600,
+                  color: "var(--color-ink-secondary)",
+                  marginBottom: 8,
+                }}
+              >
+                Months to add
+              </label>
+              <div style={{ display: "flex", gap: 8 }}>
+                {[1, 3, 6, 12].map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setMonths(m)}
+                    className="btn btn-sm"
+                    style={{
+                      background:
+                        months === m
+                          ? "var(--color-brand-500)"
+                          : "var(--color-surface-2)",
+                      color:
+                        months === m ? "white" : "var(--color-ink-secondary)",
+                      border: "1px solid",
+                      borderColor:
+                        months === m
+                          ? "var(--color-brand-600)"
+                          : "var(--color-border)",
+                    }}
+                  >
+                    +{m}mo
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div
+              style={{
+                height: 1,
+                background: "var(--color-border-subtle)",
+                margin: "0 -28px 20px",
+              }}
+            />
+            <div
+              style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
+            >
+              <button
+                className="btn btn-secondary"
+                onClick={() => setModal(null)}
+                disabled={pending}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleExtendSub}
+                disabled={pending}
+              >
+                {pending
+                  ? "Extending…"
+                  : `Add ${months} month${months !== 1 ? "s" : ""}`}
               </button>
             </div>
           </div>

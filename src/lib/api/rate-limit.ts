@@ -99,7 +99,8 @@ async function upstashSlidingWindow(
       remaining: Math.max(0, cfg.limit - rate),
       resetAt,
     };
-  } catch {
+  } catch (err) {
+    console.warn("[rate-limit] Upstash request failed:", err);
     return null;
   }
 }

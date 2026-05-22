@@ -109,6 +109,13 @@ export const POST = withAuth(
         return NextResponse.json({ error: message }, { status });
       }
 
+      // Explicitly remove membership row — auth cascade may not cover shop_members
+      await adminClient
+        .from("shop_members")
+        .delete()
+        .eq("shop_id", input.shop_id)
+        .eq("user_id", input.user_id);
+
       return NextResponse.json({ ok: true });
     } catch (err) {
       const { message, status } = sanitizeError(err, {

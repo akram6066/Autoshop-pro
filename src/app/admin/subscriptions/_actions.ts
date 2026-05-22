@@ -80,6 +80,65 @@ export async function extendTrial(userId: string, days: number) {
   revalidatePath("/admin/subscriptions");
 }
 
+export async function activatePlan(
+  userId: string,
+  planName: string,
+  months: number,
+) {
+  const db = adminDb();
+  const { data: plan } = await db
+    .from("subscription_plans")
+    .select("id")
+    .eq("name", planName)
+    .single();
+  if (!plan) throw new Error(`Plan "${planName}" not found`);
+
+  const end = new Date();
+  end.setMonth(end.getMonth() + months);
+
+  await db.from("subscriptions").upsert(
+    {
+      user_id: userId,
+      plan_id: plan.id,
+      status: "active",
+      is_admin_override: false,
+      current_period_end: end.toISOString(),
+      trial_ends_at: null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+
+  await activateProShops(userId, planName);
+  revalidatePath("/admin/subscriptions");
+}
+
+export async function extendSubscription(userId: string, months: number) {
+  const db = adminDb();
+  const { data: sub } = await db
+    .from("subscriptions")
+    .select("current_period_end")
+    .eq("user_id", userId)
+    .single();
+
+  const base =
+    sub?.current_period_end && new Date(sub.current_period_end) > new Date()
+      ? new Date(sub.current_period_end)
+      : new Date();
+  base.setMonth(base.getMonth() + months);
+
+  await db
+    .from("subscriptions")
+    .update({
+      status: "active",
+      current_period_end: base.toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+
+  revalidatePath("/admin/subscriptions");
+}
+
 export async function updatePlan(planId: string, fd: FormData) {
   const toInt = (key: string) => {
     const v = fd.get(key);

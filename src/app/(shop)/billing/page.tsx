@@ -182,15 +182,28 @@ export default async function BillingPage({
   const statusColor = !active
     ? "var(--color-danger)"
     : sub.status === "trial"
-      ? "var(--color-warning)"
-      : "var(--color-success)";
+      ? "#a16207"
+      : sub.is_admin_override
+        ? "var(--color-brand-600)"
+        : sub.plan.name === "ultra_pro"
+          ? "#6d28d9"
+          : "#15803d";
+  const statusBg = !active
+    ? "#fee2e2"
+    : sub.status === "trial"
+      ? "#fef9c3"
+      : sub.is_admin_override
+        ? "var(--color-brand-50, #eff6ff)"
+        : sub.plan.name === "ultra_pro"
+          ? "#ede9fe"
+          : "#dcfce7";
   const statusLabel = !active
     ? "Expired"
     : sub.status === "trial"
-      ? "Free Trial"
+      ? "Free"
       : sub.is_admin_override
         ? "Free (Admin)"
-        : "Active";
+        : sub.plan.display_name;
 
   return (
     <div style={{ maxWidth: 720 }}>
@@ -259,7 +272,7 @@ export default async function BillingPage({
                 borderRadius: 999,
                 fontSize: "0.8125rem",
                 fontWeight: 600,
-                background: active ? "#dcfce7" : "#fee2e2",
+                background: statusBg,
                 color: statusColor,
               }}
             >
