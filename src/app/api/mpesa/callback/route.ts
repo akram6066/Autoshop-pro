@@ -53,30 +53,41 @@ export async function POST(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (payment as any).target_plan_name === "ultra_pro" ? "ultra_pro" : "pro";
 
-  const { data: proPlan } = await db
+  const { data: chosenPlan } = await db
     .from("subscription_plans")
     .select("id")
     .eq("name", planName)
     .single();
 
-  const periodEnd = new Date();
-  periodEnd.setDate(periodEnd.getDate() + 30);
+  if (payment.subscription_id && chosenPlan) {
+    // Extend from existing period end if still active, otherwise from now
+    const { data: existingSub } = await db
+      .from("subscriptions")
+      .select("current_period_end")
+      .eq("id", payment.subscription_id)
+      .single();
 
-  if (payment.subscription_id && proPlan) {
+    const base =
+      existingSub?.current_period_end &&
+      new Date(existingSub.current_period_end) > new Date()
+        ? new Date(existingSub.current_period_end)
+        : new Date();
+    base.setDate(base.getDate() + 30);
+
     await db
       .from("subscriptions")
       .update({
-        plan_id: proPlan.id,
+        plan_id: chosenPlan.id,
         status: "active",
-        current_period_end: periodEnd.toISOString(),
+        current_period_end: base.toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq("id", payment.subscription_id);
   }
 
-  // Flip all owned shops to 'pro' so DB triggers allow higher limits
+  // Activate the chosen plan on all owned shops
   if (payment.user_id) {
-    await activateProShops(payment.user_id);
+    await activateProShops(payment.user_id, planName);
   }
 
   return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });

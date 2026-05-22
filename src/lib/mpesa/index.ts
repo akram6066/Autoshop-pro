@@ -12,8 +12,13 @@ function apiBase() {
 export async function getDarajaToken(): Promise<string> {
   const key = process.env.MPESA_CONSUMER_KEY;
   const secret = process.env.MPESA_CONSUMER_SECRET;
-  if (!key || !secret)
-    throw new Error("Missing MPESA_CONSUMER_KEY / MPESA_CONSUMER_SECRET");
+  if (!key || !secret) {
+    const missing = [
+      !key && "MPESA_CONSUMER_KEY",
+      !secret && "MPESA_CONSUMER_SECRET",
+    ].filter(Boolean);
+    throw new Error(`Missing env vars: ${missing.join(", ")}`);
+  }
 
   const credentials = Buffer.from(`${key}:${secret}`).toString("base64");
   const res = await fetch(
@@ -45,10 +50,13 @@ export async function initiateStkPush(params: {
   const shortCode = process.env.MPESA_SHORTCODE;
   const passkey = process.env.MPESA_PASSKEY;
   const callbackBase = process.env.MPESA_CALLBACK_BASE_URL;
-  if (!shortCode || !passkey || !callbackBase) {
-    throw new Error(
-      "Missing MPESA_SHORTCODE / MPESA_PASSKEY / MPESA_CALLBACK_BASE_URL",
-    );
+  const missing = [
+    !shortCode && "MPESA_SHORTCODE",
+    !passkey && "MPESA_PASSKEY",
+    !callbackBase && "MPESA_CALLBACK_BASE_URL",
+  ].filter(Boolean);
+  if (missing.length > 0) {
+    throw new Error(`Missing env vars: ${missing.join(", ")}`);
   }
 
   const timestamp = new Date()

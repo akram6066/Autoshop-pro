@@ -71,8 +71,11 @@ export function daysLeft(sub: SubscriptionInfo): number {
   );
 }
 
-/** Activate Pro on all shops owned by this user after successful payment. */
-export async function activateProShops(userId: string) {
+/** Activate the chosen plan on all shops owned by this user after payment. */
+export async function activateProShops(
+  userId: string,
+  planName: string = "pro",
+) {
   const db = adminDb();
   const { data: ownedShops } = await db
     .from("shop_members")
@@ -82,7 +85,7 @@ export async function activateProShops(userId: string) {
 
   if (!ownedShops?.length) return;
   const ids = ownedShops.map((m: any) => m.shop_id);
-  await db.from("shops").update({ plan: "pro" }).in("id", ids);
+  await db.from("shops").update({ plan: planName }).in("id", ids);
 }
 
 /** Downgrade shops to free (on expiry). */
