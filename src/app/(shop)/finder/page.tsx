@@ -4,9 +4,9 @@ import { useState, useMemo, useEffect } from "react";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import { useProducts } from "@/hooks/useProducts";
 import { useShopVariants } from "@/hooks/useVariants";
-import { formatCurrency, categoryLabel } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { SearchBar } from "@/components/ui/SearchBar";
+import { FinderResultCard } from "./_components/FinderResultCard";
 import type { Room, ProductVariant } from "@/types/app";
 
 export default function FinderPage() {
@@ -32,7 +32,6 @@ export default function FinderPage() {
     [rooms],
   );
 
-  // Group variants by product id for O(1) lookup
   const variantsByProduct = useMemo(() => {
     const map = new Map<string, ProductVariant[]>();
     for (const v of allVariants) {
@@ -52,13 +51,11 @@ export default function FinderPage() {
         const variants = variantsByProduct.get(p.id) ?? [];
         const hasVariants = variants.length > 0;
 
-        // Check if the product itself matches
         const productMatches =
           p.name.toLowerCase().includes(q) ||
           (!hasVariants && p.sku.toLowerCase().includes(q)) ||
           p.category.toLowerCase().includes(q);
 
-        // Check which variants match (by size or SKU)
         const matchingVariants = hasVariants
           ? variants.filter(
               (v) =>
@@ -69,8 +66,6 @@ export default function FinderPage() {
 
         if (!productMatches && matchingVariants.length === 0) return null;
 
-        // If product name/category matched, show all variants; otherwise only
-        // show the variants that specifically matched the query.
         const displayVariants = hasVariants
           ? productMatches
             ? variants
@@ -88,7 +83,6 @@ export default function FinderPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Header */}
       <div className="mb-8">
         <h1
           className="text-2xl font-semibold mb-1"
@@ -101,7 +95,6 @@ export default function FinderPage() {
         </p>
       </div>
 
-      {/* Search */}
       <SearchBar
         value={query}
         onChange={setQuery}
@@ -111,7 +104,6 @@ export default function FinderPage() {
         autoFocus
       />
 
-      {/* Results */}
       {isLoading && (
         <div
           className="text-center py-12"
@@ -164,226 +156,13 @@ export default function FinderPage() {
       {results.length > 0 && (
         <div className="space-y-3 stagger">
           {results.map(({ product, variants, hasVariants }) => (
-            <div key={product.id} className="card p-4 animate-fade-in-up">
-              <div className="flex items-center gap-4">
-                {/* Room indicator */}
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-lg font-medium"
-                  style={{
-                    background: "var(--color-brand-50)",
-                    color: "var(--color-brand-600)",
-                  }}
-                >
-                  {(roomMap[product.room_id] ?? "?").slice(0, 2).toUpperCase()}
-                </div>
-
-                {/* Header */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p
-                        className="font-medium truncate"
-                        style={{ color: "var(--color-ink-primary)" }}
-                      >
-                        {product.name}
-                      </p>
-                      {/* Simple product: show SKU inline */}
-                      {!hasVariants && product.sku && (
-                        <p
-                          className="text-xs mt-0.5"
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            color: "var(--color-ink-tertiary)",
-                          }}
-                        >
-                          {product.sku}
-                        </p>
-                      )}
-                      {/* Variant product: show size count */}
-                      {hasVariants && (
-                        <p
-                          className="text-xs mt-0.5"
-                          style={{ color: "var(--color-ink-tertiary)" }}
-                        >
-                          {variants.length} size
-                          {variants.length !== 1 ? "s" : ""}
-                        </p>
-                      )}
-                    </div>
-                    <span className="badge badge-neutral shrink-0">
-                      {categoryLabel(product.category)}
-                    </span>
-                  </div>
-
-                  {/* Simple product: room + qty + price row */}
-                  {!hasVariants && (
-                    <div className="flex items-center gap-4 mt-2 text-sm flex-wrap">
-                      <div className="flex items-center gap-1.5">
-                        <svg
-                          width="13"
-                          height="13"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          style={{ color: "var(--color-ink-tertiary)" }}
-                        >
-                          <path
-                            d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"
-                            stroke="currentColor"
-                            strokeWidth="1.75"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <polyline
-                            points="9,22 9,12 15,12 15,22"
-                            stroke="currentColor"
-                            strokeWidth="1.75"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                        <span
-                          style={{
-                            color: "var(--color-ink-secondary)",
-                            fontWeight: 500,
-                          }}
-                        >
-                          {roomMap[product.room_id] ?? "Unknown room"}
-                        </span>
-                      </div>
-                      <span
-                        style={{
-                          color:
-                            product.quantity === 0
-                              ? "var(--color-danger)"
-                              : product.quantity <= product.min_stock
-                                ? "var(--color-warning)"
-                                : "var(--color-success)",
-                        }}
-                      >
-                        {product.quantity === 0
-                          ? "Out of stock"
-                          : `${product.quantity} in stock`}
-                      </span>
-                      <span style={{ color: "var(--color-ink-tertiary)" }}>
-                        {formatCurrency(product.price)}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Variant product: room row */}
-                  {hasVariants && (
-                    <div className="flex items-center gap-1.5 mt-2 text-sm">
-                      <svg
-                        width="13"
-                        height="13"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        style={{ color: "var(--color-ink-tertiary)" }}
-                      >
-                        <path
-                          d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"
-                          stroke="currentColor"
-                          strokeWidth="1.75"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <polyline
-                          points="9,22 9,12 15,12 15,22"
-                          stroke="currentColor"
-                          strokeWidth="1.75"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <span
-                        style={{
-                          color: "var(--color-ink-secondary)",
-                          fontWeight: 500,
-                        }}
-                      >
-                        {roomMap[product.room_id] ?? "Unknown room"}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Variant rows */}
-              {hasVariants && (
-                <div
-                  className="mt-3 rounded-lg overflow-hidden"
-                  style={{ border: "1px solid var(--color-border-subtle)" }}
-                >
-                  {/* Header */}
-                  <div
-                    className="grid text-xs font-medium px-3 py-2"
-                    style={{
-                      gridTemplateColumns: "1fr auto auto auto",
-                      gap: "0.75rem",
-                      background: "var(--color-surface-1)",
-                      color: "var(--color-ink-tertiary)",
-                      borderBottom: "1px solid var(--color-border-subtle)",
-                    }}
-                  >
-                    <span>Size</span>
-                    <span>SKU</span>
-                    <span className="text-right">Stock</span>
-                    <span className="text-right">Price</span>
-                  </div>
-                  {variants.map((v, idx) => (
-                    <div
-                      key={v.id}
-                      className="grid items-center px-3 py-2 text-sm"
-                      style={{
-                        gridTemplateColumns: "1fr auto auto auto",
-                        gap: "0.75rem",
-                        borderTop:
-                          idx > 0
-                            ? "1px solid var(--color-border-subtle)"
-                            : undefined,
-                        background: "var(--color-surface-0)",
-                      }}
-                    >
-                      <span
-                        className="font-medium"
-                        style={{ color: "var(--color-ink-primary)" }}
-                      >
-                        {v.size}
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 11,
-                          color: "var(--color-ink-tertiary)",
-                        }}
-                      >
-                        {v.sku || "—"}
-                      </span>
-                      <span
-                        className="text-right"
-                        style={{
-                          color:
-                            v.quantity === 0
-                              ? "var(--color-danger)"
-                              : v.quantity <= v.min_stock
-                                ? "var(--color-warning)"
-                                : "var(--color-success)",
-                          fontWeight: 500,
-                        }}
-                      >
-                        {v.quantity === 0 ? "Out" : v.quantity}
-                      </span>
-                      <span
-                        className="text-right"
-                        style={{ color: "var(--color-ink-secondary)" }}
-                      >
-                        {formatCurrency(v.price)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <FinderResultCard
+              key={product.id}
+              product={product}
+              variants={variants}
+              hasVariants={hasVariants}
+              roomMap={roomMap}
+            />
           ))}
         </div>
       )}

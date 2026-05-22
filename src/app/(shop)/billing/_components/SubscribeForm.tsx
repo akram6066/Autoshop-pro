@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { PaymentSuccessScreen } from "./PaymentSuccessScreen";
+import { PaymentWaitingScreen } from "./PaymentWaitingScreen";
 
 type Stage =
   | "idle"
@@ -18,7 +19,6 @@ export function SubscribeForm({
   priceKes: number;
   planName?: string;
 }) {
-  const router = useRouter();
   const [phone, setPhone] = useState("");
   const [stage, setStage] = useState<Stage>("idle");
   const [message, setMessage] = useState("");
@@ -73,163 +73,21 @@ export function SubscribeForm({
   }
 
   if (stage === "success") {
-    return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          padding: "32px 0 8px",
-          gap: 12,
-          textAlign: "center",
-        }}
-      >
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: "50%",
-            background: "#dcfce7",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <svg width="26" height="26" fill="none" viewBox="0 0 24 24">
-            <path
-              d="M22 11.08V12a10 10 0 11-5.93-9.14"
-              stroke="#15803d"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-            <path
-              d="M22 4L12 14.01l-3-3"
-              stroke="#15803d"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-        </div>
-        <p
-          style={{
-            fontSize: "1.125rem",
-            fontWeight: 700,
-            color: "var(--color-ink-primary)",
-          }}
-        >
-          Payment successful!
-        </p>
-        <p style={{ fontSize: "0.875rem", color: "var(--color-ink-tertiary)" }}>
-          Your Pro subscription is now active.
-        </p>
-        <button
-          className="btn btn-primary"
-          style={{ marginTop: 8 }}
-          onClick={() => router.push("/dashboard")}
-        >
-          Refresh page
-        </button>
-      </div>
-    );
+    return <PaymentSuccessScreen />;
   }
 
   if (stage === "waiting" || stage === "confirming") {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            background: "#f0fdf4",
-            border: "1px solid #bbf7d0",
-            borderRadius: 10,
-            padding: "14px 16px",
-            alignItems: "flex-start",
-          }}
-        >
-          <svg
-            width="18"
-            height="18"
-            fill="none"
-            viewBox="0 0 24 24"
-            style={{ flexShrink: 0, marginTop: 1, color: "#15803d" }}
-          >
-            <path
-              d="M12 22C6.48 22 2 17.52 2 12S6.48 2 12 2s10 4.48 10 10-4.48 10-10 10zm0-11v5m0-8h.01"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-            />
-          </svg>
-          <div>
-            <p
-              style={{
-                fontWeight: 600,
-                color: "#15803d",
-                marginBottom: 2,
-                fontSize: "0.9375rem",
-              }}
-            >
-              Check your phone
-            </p>
-            <p style={{ fontSize: "0.875rem", color: "#166534" }}>{message}</p>
-            <p
-              style={{ fontSize: "0.8125rem", color: "#4ade80", marginTop: 4 }}
-            >
-              Enter your M-Pesa PIN to complete payment of{" "}
-              <strong>KES {priceKes.toLocaleString()}</strong>.
-            </p>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button
-            className="btn btn-primary"
-            onClick={handleCheckStatus}
-            disabled={stage === "confirming"}
-            style={{ flex: 1 }}
-          >
-            {stage === "confirming" ? (
-              <>
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  style={{ animation: "spin 0.7s linear infinite" }}
-                >
-                  <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeOpacity="0.25"
-                  />
-                  <path
-                    d="M12 2a10 10 0 019.8 8"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                  />
-                </svg>
-                Checking…
-              </>
-            ) : (
-              "I’ve paid — confirm payment"
-            )}
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => {
-              setStage("idle");
-              setMessage("");
-            }}
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
+      <PaymentWaitingScreen
+        stage={stage}
+        message={message}
+        priceKes={priceKes}
+        onCheckStatus={handleCheckStatus}
+        onCancel={() => {
+          setStage("idle");
+          setMessage("");
+        }}
+      />
     );
   }
 
