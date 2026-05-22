@@ -448,58 +448,6 @@ function HeroBrowserFrame() {
   );
 }
 
-// ── Stats bar ────────────────────────────────────────────────────────────────
-
-const STATS = [
-  { value: "Any shop", label: "Clothes, electronics, hardware & more" },
-  { value: "Any country", label: "No region lock — works worldwide" },
-  { value: "100%", label: "Offline capable" },
-  { value: "1 month", label: "Free trial, no card needed" },
-];
-
-function HeroStatsBar() {
-  return (
-    <div
-      className="grid grid-cols-2 sm:grid-cols-4 gap-px hero-stats-bar"
-      style={{
-        background: "rgba(99,102,241,0.12)",
-        overflow: "hidden",
-        marginTop: 20,
-      }}
-    >
-      {STATS.map((stat) => (
-        <div
-          key={stat.label}
-          className="hero-stat-cell"
-          style={{ background: "white" }}
-        >
-          <p
-            style={{
-              fontWeight: 800,
-              fontSize: "1.25rem",
-              background: "linear-gradient(135deg, #3b6ef5, #8b5cf6)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-              marginBottom: 2,
-            }}
-          >
-            {stat.value}
-          </p>
-          <p
-            style={{
-              fontSize: "0.8125rem",
-              color: "var(--color-ink-tertiary)",
-            }}
-          >
-            {stat.label}
-          </p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ── Main section ─────────────────────────────────────────────────────────────
 
 function HeroSection() {
@@ -804,8 +752,6 @@ function HeroSection() {
           <FloatingSaleCard />
           <HeroBrowserFrame />
         </div>
-
-        <HeroStatsBar />
       </Container>
     </section>
   );
