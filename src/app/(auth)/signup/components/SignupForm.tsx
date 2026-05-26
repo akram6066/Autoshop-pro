@@ -84,6 +84,14 @@ export default function SignupForm() {
     });
     setError("");
 
+    // Pre-flight: abort immediately if offline
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setError(
+        "You're offline. Please check your internet connection and try again.",
+      );
+      return;
+    }
+
     const parsed = signupSchema.safeParse({
       fullName,
       email,

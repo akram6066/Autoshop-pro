@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { adminDb } from "@/lib/admin/db";
 import { getSubscription } from "@/lib/subscription";
-import { PLAN_DETAILS } from "./_components/planDetails";
+import { fetchPlans, dbPlanToBilling } from "@/lib/plans";
 import { BillingStatusCard } from "./_components/BillingStatusCard";
 import { PlanChooserCards } from "./_components/PlanChooserCards";
 import { PaymentCard } from "./_components/PaymentCard";
@@ -17,9 +17,6 @@ export default async function BillingPage({
   searchParams: Promise<{ plan?: string }>;
 }) {
   const { plan: planParam } = await searchParams;
-  const targetPlanKey =
-    planParam && planParam in PLAN_DETAILS ? planParam : "pro";
-  const targetPlan = PLAN_DETAILS[targetPlanKey];
 
   const supabase = await createServerSupabaseClient();
   const {
@@ -27,8 +24,22 @@ export default async function BillingPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const sub = await getSubscription(user.id);
+  const [sub, allPlans] = await Promise.all([
+    getSubscription(user.id),
+    fetchPlans(),
+  ]);
   if (!sub) redirect("/dashboard");
+
+  const paidPlans = allPlans
+    .filter((p) => p.price_kes > 0 && p.name !== "free_forever")
+    .map(dbPlanToBilling);
+  const planKeys = new Set(paidPlans.map((p) => p.key));
+  const targetPlanKey =
+    planParam && planKeys.has(planParam)
+      ? planParam
+      : (paidPlans[0]?.key ?? "pro");
+  const targetPlan =
+    paidPlans.find((p) => p.key === targetPlanKey) ?? paidPlans[0];
 
   const isPro =
     sub.status === "active" || sub.is_admin_override || sub.status === "free";
@@ -118,7 +129,7 @@ export default async function BillingPage({
 
       {canPay && (
         <>
-          <PlanChooserCards targetPlanKey={targetPlanKey} />
+          <PlanChooserCards plans={paidPlans} targetPlanKey={targetPlanKey} />
           <PaymentCard
             isPro={isPro}
             sub={sub}

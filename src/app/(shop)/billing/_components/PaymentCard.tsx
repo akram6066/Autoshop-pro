@@ -1,5 +1,5 @@
 import type { SubscriptionInfo } from "@/lib/subscription";
-import type { PlanDetail } from "./planDetails";
+import type { BillingPlan } from "@/lib/plans";
 import { SubscribeForm } from "./SubscribeForm";
 
 export function PaymentCard({
@@ -10,7 +10,7 @@ export function PaymentCard({
 }: {
   isPro: boolean;
   sub: SubscriptionInfo;
-  targetPlan: PlanDetail;
+  targetPlan: BillingPlan;
   targetPlanKey: string;
 }) {
   return (

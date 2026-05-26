@@ -67,17 +67,16 @@ export default function HeroCTARow() {
             boxShadow: "var(--shadow-card)",
           }}
         >
+          See how it works
           <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-            <circle
-              cx="12"
-              cy="12"
-              r="10"
+            <path
+              d="M6 9l6 6 6-6"
               stroke="currentColor"
-              strokeWidth="1.75"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             />
-            <path d="M10 8l6 4-6 4V8z" fill="currentColor" />
           </svg>
-          Watch demo
         </a>
       </div>
 

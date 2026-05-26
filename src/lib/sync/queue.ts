@@ -124,7 +124,18 @@ async function _doFlush(shopId: string): Promise<void> {
           commands: chunk.map((c) => ({
             id: c.id,
             command: c.command,
-            payload: c.payload,
+            // Inject the queue item's stable UUID as idempotency_key so the
+            // record_sale RPC can detect and skip duplicate offline syncs.
+            payload:
+              c.command === "RECORD_SALE"
+                ? {
+                    ...c.payload,
+                    sale: {
+                      ...(c.payload.sale as Record<string, unknown>),
+                      idempotency_key: c.id,
+                    },
+                  }
+                : c.payload,
             created_at: c.created_at,
           })),
         }),

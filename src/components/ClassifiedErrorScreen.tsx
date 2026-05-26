@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import { classifyError, CATEGORY_META } from "@/lib/admin/classify-error";
+import { logClientError } from "@/lib/admin/log-client-error";
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   api: (
@@ -103,6 +105,14 @@ export function ClassifiedErrorScreen({
   const category = classifyError(error);
   const meta = CATEGORY_META[category];
   const icon = CATEGORY_ICONS[category];
+
+  useEffect(() => {
+    void logClientError(
+      error.message,
+      error.digest,
+      typeof window !== "undefined" ? window.location.pathname : "",
+    );
+  }, [error]);
 
   return (
     <div

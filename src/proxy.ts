@@ -24,10 +24,11 @@ const SUSPICIOUS_PATHS = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Skip Next.js internals and public assets
+  // 1. Skip Next.js internals, static assets, and public paths
   if (
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/api/sync") || // Sync endpoint is protected inside its route
+    pathname.startsWith("/monitoring") || // Sentry tunnel — must not auth-check
+    pathname.startsWith("/api/mpesa/callback") || // Daraja hits this directly
     pathname.includes(".") ||
     PUBLIC_PATHS.some((p) => pathname.startsWith(p))
   ) {
@@ -68,25 +69,29 @@ export async function proxy(request: NextRequest) {
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", cspHeader);
 
-  let response = NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
+  // Apply all security headers to a response object.
+  // Called both on initial creation and whenever Supabase rotates session
+  // cookies (which requires recreating the NextResponse).
+  function applySecurityHeaders(res: NextResponse): NextResponse {
+    res.headers.set("Content-Security-Policy", cspHeader);
+    res.headers.set("X-DNS-Prefetch-Control", "on");
+    res.headers.set(
+      "Strict-Transport-Security",
+      "max-age=63072000; includeSubDomains; preload",
+    );
+    res.headers.set("X-Frame-Options", "DENY");
+    res.headers.set("X-Content-Type-Options", "nosniff");
+    res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.headers.set(
+      "Permissions-Policy",
+      "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+    );
+    return res;
+  }
 
-  response.headers.set("X-DNS-Prefetch-Control", "on");
-  response.headers.set(
-    "Strict-Transport-Security",
-    "max-age=63072000; includeSubDomains; preload",
+  let response = applySecurityHeaders(
+    NextResponse.next({ request: { headers: requestHeaders } }),
   );
-  response.headers.set("X-Frame-Options", "DENY");
-  response.headers.set("X-Content-Type-Options", "nosniff");
-  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.headers.set(
-    "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=(), interest-cohort=()",
-  );
-  response.headers.set("Content-Security-Policy", cspHeader);
 
   // 4. Auth & Routing
   const supabase = createServerClient(
@@ -98,17 +103,14 @@ export async function proxy(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options: _options }) =>
+          // Token refresh rotates cookies — must recreate response and
+          // re-apply ALL security headers (not just CSP) so none are dropped.
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
-          response = NextResponse.next({
-            request: {
-              headers: requestHeaders,
-            },
-          });
-          // Re-apply CSP after response recreation so the header is never lost
-          // when session cookies are rotated mid-request.
-          response.headers.set("Content-Security-Policy", cspHeader);
+          response = applySecurityHeaders(
+            NextResponse.next({ request: { headers: requestHeaders } }),
+          );
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
           );

@@ -1,14 +1,45 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import type { Product, ProductVariant, CartItem } from "@/types/app";
+
+const STORAGE_KEY = "autoshop_pos_cart";
 
 function makeKey(productId: string, variantId?: string) {
   return variantId ? `${productId}:${variantId}` : productId;
 }
 
+function loadFromStorage(): CartItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as CartItem[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveToStorage(items: CartItem[]): void {
+  try {
+    if (items.length === 0) {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } else {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+  } catch {
+    // sessionStorage unavailable (private browsing quota) — degrade silently
+  }
+}
+
 export function useCart() {
-  const [items, setItems] = useState<CartItem[]>([]);
+  // Initialise from sessionStorage so the cart survives page refreshes and
+  // PWA cold starts (the OS can kill a PWA mid-checkout on low memory).
+  const [items, setItems] = useState<CartItem[]>(() => loadFromStorage());
+
+  // Keep sessionStorage in sync with every cart change
+  useEffect(() => {
+    saveToStorage(items);
+  }, [items]);
 
   const add = useCallback((product: Product, variant?: ProductVariant) => {
     const cartKey = makeKey(product.id, variant?.id);

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Container from "./Container";
 import SectionHead from "./SectionHead";
+import { RevealOnScroll } from "./RevealOnScroll";
 
 function HowItWorksSection() {
   const steps = [
@@ -33,99 +34,107 @@ function HowItWorksSection() {
       }}
     >
       <Container>
-        <SectionHead
-          eyebrow="How it works"
-          title="Up and running in minutes"
-          subtitle="No IT setup, no training sessions. Sign up and go."
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+        <RevealOnScroll>
+          <SectionHead
+            eyebrow="How it works"
+            title="Up and running in minutes"
+            subtitle="No IT setup, no training sessions. Sign up and go."
+          />
+        </RevealOnScroll>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {steps.map((step, i) => (
-            <div key={step.num} style={{ position: "relative" }}>
-              {/* Connector line between steps */}
-              {i < 2 && (
-                <div
-                  className="hidden sm:block"
-                  style={{
-                    position: "absolute",
-                    top: 28,
-                    left: "calc(50% + 32px)",
-                    width: "calc(100% - 64px)",
-                    height: 2,
-                    background: "linear-gradient(to right, #a5b4fc, #c4b5fd)",
-                    zIndex: 0,
-                  }}
-                />
-              )}
+            <RevealOnScroll key={step.num} delay={i * 100}>
+              <div style={{ position: "relative" }}>
+                {/* Connector line between steps */}
+                {i < 2 && (
+                  <div
+                    className="hidden md:block"
+                    style={{
+                      position: "absolute",
+                      top: 28,
+                      left: "calc(50% + 32px)",
+                      width: "calc(100% - 64px)",
+                      height: 2,
+                      background: "linear-gradient(to right, #a5b4fc, #c4b5fd)",
+                      zIndex: 0,
+                    }}
+                  />
+                )}
 
-              <div
-                style={{ textAlign: "center", position: "relative", zIndex: 1 }}
-              >
-                {/* Step number circle */}
                 <div
                   style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: "50%",
-                    background: "linear-gradient(135deg, #3b6ef5, #8b5cf6)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    margin: "0 auto 24px",
-                    boxShadow: "0 0 0 8px rgba(139,92,246,0.12)",
+                    textAlign: "center",
+                    position: "relative",
+                    zIndex: 1,
                   }}
                 >
-                  <span
+                  {/* Step number circle */}
+                  <div
                     style={{
-                      fontFamily: "var(--font-mono)",
-                      fontWeight: 700,
-                      fontSize: "0.875rem",
-                      color: "white",
+                      width: 56,
+                      height: 56,
+                      borderRadius: "50%",
+                      background: "linear-gradient(135deg, #3b6ef5, #8b5cf6)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      margin: "0 auto 24px",
+                      boxShadow: "0 0 0 8px rgba(139,92,246,0.12)",
                     }}
                   >
-                    {step.num}
-                  </span>
-                </div>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontWeight: 700,
+                        fontSize: "0.875rem",
+                        color: "white",
+                      }}
+                    >
+                      {step.num}
+                    </span>
+                  </div>
 
-                {/* Screenshot */}
-                <div
-                  style={{
-                    borderRadius: "var(--radius-lg)",
-                    overflow: "hidden",
-                    border: "1px solid var(--color-border)",
-                    boxShadow: "var(--shadow-raised)",
-                    marginBottom: 24,
-                  }}
-                >
-                  <Image
-                    src={step.img}
-                    alt={step.title}
-                    width={400}
-                    height={300}
-                    sizes="(min-width: 640px) 33vw, 100vw"
-                    className="w-full h-auto"
-                  />
+                  {/* Screenshot */}
+                  <div
+                    style={{
+                      borderRadius: "var(--radius-lg)",
+                      overflow: "hidden",
+                      border: "1px solid var(--color-border)",
+                      boxShadow: "var(--shadow-raised)",
+                      marginBottom: 24,
+                    }}
+                  >
+                    <Image
+                      src={step.img}
+                      alt={step.title}
+                      width={400}
+                      height={300}
+                      sizes="(min-width: 768px) 33vw, 100vw"
+                      className="w-full h-auto"
+                    />
+                  </div>
+                  <h3
+                    style={{
+                      fontWeight: 700,
+                      fontSize: "1.0625rem",
+                      color: "var(--color-ink-primary)",
+                      marginBottom: 8,
+                    }}
+                  >
+                    {step.title}
+                  </h3>
+                  <p
+                    style={{
+                      fontSize: "0.9375rem",
+                      color: "var(--color-ink-secondary)",
+                      lineHeight: 1.7,
+                    }}
+                  >
+                    {step.desc}
+                  </p>
                 </div>
-                <h3
-                  style={{
-                    fontWeight: 700,
-                    fontSize: "1.0625rem",
-                    color: "var(--color-ink-primary)",
-                    marginBottom: 8,
-                  }}
-                >
-                  {step.title}
-                </h3>
-                <p
-                  style={{
-                    fontSize: "0.9375rem",
-                    color: "var(--color-ink-secondary)",
-                    lineHeight: 1.7,
-                  }}
-                >
-                  {step.desc}
-                </p>
               </div>
-            </div>
+            </RevealOnScroll>
           ))}
         </div>
       </Container>

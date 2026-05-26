@@ -1,18 +1,20 @@
 import Link from "next/link";
-import { PLAN_DETAILS } from "./planDetails";
+import type { BillingPlan } from "@/lib/plans";
 
-export function PlanChooserCards({ targetPlanKey }: { targetPlanKey: string }) {
+export function PlanChooserCards({
+  plans,
+  targetPlanKey,
+}: {
+  plans: BillingPlan[];
+  targetPlanKey: string;
+}) {
   return (
     <div
       className="grid grid-cols-1 sm:grid-cols-2 gap-4"
       style={{ marginBottom: 16 }}
     >
-      {(
-        Object.entries(PLAN_DETAILS) as [
-          string,
-          (typeof PLAN_DETAILS)[string],
-        ][]
-      ).map(([key, plan]) => {
+      {plans.map((plan) => {
+        const key = plan.key;
         const selected = key === targetPlanKey;
         const isUltra = key === "ultra_pro";
         return (

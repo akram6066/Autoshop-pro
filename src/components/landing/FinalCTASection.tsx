@@ -191,8 +191,8 @@ function FinalCTASection() {
           }}
         >
           {[
-            { value: "50+", label: "Active shops" },
-            { value: "3 cities", label: "Nairobi · Mombasa · Kampala" },
+            { value: "500+", label: "Shops worldwide" },
+            { value: "Global", label: "Any country, any currency" },
             { value: "100%", label: "Offline capable" },
             { value: "Free", label: "To start, always" },
           ].map((stat) => (

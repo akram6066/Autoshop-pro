@@ -253,6 +253,12 @@ export default async function AdminSubscriptionsPage() {
                   min={0}
                 />
                 <Field
+                  name="annual_discount_pct"
+                  label="Annual discount %"
+                  defaultValue={plan.annual_discount_pct ?? 20}
+                  min={0}
+                />
+                <Field
                   name="trial_days"
                   label="Trial days"
                   defaultValue={plan.trial_days}

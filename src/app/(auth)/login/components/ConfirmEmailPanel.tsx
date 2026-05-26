@@ -39,40 +39,20 @@ export default function ConfirmEmailPanel({ email, onBack }: Props) {
   }
 
   return (
-    <div className="card p-6 sm:p-8">
-      {/* Back */}
-      <button
-        type="button"
-        onClick={onBack}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          fontSize: "0.875rem",
-          color: "var(--color-ink-secondary)",
-          padding: "0 0 24px",
-        }}
-      >
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-          <path
-            d="M19 12H5M12 5l-7 7 7 7"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        Back to sign in
-      </button>
-
+    <div
+      className="card p-6 sm:p-8"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        textAlign: "center",
+      }}
+    >
       {/* Icon */}
       <div
         style={{
-          width: 60,
-          height: 60,
+          width: 64,
+          height: 64,
           borderRadius: "50%",
           background: resent
             ? "var(--color-success-light)"
@@ -80,14 +60,14 @@ export default function ConfirmEmailPanel({ email, onBack }: Props) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          margin: "0 auto 20px",
+          marginBottom: 20,
         }}
       >
         <svg width="26" height="26" fill="none" viewBox="0 0 24 24">
           <path
             d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
             stroke={resent ? "var(--color-success)" : "var(--color-warning)"}
-            strokeWidth="2"
+            strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -97,10 +77,9 @@ export default function ConfirmEmailPanel({ email, onBack }: Props) {
       <h2
         style={{
           fontWeight: 700,
-          fontSize: "1.25rem",
+          fontSize: "1.375rem",
           color: "var(--color-ink-primary)",
           marginBottom: 10,
-          textAlign: "center",
         }}
       >
         {resent ? "Email sent!" : "Confirm your email address"}
@@ -111,7 +90,6 @@ export default function ConfirmEmailPanel({ email, onBack }: Props) {
           fontSize: "0.9375rem",
           color: "var(--color-ink-secondary)",
           lineHeight: 1.65,
-          textAlign: "center",
           marginBottom: 24,
         }}
       >
@@ -147,7 +125,7 @@ export default function ConfirmEmailPanel({ email, onBack }: Props) {
             justifyContent: "center",
             padding: "12px",
             fontSize: "0.9375rem",
-            marginBottom: 12,
+            marginBottom: 16,
           }}
         >
           {resending ? (
@@ -187,8 +165,7 @@ export default function ConfirmEmailPanel({ email, onBack }: Props) {
           style={{
             fontSize: "0.8125rem",
             color: "var(--color-danger)",
-            marginBottom: 12,
-            textAlign: "center",
+            marginBottom: 16,
           }}
         >
           {resendError}
@@ -200,7 +177,7 @@ export default function ConfirmEmailPanel({ email, onBack }: Props) {
           style={{
             fontSize: "0.8125rem",
             color: "var(--color-ink-ghost)",
-            textAlign: "center",
+            marginBottom: 16,
           }}
         >
           {cooldown > 0 ? (
@@ -233,13 +210,43 @@ export default function ConfirmEmailPanel({ email, onBack }: Props) {
           style={{
             fontSize: "0.8125rem",
             color: "var(--color-ink-ghost)",
-            textAlign: "center",
-            marginTop: 4,
+            marginBottom: 24,
           }}
         >
           Check your spam folder if you don&apos;t see it.
         </p>
       )}
+
+      <button
+        type="button"
+        onClick={onBack}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          fontSize: "0.875rem",
+          color: "var(--color-brand-600)",
+          fontWeight: 600,
+          textDecoration: "none",
+          padding: "8px 0 0",
+          width: "100%",
+        }}
+      >
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+          <path
+            d="M19 12H5M12 5l-7 7 7 7"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        Back to sign in
+      </button>
     </div>
   );
 }

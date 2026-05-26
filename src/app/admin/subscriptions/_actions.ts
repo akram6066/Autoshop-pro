@@ -153,6 +153,7 @@ export async function updatePlan(planId: string, fd: FormData) {
 
   const fields: Array<keyof typeof patch> = [
     "price_kes",
+    "annual_discount_pct",
     "trial_days",
     "max_shops",
     "max_products_per_shop",

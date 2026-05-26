@@ -17,6 +17,15 @@ export const POST = withAuth(
     );
     if (limited) return limited;
 
+    // Guard against excessively large sync payloads before parsing JSON
+    const contentLength = request.headers.get("content-length");
+    if (contentLength && parseInt(contentLength, 10) > 2 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "Payload too large (max 2MB)" },
+        { status: 413 },
+      );
+    }
+
     let body: unknown;
     try {
       body = await request.json();
@@ -46,7 +55,6 @@ export const POST = withAuth(
     }
 
     const RPC_TIMEOUT_MS = 10_000;
-    const CONCURRENCY = 5;
 
     async function runCommand(
       cmd: (typeof commands)[number],
@@ -134,12 +142,13 @@ export const POST = withAuth(
       return { id: cmd.id, success: !error, error: error ?? undefined };
     }
 
-    // Run commands in parallel batches — CONCURRENCY at a time
+    // Run commands strictly in order — a RECORD_SALE that sells a product
+    // created offline in the same batch must not race with MANAGE_PRODUCT.
+    // If one command fails, we continue (the client handles individual failures)
+    // so a bad sale doesn't block a product update queued after it.
     const results: Array<{ id: string; success: boolean; error?: string }> = [];
-    for (let i = 0; i < commands.length; i += CONCURRENCY) {
-      const batch = commands.slice(i, i + CONCURRENCY);
-      const batchResults = await Promise.all(batch.map(runCommand));
-      results.push(...batchResults);
+    for (const cmd of commands) {
+      results.push(await runCommand(cmd));
     }
 
     if (commands.some((c) => c.command === "RECORD_SALE")) {

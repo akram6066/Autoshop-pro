@@ -4,12 +4,7 @@ import { useEffect, useRef, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { RouteErrorBoundary } from "@/components/ErrorBoundary";
 import { createClient } from "@/lib/supabase/client";
-import {
-  useAuthStore,
-  selectRole,
-  selectShopId,
-  selectUser,
-} from "@/stores/authStore";
+import { useAuthStore, selectRole, selectShopId } from "@/stores/authStore";
 import { seedLocalCache } from "@/lib/db/instance";
 import { listenForCrossTabSync } from "@/lib/sync/queue";
 import { ShopHeader } from "@/components/shop/ShopHeader";

@@ -245,7 +245,7 @@ function FooterSection() {
               />
               <p
                 style={{
-                  fontSize: "0.9rem",
+                  fontSize: "0.875rem",
                   color: "var(--color-ink-tertiary)",
                   lineHeight: 1.75,
                   marginBottom: 24,

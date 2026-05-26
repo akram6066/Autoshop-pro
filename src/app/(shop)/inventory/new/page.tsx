@@ -12,7 +12,6 @@ import { useCategories } from "@/hooks/useCategories";
 import { productSchema, variantSchema } from "@/lib/validations/domain";
 import { friendlyError } from "@/lib/api/errors";
 import { createClient } from "@/lib/supabase/client";
-import { NumInput } from "./_components/NumInput";
 import { ProductLimitBanner } from "./_components/ProductLimitBanner";
 import { VariantTable } from "./_components/VariantTable";
 import type { VariantRow } from "./_components/VariantTable";

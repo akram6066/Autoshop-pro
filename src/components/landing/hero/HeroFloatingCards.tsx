@@ -1,8 +1,9 @@
 export function FloatingRevenueCard() {
   return (
     <div
-      className="h-card1 hidden sm:block"
-      style={{ position: "absolute", top: 40, left: -20, zIndex: 10 }}
+      className="h-card1 hidden md:block"
+      aria-hidden="true"
+      style={{ position: "absolute", top: 40, left: 0, zIndex: 10 }}
     >
       <div
         className="h-float1"
@@ -78,8 +79,9 @@ export function FloatingRevenueCard() {
 export function FloatingStockCard() {
   return (
     <div
-      className="h-card2 hidden sm:block"
-      style={{ position: "absolute", top: 40, right: -20, zIndex: 10 }}
+      className="h-card2 hidden md:block"
+      aria-hidden="true"
+      style={{ position: "absolute", top: 40, right: 0, zIndex: 10 }}
     >
       <div
         className="h-float2"
@@ -168,7 +170,8 @@ export function FloatingSaleCard() {
   return (
     <div
       className="h-card3 hidden lg:block"
-      style={{ position: "absolute", bottom: 40, left: -16, zIndex: 10 }}
+      aria-hidden="true"
+      style={{ position: "absolute", bottom: 40, left: 0, zIndex: 10 }}
     >
       <div
         className="h-float3"

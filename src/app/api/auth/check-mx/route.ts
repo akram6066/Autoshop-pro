@@ -38,8 +38,9 @@ export async function GET(request: NextRequest) {
         },
       },
     );
-  } catch {
+  } catch (err) {
     // DNS failure (NXDOMAIN, timeout, network) — be permissive, never block on infra errors
+    console.warn(`[check-mx] DNS query failed for domain "${domain}":`, err);
     cache.set(domain, { valid: true, expiresAt: Date.now() + CACHE_TTL_MS });
     return NextResponse.json(
       { valid: true },
