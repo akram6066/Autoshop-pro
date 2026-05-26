@@ -19,6 +19,7 @@ import ErrorBox from "./ErrorBox";
 import FieldError from "./FieldError";
 import { isNetworkError, friendlyAuthError } from "./authUtils";
 import ForgotPasswordPanel from "./ForgotPasswordPanel";
+import ConfirmEmailPanel from "./ConfirmEmailPanel";
 
 const SESSION_BANNERS: Record<
   string,
@@ -58,6 +59,9 @@ export default function LoginForm() {
 
   // Forgot-password state
   const [forgotMode, setForgotMode] = useState(false);
+
+  // Email-not-confirmed state — holds the email address so the panel can resend
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
 
   function touch(field: "email" | "password") {
     setTouched((t) => ({ ...t, [field]: true }));
@@ -100,13 +104,21 @@ export default function LoginForm() {
         "Login",
       );
       if (authError || !authData.user) {
-        // Log failed auth attempt
+        const msg = authError?.message ?? "Sign-in failed";
+
+        // Email not confirmed — show a dedicated panel with a resend button
+        // instead of a generic error box. This is how production apps handle it.
+        if (msg.toLowerCase().includes("email not confirmed")) {
+          setUnconfirmedEmail(parsed.data.email);
+          return;
+        }
+
+        // Log all other failed auth attempts
         logger.security(supabase, {
           event_type: "AUTH_FAILURE",
-          payload: { email: parsed.data.email, error: authError?.message },
+          payload: { email: parsed.data.email, error: msg },
           severity: "warning",
         });
-        const msg = authError?.message ?? "Sign-in failed";
         setErrorVariant(isNetworkError(authError) ? "warning" : "error");
         setError(friendlyAuthError(msg));
         return;
@@ -166,8 +178,13 @@ export default function LoginForm() {
           />
         </div>
 
-        {/* ── Forgot password ── */}
-        {forgotMode ? (
+        {/* ── Email not confirmed ── */}
+        {unconfirmedEmail ? (
+          <ConfirmEmailPanel
+            email={unconfirmedEmail}
+            onBack={() => setUnconfirmedEmail(null)}
+          />
+        ) : forgotMode ? (
           <ForgotPasswordPanel
             initialEmail={email}
             onBack={() => setForgotMode(false)}

@@ -53,9 +53,7 @@ export default function SignupForm() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
-  const [doneMessage, setDoneMessage] = useState(
-    "Welcome to AutoShop Pro. Taking you to setup.",
-  );
+  const [smtpFailed, setSmtpFailed] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<
     AuthFieldErrors<SignupFormValues>
   >({});
@@ -101,25 +99,58 @@ export default function SignupForm() {
     setFieldErrors({});
     setIsLoading(true);
     try {
+      // MX check — catches dead/mistyped domains before calling Supabase
+      try {
+        const mxRes = await fetch(
+          `/api/auth/check-mx?email=${encodeURIComponent(parsed.data.email)}`,
+        );
+        if (mxRes.ok) {
+          const { valid } = (await mxRes.json()) as { valid: boolean };
+          if (!valid) {
+            setFieldErrors({
+              email: "This email domain can't receive mail. Check for typos.",
+            });
+            return;
+          }
+        }
+      } catch {
+        // DNS/network failure on MX check — allow through, never block on infra errors
+      }
+
+      const setupPath = planParam ? `/setup?plan=${planParam}` : "/setup";
+      const emailRedirectTo = `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(setupPath)}`;
+
       const supabase = createClient();
       const { data: authData, error: authError } = await withAuthTimeout(
         supabase.auth.signUp({
           email: parsed.data.email,
           password: parsed.data.password,
-          options: { data: { full_name: parsed.data.fullName } },
+          options: {
+            data: { full_name: parsed.data.fullName },
+            emailRedirectTo,
+          },
         }),
         "Signup",
       );
 
       if (authError || !authData.user) {
-        setError(friendlySignupError(authError?.message ?? "Signup failed."));
+        const msg = authError?.message ?? "Signup failed.";
+        // SMTP failure — account was created but email couldn't be sent.
+        // Show success screen with resend option instead of a form error.
+        if (
+          msg.toLowerCase().includes("sending confirmation") ||
+          msg.toLowerCase().includes("error sending") ||
+          msg.toLowerCase().includes("smtp")
+        ) {
+          setSmtpFailed(true);
+          setDone(true);
+          return;
+        }
+        setError(friendlySignupError(msg));
         return;
       }
 
       if (!authData.session) {
-        setDoneMessage(
-          "Check your email to confirm your account, then sign in to continue.",
-        );
         setDone(true);
         return;
       }
@@ -134,7 +165,6 @@ export default function SignupForm() {
         sessionState.activeShop,
         sessionState.shops,
       );
-      setDone(true);
       router.replace(sessionState.destination);
     } catch (err) {
       const msg =
@@ -149,7 +179,14 @@ export default function SignupForm() {
     }
   }
 
-  if (done) return <SignupSuccessScreen message={doneMessage} />;
+  if (done)
+    return (
+      <SignupSuccessScreen
+        email={email}
+        smtpFailed={smtpFailed}
+        plan={planParam}
+      />
+    );
 
   return (
     <div

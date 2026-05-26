@@ -4,10 +4,16 @@ import { useEffect, useRef, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { RouteErrorBoundary } from "@/components/ErrorBoundary";
 import { createClient } from "@/lib/supabase/client";
-import { useAuthStore, selectRole, selectShopId } from "@/stores/authStore";
+import {
+  useAuthStore,
+  selectRole,
+  selectShopId,
+  selectUser,
+} from "@/stores/authStore";
 import { seedLocalCache } from "@/lib/db/instance";
 import { listenForCrossTabSync } from "@/lib/sync/queue";
 import { ShopHeader } from "@/components/shop/ShopHeader";
+import EmailConfirmBanner from "@/components/EmailConfirmBanner";
 import { fetchAllProducts } from "@/lib/supabase/fetchAllProducts";
 import type { Profile, Room, ShopWithRole } from "@/types/app";
 
@@ -31,6 +37,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
   const role = useAuthStore(selectRole);
   const shopId = useAuthStore(selectShopId);
   const setAll = useAuthStore((s) => s.setAll);
+  const setUser = useAuthStore((s) => s.setUser);
   const reset = useAuthStore((s) => s.reset);
 
   const initialised = useRef(false);
@@ -122,7 +129,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
 
     setAll(
       user,
-      { ...profile, role: activeShop?.role ?? profile.role ?? null },
+      { ...profile, role: activeShop?.role ?? profile.role },
       activeShop,
       shops,
     );
@@ -140,7 +147,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
         initialised.current = false;
         reset();
@@ -155,10 +162,15 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
         initialised.current = false;
         init();
       }
+      // Fires when the user confirms their email (possibly in another tab).
+      // Update just the user object so EmailConfirmBanner auto-dismisses.
+      if (event === "USER_UPDATED" && session?.user) {
+        setUser(session.user);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, [init, reset, router]);
+  }, [init, reset, router, setUser]);
 
   // Cross-tab sync listener — updates when the active shop changes
   useEffect(() => {
@@ -181,6 +193,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       style={{ background: "var(--color-surface-1)" }}
     >
       <ShopHeader role={role} shopId={shopId} onSignOut={handleSignOut} />
+      <EmailConfirmBanner />
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
         <RouteErrorBoundary>{children}</RouteErrorBoundary>

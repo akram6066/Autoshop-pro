@@ -115,6 +115,14 @@ export async function loadAuthSessionState(
 
   const activeShop = activeShopWithRole as Shop | null;
 
+  // shop_members.role is the authoritative per-shop role; profile.role is a
+  // denormalised fallback only. Merge here so every caller (login, signup,
+  // layout init) receives a consistent profile without each one patching it.
+  const profileWithRole: Profile = {
+    ...profile,
+    role: activeShopWithRole?.role ?? profile.role,
+  };
+
   const plan = planParam && /^[a-z_]+$/.test(planParam) ? planParam : null;
 
   const base = !activeShopWithRole
@@ -130,5 +138,5 @@ export async function loadAuthSessionState(
         : `/billing?plan=${plan}`
       : base;
 
-  return { user, profile, activeShop, shops, destination };
+  return { user, profile: profileWithRole, activeShop, shops, destination };
 }
