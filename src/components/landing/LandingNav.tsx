@@ -1,24 +1,40 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import Container from "./Container";
 
 const NAV_LINKS = [
+  { href: "/", label: "Home", id: "" },
   { href: "/#features", label: "Features", id: "features" },
   { href: "/#how-it-works", label: "How It Works", id: "how-it-works" },
   { href: "/#pricing", label: "Pricing", id: "pricing" },
   { href: "/#faq", label: "FAQ", id: "faq" },
+  { href: "/contact", label: "Contact", id: "contact" },
 ];
 
 function LandingNav() {
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuClosing, setMenuClosing] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("");
 
+  function closeMenu() {
+    setMenuClosing(true);
+    setTimeout(() => {
+      setMenuOpen(false);
+      setMenuClosing(false);
+    }, 220);
+  }
+
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 24);
+      if (window.scrollY < 80) setActiveSection("");
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -43,7 +59,10 @@ function LandingNav() {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 768) setMenuOpen(false);
+      if (window.innerWidth >= 768) {
+        setMenuOpen(false);
+        setMenuClosing(false);
+      }
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -60,8 +79,10 @@ function LandingNav() {
     <>
       <header
         style={{
-          position: "sticky",
+          position: "fixed",
           top: 0,
+          left: 0,
+          right: 0,
           zIndex: 100,
           background: scrolled
             ? "rgba(255,255,255,0.92)"
@@ -89,9 +110,10 @@ function LandingNav() {
               <Image
                 src="/logo.svg"
                 alt="AutoShop Pro"
-                width={260}
-                height={60}
+                width={120}
+                height={32}
                 className="h-8 w-auto"
+                style={{ width: "auto" }}
                 priority
               />
             </Link>
@@ -102,7 +124,15 @@ function LandingNav() {
                 <a
                   key={l.href}
                   href={l.href}
-                  className={`nav-link${activeSection === l.id ? " active" : ""}`}
+                  className={`nav-link${
+                    l.id === "contact"
+                      ? pathname === "/contact"
+                        ? " active"
+                        : ""
+                      : activeSection === l.id
+                        ? " active"
+                        : ""
+                  }`}
                   style={{
                     fontSize: "0.9375rem",
                     color: "var(--color-ink-secondary)",
@@ -120,7 +150,27 @@ function LandingNav() {
               <Link href="/login" className="btn btn-ghost btn-sm">
                 Log in
               </Link>
-              <Link href="/signup" className="btn btn-primary btn-sm">
+              <Link
+                href="/signup"
+                className="nav-cta-primary"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  height: 32,
+                  padding: "0 12px",
+                  borderRadius: "var(--radius-md)",
+                  background:
+                    "linear-gradient(135deg, #1e40af 0%, #3b6ef5 50%, #6d28d9 100%)",
+                  color: "white",
+                  fontWeight: 600,
+                  fontSize: 12,
+                  letterSpacing: "0.03em",
+                  textDecoration: "none",
+                  boxShadow:
+                    "0 4px 16px rgba(59,110,245,0.38), 0 1px 4px rgba(59,110,245,0.18)",
+                }}
+              >
                 Get Started Free
               </Link>
             </div>
@@ -131,7 +181,7 @@ function LandingNav() {
                 type="button"
                 aria-label={menuOpen ? "Close menu" : "Open menu"}
                 aria-expanded={menuOpen}
-                onClick={() => setMenuOpen((v) => !v)}
+                onClick={() => (menuOpen ? closeMenu() : setMenuOpen(true))}
                 style={{
                   width: 44,
                   height: 44,
@@ -172,10 +222,13 @@ function LandingNav() {
         </Container>
       </header>
 
-      {/* Mobile menu overlay with animation */}
-      {menuOpen && (
+      {/* Spacer to push content below the fixed navbar */}
+      <div style={{ height: 64 }} />
+
+      {/* Mobile menu overlay with enter/exit animation */}
+      {(menuOpen || menuClosing) && (
         <div
-          className="menu-slide-in"
+          className={menuClosing ? "menu-slide-out" : "menu-slide-in"}
           style={{
             position: "fixed",
             inset: 0,
@@ -197,7 +250,7 @@ function LandingNav() {
                   <a
                     key={l.href}
                     href={l.href}
-                    onClick={() => setMenuOpen(false)}
+                    onClick={() => closeMenu()}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -205,10 +258,13 @@ function LandingNav() {
                       padding: "16px 0",
                       fontSize: "1.0625rem",
                       fontWeight: 600,
-                      color:
-                        activeSection === l.id
-                          ? "var(--color-brand-600)"
-                          : "var(--color-ink-primary)",
+                      color: (
+                        l.id === "contact"
+                          ? pathname === "/contact"
+                          : activeSection === l.id
+                      )
+                        ? "var(--color-brand-600)"
+                        : "var(--color-ink-primary)",
                       textDecoration: "none",
                       borderBottom: "1px solid var(--color-border-subtle)",
                     }}
@@ -240,7 +296,7 @@ function LandingNav() {
                   href="/login"
                   className="btn btn-secondary"
                   style={{ justifyContent: "center" }}
-                  onClick={() => setMenuOpen(false)}
+                  onClick={() => closeMenu()}
                 >
                   Log in
                 </Link>
@@ -248,7 +304,7 @@ function LandingNav() {
                   href="/signup"
                   className="btn btn-primary"
                   style={{ justifyContent: "center" }}
-                  onClick={() => setMenuOpen(false)}
+                  onClick={() => closeMenu()}
                 >
                   Get Started Free
                 </Link>

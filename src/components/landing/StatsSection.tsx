@@ -1,52 +1,62 @@
 import Container from "./Container";
 import { RevealOnScroll } from "./RevealOnScroll";
 
+const BLUE = "#3b6ef5";
+const BLUE_BG = "rgba(59,110,245,0.08)";
+const BLUE_BORDER = "rgba(59,110,245,0.18)";
+// icon container still uses BLUE/BLUE_BG/BLUE_BORDER
+
 const stats = [
   {
     value: "500+",
     label: "Shops worldwide",
     sub: "and growing every day",
-    color: "#3b6ef5",
-    bg: "rgba(59,110,245,0.08)",
-    border: "rgba(59,110,245,0.2)",
-    glow: "rgba(59,110,245,0.15)",
     icon: (
       <svg
-        width="24"
-        height="24"
+        width="22"
+        height="22"
         fill="none"
         viewBox="0 0 24 24"
         aria-hidden="true"
       >
         <path
-          d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+          d="M2 7h20v2a5 5 0 01-10 0A5 5 0 012 9V7z"
           stroke="currentColor"
           strokeWidth="1.75"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
         <path
-          d="M9 22V12h6v10"
+          d="M4 14v7h16v-7"
           stroke="currentColor"
           strokeWidth="1.75"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
+        <path
+          d="M2 7l2-4h16l2 4"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M9 21v-5h6v5"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
       </svg>
     ),
   },
   {
-    value: "Global",
-    label: "Any country, any currency",
-    sub: "works wherever you are",
-    color: "#7c3aed",
-    bg: "rgba(124,58,237,0.08)",
-    border: "rgba(124,58,237,0.2)",
-    glow: "rgba(124,58,237,0.15)",
+    value: "50+",
+    label: "Countries served",
+    sub: "any currency, any language",
     icon: (
       <svg
-        width="24"
-        height="24"
+        width="22"
+        height="22"
         fill="none"
         viewBox="0 0 24 24"
         aria-hidden="true"
@@ -59,7 +69,13 @@ const stats = [
           strokeWidth="1.75"
         />
         <path
-          d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"
+          d="M2 12h20"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
+        <path
+          d="M12 2c-2.5 3.5-4 6.5-4 10s1.5 6.5 4 10M12 2c2.5 3.5 4 6.5 4 10s-1.5 6.5-4 10"
           stroke="currentColor"
           strokeWidth="1.75"
           strokeLinecap="round"
@@ -71,27 +87,16 @@ const stats = [
     value: "100%",
     label: "Offline capable",
     sub: "sell with zero internet",
-    color: "#059669",
-    bg: "rgba(5,150,105,0.08)",
-    border: "rgba(5,150,105,0.2)",
-    glow: "rgba(5,150,105,0.15)",
     icon: (
       <svg
-        width="24"
-        height="24"
+        width="22"
+        height="22"
         fill="none"
         viewBox="0 0 24 24"
         aria-hidden="true"
       >
         <path
-          d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-          stroke="currentColor"
-          strokeWidth="1.75"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M9 12l2 2 4-4"
+          d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
           stroke="currentColor"
           strokeWidth="1.75"
           strokeLinecap="round"
@@ -101,27 +106,37 @@ const stats = [
     ),
   },
   {
-    value: "Free",
-    label: "To start, always",
-    sub: "30-day trial, no card needed",
-    color: "#d97706",
-    bg: "rgba(217,119,6,0.08)",
-    border: "rgba(217,119,6,0.2)",
-    glow: "rgba(217,119,6,0.15)",
+    value: "30-day",
+    label: "Free trial",
+    sub: "no credit card needed",
     icon: (
       <svg
-        width="24"
-        height="24"
+        width="22"
+        height="22"
         fill="none"
         viewBox="0 0 24 24"
         aria-hidden="true"
       >
+        <rect
+          x="3"
+          y="4"
+          width="18"
+          height="18"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
         <path
-          d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+          d="M16 2v4M8 2v4M3 10h18"
           stroke="currentColor"
           strokeWidth="1.75"
           strokeLinecap="round"
-          strokeLinejoin="round"
+        />
+        <path
+          d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
         />
       </svg>
     ),
@@ -132,28 +147,14 @@ export default function StatsSection() {
   return (
     <section
       style={{
-        padding: "72px 0",
-        background:
-          "linear-gradient(180deg, var(--color-surface-0) 0%, var(--color-surface-1) 100%)",
+        padding: "80px 0",
+        background: "var(--color-surface-0)",
         borderTop: "1px solid var(--color-border-subtle)",
         borderBottom: "1px solid var(--color-border-subtle)",
         position: "relative",
         overflow: "hidden",
       }}
     >
-      {/* Subtle background dot grid */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage:
-            "radial-gradient(circle, rgba(99,102,241,0.07) 1px, transparent 1px)",
-          backgroundSize: "28px 28px",
-          pointerEvents: "none",
-        }}
-      />
-
       <Container style={{ position: "relative" }}>
         {/* Eyebrow */}
         <RevealOnScroll>
@@ -172,69 +173,52 @@ export default function StatsSection() {
           </p>
         </RevealOnScroll>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
           {stats.map((s, i) => (
             <RevealOnScroll key={s.value} delay={i * 80}>
               <div
+                className="stat-card"
                 style={{
                   position: "relative",
                   borderRadius: "var(--radius-lg)",
-                  padding: "28px 24px",
+                  padding: "24px 20px",
                   background: "var(--color-surface-0)",
-                  border: `1px solid ${s.border}`,
-                  boxShadow: `0 4px 24px ${s.glow}, 0 1px 4px rgba(0,0,0,0.04)`,
+                  border: "1px solid var(--color-border)",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
                   display: "flex",
                   flexDirection: "column",
-                  gap: 16,
+                  gap: 14,
                   overflow: "hidden",
-                  transition: "transform 0.2s ease, box-shadow 0.2s ease",
                 }}
-                className="stat-card"
               >
-                {/* Corner glow accent */}
+                {/* Icon — circular */}
                 <div
-                  aria-hidden="true"
                   style={{
-                    position: "absolute",
-                    top: -30,
-                    right: -30,
-                    width: 100,
-                    height: 100,
+                    width: 44,
+                    height: 44,
                     borderRadius: "50%",
-                    background: s.bg,
-                    filter: "blur(24px)",
-                    pointerEvents: "none",
-                  }}
-                />
-
-                {/* Icon */}
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: "var(--radius-md)",
-                    background: s.bg,
-                    border: `1px solid ${s.border}`,
+                    background: BLUE_BG,
+                    border: `1px solid ${BLUE_BORDER}`,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color: s.color,
+                    color: BLUE,
                     flexShrink: 0,
                   }}
                 >
                   {s.icon}
                 </div>
 
-                {/* Number */}
+                {/* Number + labels */}
                 <div>
                   <p
                     style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: "clamp(1.75rem, 4vw, 2.25rem)",
+                      fontSize: "clamp(1.625rem, 4vw, 2.125rem)",
                       fontWeight: 800,
-                      color: s.color,
+                      color: "var(--color-ink-primary)",
                       lineHeight: 1,
-                      marginBottom: 6,
+                      marginBottom: 5,
+                      letterSpacing: "-0.02em",
                     }}
                   >
                     {s.value}
@@ -244,7 +228,7 @@ export default function StatsSection() {
                       fontSize: "0.875rem",
                       fontWeight: 600,
                       color: "var(--color-ink-primary)",
-                      marginBottom: 3,
+                      marginBottom: 2,
                       lineHeight: 1.3,
                     }}
                   >
@@ -261,20 +245,6 @@ export default function StatsSection() {
                     {s.sub}
                   </p>
                 </div>
-
-                {/* Bottom accent bar */}
-                <div
-                  aria-hidden="true"
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: 3,
-                    background: `linear-gradient(90deg, ${s.color}44 0%, ${s.color} 50%, ${s.color}44 100%)`,
-                    borderRadius: "0 0 var(--radius-lg) var(--radius-lg)",
-                  }}
-                />
               </div>
             </RevealOnScroll>
           ))}

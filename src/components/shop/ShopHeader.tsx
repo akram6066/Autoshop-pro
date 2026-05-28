@@ -55,6 +55,7 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
             width={260}
             height={60}
             className="h-8 w-auto dark:hidden"
+            style={{ width: "auto" }}
             priority
             loading="eager"
           />
@@ -64,6 +65,7 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
             width={260}
             height={60}
             className="hidden h-8 w-auto dark:block"
+            style={{ width: "auto" }}
             fetchPriority="high"
           />
         </Link>

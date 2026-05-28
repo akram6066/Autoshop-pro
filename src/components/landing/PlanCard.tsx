@@ -25,6 +25,27 @@ function CheckIcon({ highlighted }: { highlighted: boolean }) {
   );
 }
 
+function CheckIconBlue() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      fill="none"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      style={{ flexShrink: 0, color: "var(--color-brand-500)" }}
+    >
+      <path
+        d="M20 6L9 17l-5-5"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function XIcon({ highlighted }: { highlighted: boolean }) {
   return (
     <svg
@@ -88,7 +109,6 @@ export function PlanCard({
     <div
       style={{
         position: "relative",
-        /* scale(1.05) only on md+ to avoid horizontal overflow on mobile */
         transform: plan.highlighted ? undefined : "scale(1)",
         zIndex: plan.highlighted ? 1 : 0,
       }}
@@ -101,7 +121,7 @@ export function PlanCard({
             position: "absolute",
             inset: -16,
             background:
-              "radial-gradient(ellipse at 50% 60%, rgba(99,102,241,0.28) 0%, transparent 70%)",
+              "radial-gradient(ellipse at 50% 60%, rgba(59,110,245,0.28) 0%, transparent 70%)",
             pointerEvents: "none",
             zIndex: -1,
           }}
@@ -114,19 +134,21 @@ export function PlanCard({
           padding: "32px 28px",
           borderRadius: "var(--radius-lg)",
           background: plan.highlighted
-            ? "linear-gradient(160deg, #3b6ef5 0%, #7c3aed 100%)"
-            : isUltra
-              ? "linear-gradient(160deg, #0f0f23 0%, #1a0f2e 100%)"
-              : "var(--color-surface-0)",
+            ? "linear-gradient(160deg, #1d4ed8 0%, #3b6ef5 50%, #6d28d9 100%)"
+            : "var(--color-surface-0)",
           border: plan.highlighted
             ? "none"
             : isUltra
-              ? "1px solid rgba(139,92,246,0.35)"
+              ? "2px solid var(--color-brand-500)"
               : "1px solid var(--color-border)",
+          borderTop:
+            isUltra && !plan.highlighted
+              ? "3px solid var(--color-brand-500)"
+              : undefined,
           boxShadow: plan.highlighted
-            ? "0 24px 72px rgba(99,102,241,0.4), 0 4px 16px rgba(0,0,0,0.1)"
+            ? "0 24px 72px rgba(59,110,245,0.4), 0 4px 16px rgba(0,0,0,0.1)"
             : isUltra
-              ? "0 8px 32px rgba(99,102,241,0.18)"
+              ? "0 8px 32px rgba(59,110,245,0.14), 0 1px 4px rgba(0,0,0,0.06)"
               : "0 1px 4px rgba(0,0,0,0.06)",
           display: "flex",
           flexDirection: "column",
@@ -140,8 +162,16 @@ export function PlanCard({
               top: -13,
               left: "50%",
               transform: "translateX(-50%)",
-              background: plan.badge ? "white" : "var(--color-success)",
-              color: plan.badge ? "#7c3aed" : "white",
+              background: plan.badge
+                ? plan.highlighted
+                  ? "white"
+                  : "var(--color-brand-500)"
+                : "var(--color-success)",
+              color: plan.badge
+                ? plan.highlighted
+                  ? "#3b6ef5"
+                  : "white"
+                : "white",
               fontSize: "0.6875rem",
               fontWeight: 700,
               letterSpacing: "0.08em",
@@ -158,6 +188,7 @@ export function PlanCard({
           </div>
         )}
 
+        {/* Plan name */}
         <p
           style={{
             fontSize: "0.6875rem",
@@ -167,7 +198,7 @@ export function PlanCard({
             color: plan.highlighted
               ? "rgba(255,255,255,0.65)"
               : isUltra
-                ? "#c4b5fd"
+                ? "var(--color-brand-600)"
                 : "var(--color-ink-tertiary)",
             marginBottom: 10,
           }}
@@ -175,6 +206,7 @@ export function PlanCard({
           {plan.name}
         </p>
 
+        {/* Price */}
         <div
           style={{
             display: "flex",
@@ -203,9 +235,7 @@ export function PlanCard({
                   fontWeight: 600,
                   color: plan.highlighted
                     ? "rgba(255,255,255,0.7)"
-                    : isUltra
-                      ? "rgba(255,255,255,0.5)"
-                      : "var(--color-ink-secondary)",
+                    : "var(--color-ink-secondary)",
                   paddingBottom: 7,
                 }}
               >
@@ -217,9 +247,10 @@ export function PlanCard({
                   fontSize: "2.75rem",
                   fontWeight: 700,
                   lineHeight: 1,
-                  color:
-                    plan.highlighted || isUltra
-                      ? "white"
+                  color: plan.highlighted
+                    ? "white"
+                    : isUltra
+                      ? "var(--color-brand-600)"
                       : "var(--color-ink-primary)",
                 }}
               >
@@ -230,9 +261,7 @@ export function PlanCard({
                   fontSize: "0.875rem",
                   color: plan.highlighted
                     ? "rgba(255,255,255,0.55)"
-                    : isUltra
-                      ? "rgba(255,255,255,0.4)"
-                      : "var(--color-ink-tertiary)",
+                    : "var(--color-ink-tertiary)",
                   paddingBottom: 5,
                 }}
               >
@@ -259,14 +288,13 @@ export function PlanCard({
           </p>
         )}
 
+        {/* Description */}
         <p
           style={{
             fontSize: "0.875rem",
             color: plan.highlighted
               ? "rgba(255,255,255,0.68)"
-              : isUltra
-                ? "rgba(255,255,255,0.55)"
-                : "var(--color-ink-tertiary)",
+              : "var(--color-ink-tertiary)",
             lineHeight: 1.6,
             marginBottom: 22,
             minHeight: "2.8em",
@@ -275,8 +303,10 @@ export function PlanCard({
           {plan.description}
         </p>
 
+        {/* CTA button */}
         <Link
           href={plan.ctaHref}
+          className="plan-cta"
           style={{
             display: "flex",
             alignItems: "center",
@@ -291,20 +321,20 @@ export function PlanCard({
             ...(plan.highlighted
               ? {
                   background: "white",
-                  color: "#6d28d9",
+                  color: "#3b6ef5",
                   boxShadow: "0 4px 14px rgba(0,0,0,0.14)",
                 }
               : isUltra
                 ? {
                     background:
-                      "linear-gradient(135deg, #6d28d9 0%, #4f46e5 100%)",
+                      "linear-gradient(135deg, #3b6ef5 0%, #6d28d9 100%)",
                     color: "white",
-                    boxShadow: "0 4px 20px rgba(109,40,217,0.4)",
+                    boxShadow: "0 4px 20px rgba(59,110,245,0.35)",
                   }
                 : {
-                    background: "transparent",
+                    background: "var(--color-surface-2)",
                     color: "var(--color-ink-primary)",
-                    border: "1.5px solid var(--color-border)",
+                    border: "1.5px solid var(--color-border-input)",
                   }),
           }}
         >
@@ -312,6 +342,7 @@ export function PlanCard({
           <ArrowIcon />
         </Link>
 
+        {/* Divider */}
         <div
           style={{
             display: "flex",
@@ -324,10 +355,9 @@ export function PlanCard({
             style={{
               flex: 1,
               height: 1,
-              background:
-                plan.highlighted || isUltra
-                  ? "rgba(255,255,255,0.15)"
-                  : "var(--color-border-subtle)",
+              background: plan.highlighted
+                ? "rgba(255,255,255,0.15)"
+                : "var(--color-border-subtle)",
             }}
           />
           <span
@@ -336,10 +366,9 @@ export function PlanCard({
               fontWeight: 600,
               letterSpacing: "0.07em",
               textTransform: "uppercase",
-              color:
-                plan.highlighted || isUltra
-                  ? "rgba(255,255,255,0.35)"
-                  : "var(--color-ink-ghost)",
+              color: plan.highlighted
+                ? "rgba(255,255,255,0.35)"
+                : "var(--color-ink-ghost)",
               whiteSpace: "nowrap",
             }}
           >
@@ -349,14 +378,14 @@ export function PlanCard({
             style={{
               flex: 1,
               height: 1,
-              background:
-                plan.highlighted || isUltra
-                  ? "rgba(255,255,255,0.15)"
-                  : "var(--color-border-subtle)",
+              background: plan.highlighted
+                ? "rgba(255,255,255,0.15)"
+                : "var(--color-border-subtle)",
             }}
           />
         </div>
 
+        {/* Feature list */}
         <ul
           style={{
             listStyle: "none",
@@ -376,18 +405,22 @@ export function PlanCard({
                 gap: 10,
                 fontSize: "0.875rem",
                 color: f.included
-                  ? plan.highlighted || isUltra
+                  ? plan.highlighted
                     ? "rgba(255,255,255,0.88)"
                     : "var(--color-ink-secondary)"
-                  : plan.highlighted || isUltra
+                  : plan.highlighted
                     ? "rgba(255,255,255,0.25)"
                     : "var(--color-ink-ghost)",
               }}
             >
               {f.included ? (
-                <CheckIcon highlighted={plan.highlighted || isUltra} />
+                plan.highlighted ? (
+                  <CheckIcon highlighted />
+                ) : (
+                  <CheckIconBlue />
+                )
               ) : (
-                <XIcon highlighted={plan.highlighted || isUltra} />
+                <XIcon highlighted={plan.highlighted} />
               )}
               {f.label}
             </li>

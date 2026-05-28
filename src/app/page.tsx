@@ -10,7 +10,7 @@ import StatsSection from "@/components/landing/StatsSection";
 import WhoItsForSection from "@/components/landing/WhoItsForSection";
 import FooterSection from "@/components/landing/FooterSection";
 import WhatsAppButton from "@/components/landing/WhatsAppButton";
-import { StickyMobileCTA } from "@/components/landing/StickyMobileCTA";
+import FinalCTASection from "@/components/landing/FinalCTASection";
 import { fetchPlans, dbPlanToLanding } from "@/lib/plans";
 
 // FAQSection is "use client" (accordion state) and far below the fold — defer its JS.
@@ -38,10 +38,10 @@ export default async function LandingPage() {
         <TestimonialsSection />
         <PricingSection plans={plans} />
         <FAQSection />
+        <FinalCTASection />
       </main>
       <FooterSection />
       <WhatsAppButton />
-      <StickyMobileCTA />
     </div>
   );
 }

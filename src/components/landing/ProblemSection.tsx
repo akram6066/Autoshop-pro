@@ -86,7 +86,7 @@ function ProblemSection() {
     <section
       style={{
         padding: "96px 0",
-        background: "#f7f8fc",
+        background: "var(--color-surface-1)",
       }}
     >
       <Container>

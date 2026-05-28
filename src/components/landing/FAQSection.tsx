@@ -39,7 +39,7 @@ function FAQSection() {
     <section
       id="faq"
       style={{
-        padding: "88px 0",
+        padding: "96px 0",
         background: "linear-gradient(160deg, #f5f0ff 0%, #eef2ff 100%)",
       }}
     >
@@ -175,7 +175,7 @@ function FAQSection() {
                     <div className="faq-body-inner">
                       <p
                         style={{
-                          padding: "14px 20px 20px 62px",
+                          padding: "14px 20px 20px 46px",
                           fontSize: "0.9375rem",
                           color: "var(--color-ink-secondary)",
                           lineHeight: 1.75,

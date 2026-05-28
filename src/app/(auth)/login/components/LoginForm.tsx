@@ -172,7 +172,18 @@ export default function LoginForm() {
             alt="AutoShop Pro"
             width={260}
             height={60}
-            className="h-9 w-auto mx-auto dark:brightness-0 dark:invert"
+            className="h-9 w-auto mx-auto dark:hidden"
+            style={{ width: "auto" }}
+            priority
+            loading="eager"
+          />
+          <Image
+            src="/logo-dark.svg"
+            alt="AutoShop Pro"
+            width={260}
+            height={60}
+            className="h-9 w-auto mx-auto hidden dark:block"
+            style={{ width: "auto" }}
             priority
             loading="eager"
           />
@@ -201,7 +212,7 @@ export default function LoginForm() {
               </div>
             )}
 
-            <div style={{ marginBottom: 28 }}>
+            <div style={{ marginBottom: 28, textAlign: "center" }}>
               <h1
                 style={{
                   fontWeight: 700,

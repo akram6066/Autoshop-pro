@@ -8,15 +8,16 @@ export default function HeroHeadline({ typedText }: { typedText: string }) {
             display: "inline-flex",
             alignItems: "center",
             gap: 8,
-            padding: "6px 18px",
+            padding: "7px 20px",
             borderRadius: 999,
             background: "white",
-            border: "1px solid rgba(99,102,241,0.2)",
-            boxShadow: "0 1px 8px rgba(99,102,241,0.1)",
-            fontSize: "0.75rem",
-            fontWeight: 700,
+            border: "1px solid rgba(99,102,241,0.22)",
+            boxShadow:
+              "0 1px 12px rgba(99,102,241,0.14), 0 1px 3px rgba(0,0,0,0.04)",
+            fontSize: "0.8125rem",
+            fontWeight: 600,
             color: "var(--color-brand-700)",
-            letterSpacing: "0.03em",
+            letterSpacing: "0.01em",
           }}
         >
           <span
@@ -27,21 +28,22 @@ export default function HeroHeadline({ typedText }: { typedText: string }) {
               background: "var(--color-success)",
               display: "inline-block",
               boxShadow: "0 0 0 3px var(--color-success-light)",
+              flexShrink: 0,
             }}
           />
           Now live · Free plan available
         </span>
       </div>
 
-      {/* Headline with typing animation */}
+      {/* Headline */}
       <h1
         style={{
           fontFamily: "var(--font-display)",
-          fontSize: "clamp(2.75rem, 6vw, 4.5rem)",
-          lineHeight: 1.06,
-          maxWidth: 820,
-          margin: "0 auto 28px",
-          letterSpacing: "-0.02em",
+          fontSize: "clamp(2.75rem, 7vw, 5rem)",
+          lineHeight: 1.05,
+          letterSpacing: "-0.03em",
+          margin: "0 auto 20px",
+          maxWidth: 800,
         }}
       >
         <span
@@ -56,12 +58,15 @@ export default function HeroHeadline({ typedText }: { typedText: string }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            minHeight: "1.15em",
+            minHeight: "1.1em",
           }}
         >
           <span
+            aria-live="polite"
+            aria-atomic="true"
             style={{
-              background: "linear-gradient(135deg, #3b6ef5 0%, #8b5cf6 100%)",
+              background:
+                "linear-gradient(135deg, #1e40af 0%, #3b6ef5 50%, #7c3aed 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
@@ -71,27 +76,21 @@ export default function HeroHeadline({ typedText }: { typedText: string }) {
           </span>
           <span className="h-cursor" aria-hidden="true" />
         </span>
-        <span
-          className="h-line3"
-          style={{ display: "block", color: "var(--color-ink-primary)" }}
-        >
-          like a modern business.
-        </span>
       </h1>
 
       {/* Subheadline */}
       <p
         className="h-sub"
         style={{
-          fontSize: "1.1875rem",
+          fontSize: "1.0625rem",
           color: "var(--color-ink-secondary)",
-          maxWidth: 520,
-          margin: "0 auto 32px",
-          lineHeight: 1.78,
+          maxWidth: 480,
+          margin: "0 auto 36px",
+          lineHeight: 1.75,
         }}
       >
-        Inventory, POS, staff management and reports — all in one place, even
-        when the internet goes out.
+        Inventory, POS, staff &amp; reports — all in one place, works even when
+        the internet goes out.
       </p>
     </>
   );

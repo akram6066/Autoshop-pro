@@ -10,6 +10,7 @@ const quotes = [
     city: "Nairobi",
     initials: "AK",
     color: "var(--color-brand-500)",
+    stars: 5,
   },
   {
     body: "My staff used to 'borrow' items and I'd only find out months later. Now every movement is tracked and I get alerts the moment stock runs low.",
@@ -18,14 +19,16 @@ const quotes = [
     city: "Kampala",
     initials: "JO",
     color: "var(--color-success)",
+    stars: 5,
   },
   {
-    body: "The offline mode saved me during a blackout last month. Customers had no idea anything was wrong — sales kept going without a single glitch.",
+    body: "The offline mode saved me during a blackout last month. Customers had no idea anything was wrong — sales kept going. Setup took under an hour.",
     name: "Fatuma M.",
     shop: "Hardware Store",
     city: "Mombasa",
     initials: "FM",
-    color: "#7c3aed",
+    color: "#6d28d9",
+    stars: 4,
   },
 ];
 
@@ -34,7 +37,7 @@ function TestimonialsSection() {
     <section
       id="testimonials"
       style={{
-        padding: "88px 0",
+        padding: "96px 0",
         background: "linear-gradient(160deg, #eef2ff 0%, #f0e9ff 100%)",
         position: "relative",
         overflow: "hidden",
@@ -90,7 +93,9 @@ function TestimonialsSection() {
                       width="15"
                       height="15"
                       viewBox="0 0 24 24"
-                      fill="var(--color-warning)"
+                      fill={idx < q.stars ? "var(--color-warning)" : "none"}
+                      stroke={idx < q.stars ? "none" : "var(--color-ink-ghost)"}
+                      strokeWidth="1.5"
                       aria-hidden="true"
                     >
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />

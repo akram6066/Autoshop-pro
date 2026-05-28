@@ -29,8 +29,8 @@ function HowItWorksSection() {
     <section
       id="how-it-works"
       style={{
-        padding: "88px 0",
-        background: "linear-gradient(160deg, #fafbff 0%, #f5f0ff 100%)",
+        padding: "96px 0",
+        background: "linear-gradient(160deg, #f5f8ff 0%, #f3eeff 100%)",
       }}
     >
       <Container>
@@ -51,11 +51,12 @@ function HowItWorksSection() {
                     className="hidden md:block"
                     style={{
                       position: "absolute",
-                      top: 28,
-                      left: "calc(50% + 32px)",
-                      width: "calc(100% - 64px)",
+                      top: 27,
+                      left: "calc(50% + 30px)",
+                      right: "calc(-50% + 30px)",
                       height: 2,
-                      background: "linear-gradient(to right, #a5b4fc, #c4b5fd)",
+                      background:
+                        "linear-gradient(90deg, rgba(99,102,241,0.4) 0%, rgba(109,40,217,0.4) 100%)",
                       zIndex: 0,
                     }}
                   />

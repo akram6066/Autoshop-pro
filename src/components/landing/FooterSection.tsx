@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Container from "./Container";
 
 const footerCols = [
@@ -33,7 +36,7 @@ const footerCols = [
 const socials = [
   {
     label: "Facebook",
-    href: "#",
+    href: "https://facebook.com/autoshoppro",
     icon: (
       <svg
         width="18"
@@ -54,7 +57,7 @@ const socials = [
   },
   {
     label: "Instagram",
-    href: "#",
+    href: "https://instagram.com/autoshoppro",
     icon: (
       <svg
         width="18"
@@ -85,7 +88,7 @@ const socials = [
   },
   {
     label: "TikTok",
-    href: "#",
+    href: "https://tiktok.com/@autoshoppro",
     icon: (
       <svg
         width="18"
@@ -106,7 +109,7 @@ const socials = [
   },
   {
     label: "LinkedIn",
-    href: "#",
+    href: "https://linkedin.com/company/autoshoppro",
     icon: (
       <svg
         width="18"
@@ -138,88 +141,9 @@ const socials = [
 ];
 
 function FooterSection() {
+  const pathname = usePathname();
   return (
     <footer>
-      {/* ── CTA strip — colored gradient, white logo ── */}
-      <div
-        style={{
-          background:
-            "linear-gradient(135deg, #3b6ef5 0%, #7c3aed 55%, #8b5cf6 100%)",
-          padding: "44px 0",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: -60,
-            right: -60,
-            width: 260,
-            height: 260,
-            borderRadius: "50%",
-            background: "rgba(255,255,255,0.07)",
-            filter: "blur(40px)",
-            pointerEvents: "none",
-          }}
-        />
-        <Container style={{ position: "relative" }}>
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div>
-              <h3
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: "clamp(1.375rem, 2.5vw, 1.75rem)",
-                  color: "white",
-                  margin: "0 0 6px",
-                  lineHeight: 1.2,
-                }}
-              >
-                Start managing your shop smarter
-              </h3>
-              <p
-                style={{
-                  fontSize: "0.9375rem",
-                  color: "rgba(255,255,255,0.72)",
-                  margin: 0,
-                }}
-              >
-                Free plan available — no credit card required.
-              </p>
-            </div>
-            <Link
-              href="/signup"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "13px 28px",
-                borderRadius: "var(--radius-md)",
-                background: "white",
-                color: "#3b6ef5",
-                fontWeight: 700,
-                fontSize: "0.9375rem",
-                textDecoration: "none",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-              }}
-            >
-              Get Started Free
-              <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
-                <path
-                  d="M5 12h14M13 6l6 6-6 6"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </Link>
-          </div>
-        </Container>
-      </div>
-
       {/* ── Main body — light gradient, dark logo ── */}
       <div
         style={{
@@ -229,18 +153,21 @@ function FooterSection() {
       >
         <Container>
           <div
-            className="grid grid-cols-2 lg:grid-cols-5 gap-10"
-            style={{ paddingTop: 60, paddingBottom: 52 }}
+            className="grid grid-cols-2 lg:grid-cols-5 gap-6 lg:gap-10"
+            style={{ paddingTop: 52, paddingBottom: 44 }}
           >
             {/* ── Brand column ── */}
-            <div className="col-span-2 lg:col-span-1">
+            <div
+              className="col-span-2 lg:col-span-1"
+              style={{ paddingBottom: 8 }}
+            >
               {/* Dark logo for light background */}
               <Image
                 src="/logo.svg"
                 alt="AutoShop Pro"
-                width={260}
-                height={60}
-                style={{ marginBottom: 16 }}
+                width={120}
+                height={32}
+                style={{ marginBottom: 16, width: "auto" }}
                 className="h-8 w-auto"
               />
               <p
@@ -323,6 +250,16 @@ function FooterSection() {
               </div>
             </div>
 
+            {/* ── Divider between brand and links on mobile ── */}
+            <div
+              className="col-span-2 lg:hidden"
+              style={{
+                height: 1,
+                background: "rgba(139,92,246,0.1)",
+                margin: "0 0 4px",
+              }}
+            />
+
             {/* ── Link columns ── */}
             {footerCols.map((col) => (
               <div key={col.heading}>
@@ -348,26 +285,32 @@ function FooterSection() {
                     gap: 13,
                   }}
                 >
-                  {col.links.map((l) => (
-                    <li key={l.label}>
-                      <Link
-                        href={l.href}
-                        style={{
-                          fontSize: "0.9375rem",
-                          color: "var(--color-ink-tertiary)",
-                          textDecoration: "none",
-                        }}
-                      >
-                        {l.label}
-                      </Link>
-                    </li>
-                  ))}
+                  {col.links.map((l) => {
+                    const isActive = pathname === l.href;
+                    return (
+                      <li key={l.label}>
+                        <Link
+                          href={l.href}
+                          style={{
+                            fontSize: "0.9375rem",
+                            color: isActive
+                              ? "var(--color-brand-600)"
+                              : "var(--color-ink-tertiary)",
+                            textDecoration: "none",
+                            fontWeight: isActive ? 600 : 400,
+                          }}
+                        >
+                          {l.label}
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ))}
 
             {/* ── Social / Connect column ── */}
-            <div>
+            <div className="col-span-2 lg:col-span-1">
               <p
                 style={{
                   fontSize: "0.6875rem",
@@ -445,68 +388,41 @@ function FooterSection() {
           <div
             style={{
               borderTop: "1px solid rgba(139,92,246,0.1)",
-              paddingTop: 22,
-              paddingBottom: 32,
+              paddingTop: 20,
+              paddingBottom: 28,
               display: "flex",
               flexWrap: "wrap",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: 16,
+              gap: 12,
             }}
           >
-            <div
+            <p
               style={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                gap: 16,
+                fontSize: "0.8125rem",
+                color: "var(--color-ink-ghost)",
+                margin: 0,
               }}
             >
-              <p
-                style={{
-                  fontSize: "0.8125rem",
-                  color: "var(--color-ink-ghost)",
-                  margin: 0,
-                }}
-              >
-                © {new Date().getFullYear()} AutoShop Pro. All rights reserved.
-              </p>
-              <div style={{ display: "flex", gap: 12 }}>
-                {[
-                  { href: "/privacy", label: "Privacy" },
-                  { href: "/terms", label: "Terms" },
-                  { href: "/contact", label: "Contact" },
-                ].map((l) => (
-                  <Link
-                    key={l.href}
-                    href={l.href}
-                    style={{
-                      fontSize: "0.8125rem",
-                      color: "var(--color-ink-ghost)",
-                      textDecoration: "none",
-                    }}
-                  >
-                    {l.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {["🇰🇪 Kenya", "🇺🇬 Uganda", "🇹🇿 Tanzania"].map((region) => (
-                <span
-                  key={region}
+              © {new Date().getFullYear()} AutoShop Pro. All rights reserved.
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+              {[
+                { href: "/privacy", label: "Privacy" },
+                { href: "/terms", label: "Terms" },
+                { href: "/contact", label: "Contact" },
+              ].map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
                   style={{
-                    fontSize: "0.75rem",
-                    padding: "4px 12px",
-                    borderRadius: 999,
-                    background: "rgba(99,102,241,0.07)",
-                    border: "1px solid rgba(139,92,246,0.1)",
-                    color: "var(--color-ink-secondary)",
-                    fontWeight: 500,
+                    fontSize: "0.8125rem",
+                    color: "var(--color-ink-ghost)",
+                    textDecoration: "none",
                   }}
                 >
-                  {region}
-                </span>
+                  {l.label}
+                </Link>
               ))}
             </div>
           </div>

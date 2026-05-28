@@ -4,44 +4,186 @@ import { RevealOnScroll } from "./RevealOnScroll";
 
 const shopTypes = [
   {
-    emoji: "👗",
     name: "Clothing & Fashion",
     examples: "Boutiques, second-hand shops, fabric stores",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.57a1 1 0 00.99.86H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.86l.58-3.57a2 2 0 00-1.33-2.11z"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
   },
   {
-    emoji: "📱",
     name: "Electronics",
     examples: "Phone shops, accessories, repair centres",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+        <rect
+          x="5"
+          y="2"
+          width="14"
+          height="20"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+        <path
+          d="M12 18h.01"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
   },
   {
-    emoji: "🔧",
     name: "Hardware & Tools",
     examples: "Building materials, plumbing, electrical supplies",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
   },
   {
-    emoji: "💊",
     name: "Pharmacy & Health",
     examples: "Chemists, medical supplies, beauty products",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M8 3h8v5h5v8h-5v5H8v-5H3V8h5V3z"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
   },
   {
-    emoji: "🚗",
     name: "Auto Parts",
     examples: "Tyres, batteries, rims, spare parts",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M5 17H3a2 2 0 01-2-2V9l3-4h14l3 4v6a2 2 0 01-2 2h-2"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle
+          cx="7.5"
+          cy="17.5"
+          r="2.5"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+        <circle
+          cx="16.5"
+          cy="17.5"
+          r="2.5"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+      </svg>
+    ),
   },
   {
-    emoji: "🛒",
     name: "Grocery & General",
     examples: "Supermarkets, kiosks, general merchandise",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <line
+          x1="3"
+          y1="6"
+          x2="21"
+          y2="6"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+        <path
+          d="M16 10a4 4 0 01-8 0"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
   },
   {
-    emoji: "👟",
     name: "Shoes & Bags",
     examples: "Footwear shops, handbags, accessories",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M6 2h12l2 7H4L6 2z"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M4 9v11a2 2 0 002 2h12a2 2 0 002-2V9"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
+        <path
+          d="M9 9V7a3 3 0 016 0v2"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
   },
   {
-    emoji: "🪑",
     name: "Furniture & Home",
     examples: "Furniture stores, homeware, décor shops",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M20 9V7a2 2 0 00-2-2H6a2 2 0 00-2 2v2"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
+        <rect
+          x="2"
+          y="11"
+          width="20"
+          height="6"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+        <path
+          d="M6 17v2M18 17v2"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
   },
 ];
 
@@ -49,7 +191,7 @@ export default function WhoItsForSection() {
   return (
     <section
       style={{
-        padding: "88px 0",
+        padding: "96px 0",
         background: "var(--color-surface-0)",
         borderTop: "1px solid var(--color-border-subtle)",
       }}
@@ -72,19 +214,29 @@ export default function WhoItsForSection() {
                   padding: "24px 20px",
                   borderRadius: "var(--radius-lg)",
                   border: "1px solid var(--color-border)",
-                  background: "var(--color-surface-1)",
+                  background: "var(--color-surface-0)",
                   display: "flex",
                   flexDirection: "column",
-                  gap: 10,
+                  gap: 14,
                   height: "100%",
+                  transition: "box-shadow 0.18s, border-color 0.18s",
                 }}
               >
-                <span
-                  aria-hidden="true"
-                  style={{ fontSize: "2rem", lineHeight: 1 }}
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: "var(--radius-md)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "rgba(59,110,245,0.08)",
+                    color: "var(--color-brand-500)",
+                    flexShrink: 0,
+                  }}
                 >
-                  {s.emoji}
-                </span>
+                  {s.icon}
+                </div>
                 <div>
                   <p
                     style={{
@@ -156,7 +308,7 @@ export default function WhoItsForSection() {
                 background: "#25D366",
                 color: "white",
                 fontWeight: 700,
-                fontSize: "0.9rem",
+                fontSize: "0.9375rem",
                 textDecoration: "none",
               }}
             >

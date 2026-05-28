@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { CATEGORY_META, LEVEL_META } from "@/lib/admin/classify-error";
+import { DeleteLogButton } from "./LogActions";
 
 export function LogsTable({ logs }: { logs: any[] }) {
   return (
@@ -15,7 +16,7 @@ export function LogsTable({ logs }: { logs: any[] }) {
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ background: "#f8fafc" }}>
-            {["Time", "Category", "Level", "Message", "Path"].map((h) => (
+            {["Time", "Category", "Level", "Message", "Path", ""].map((h) => (
               <th
                 key={h}
                 style={{
@@ -147,6 +148,9 @@ export function LogsTable({ logs }: { logs: any[] }) {
                     }}
                   >
                     {log.path ?? "—"}
+                  </td>
+                  <td style={{ padding: "11px 14px" }}>
+                    <DeleteLogButton id={log.id} />
                   </td>
                 </tr>
               );

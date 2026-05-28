@@ -8,13 +8,17 @@ export function FloatingRevenueCard() {
       <div
         className="h-float1"
         style={{
-          background: "white",
+          background: "rgba(255,255,255,0.95)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
           borderRadius: "var(--radius-lg)",
           padding: "14px 18px",
           boxShadow:
-            "0 8px 32px rgba(99,102,241,0.12), 0 2px 8px rgba(0,0,0,0.06)",
-          border: "1px solid rgba(99,102,241,0.1)",
-          minWidth: 160,
+            "0 12px 40px rgba(59,110,245,0.16), 0 2px 8px rgba(0,0,0,0.06)",
+          border: "1px solid rgba(99,102,241,0.14)",
+          borderTop: "2px solid rgba(59,110,245,0.45)",
+          minWidth: 168,
+          willChange: "transform",
         }}
       >
         <p
@@ -35,7 +39,7 @@ export function FloatingRevenueCard() {
             fontWeight: 700,
             color: "var(--color-ink-primary)",
             lineHeight: 1,
-            marginBottom: 4,
+            marginBottom: 6,
           }}
         >
           KSh 84,200
@@ -86,13 +90,17 @@ export function FloatingStockCard() {
       <div
         className="h-float2"
         style={{
-          background: "white",
+          background: "rgba(255,255,255,0.95)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
           borderRadius: "var(--radius-lg)",
           padding: "14px 18px",
           boxShadow:
-            "0 8px 32px rgba(99,102,241,0.12), 0 2px 8px rgba(0,0,0,0.06)",
-          border: "1px solid rgba(99,102,241,0.1)",
-          minWidth: 150,
+            "0 12px 40px rgba(217,119,6,0.14), 0 2px 8px rgba(0,0,0,0.06)",
+          border: "1px solid rgba(99,102,241,0.14)",
+          borderTop: "2px solid rgba(217,119,6,0.5)",
+          minWidth: 158,
+          willChange: "transform",
         }}
       >
         <p
@@ -102,7 +110,7 @@ export function FloatingStockCard() {
             fontWeight: 600,
             textTransform: "uppercase",
             letterSpacing: "0.08em",
-            marginBottom: 6,
+            marginBottom: 8,
           }}
         >
           Stock Alert
@@ -111,14 +119,13 @@ export function FloatingStockCard() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            marginBottom: 6,
+            gap: 10,
           }}
         >
           <div
             style={{
-              width: 32,
-              height: 32,
+              width: 34,
+              height: 34,
               borderRadius: "var(--radius-sm)",
               background: "var(--color-warning-light)",
               display: "flex",
@@ -176,15 +183,19 @@ export function FloatingSaleCard() {
       <div
         className="h-float3"
         style={{
-          background: "white",
+          background: "rgba(255,255,255,0.95)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
           borderRadius: "var(--radius-lg)",
-          padding: "12px 16px",
+          padding: "13px 16px",
           boxShadow:
-            "0 8px 32px rgba(99,102,241,0.12), 0 2px 8px rgba(0,0,0,0.06)",
-          border: "1px solid rgba(99,102,241,0.1)",
+            "0 12px 40px rgba(5,150,105,0.14), 0 2px 8px rgba(0,0,0,0.06)",
+          border: "1px solid rgba(99,102,241,0.14)",
+          borderTop: "2px solid rgba(5,150,105,0.5)",
           display: "flex",
           alignItems: "center",
           gap: 10,
+          willChange: "transform",
         }}
       >
         <div

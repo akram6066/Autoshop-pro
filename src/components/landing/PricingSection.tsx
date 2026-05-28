@@ -137,7 +137,7 @@ export function PricingSection({ plans }: PricingSectionProps) {
         </RevealOnScroll>
 
         <div
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-3 gap-8"
           style={{ alignItems: "start", padding: "16px 0 24px" }}
         >
           {plans.map((plan, i) => (

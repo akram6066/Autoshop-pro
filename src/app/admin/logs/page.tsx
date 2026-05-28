@@ -1,6 +1,7 @@
 import { adminDb } from "@/lib/admin/db";
 import { LogsFilters } from "./_components/LogsFilters";
 import { LogsTable } from "./_components/LogsTable";
+import { ClearLogsButton } from "./_components/LogActions";
 
 interface PageProps {
   searchParams: Promise<{ category?: string; level?: string; page?: string }>;
@@ -40,18 +41,23 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
 
   return (
     <div style={{ padding: "32px 36px", maxWidth: 1200 }}>
-      <h1
+      <div
         style={{
-          fontSize: "1.5rem",
-          fontWeight: 700,
-          color: "#0f172a",
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 16,
           marginBottom: 6,
         }}
       >
-        Logs
-      </h1>
+        <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0f172a" }}>
+          Logs
+        </h1>
+        <ClearLogsButton total={total} category={category} level={level} />
+      </div>
       <p style={{ fontSize: "0.9375rem", color: "#64748b", marginBottom: 24 }}>
         {total} log entr{total !== 1 ? "ies" : "y"}
+        {(category || level) && " matching current filters"}
       </p>
 
       <LogsFilters category={category} level={level} filterHref={filterHref} />

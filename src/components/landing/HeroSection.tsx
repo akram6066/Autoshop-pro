@@ -68,7 +68,8 @@ export default function HeroSection() {
     <section
       className="pt-16 sm:pt-20 pb-12 sm:pb-20"
       style={{
-        background: "linear-gradient(160deg, #eef2ff 0%, #f5f0ff 100%)",
+        background:
+          "linear-gradient(180deg, #eef2ff 0%, #f5f3ff 40%, #ffffff 100%)",
         position: "relative",
         overflow: "hidden",
         isolation: "isolate",

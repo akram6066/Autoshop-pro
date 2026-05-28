@@ -8,9 +8,10 @@ function WhatsAppButton() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat on WhatsApp"
+      className="wa-fab"
       style={{
         position: "fixed",
-        bottom: 24,
+        bottom: "calc(24px + env(safe-area-inset-bottom, 0px))",
         right: 20,
         zIndex: 100,
         width: 56,

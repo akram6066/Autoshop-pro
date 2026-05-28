@@ -23,19 +23,21 @@ export default function HeroCTARow() {
       >
         <Link
           href="/signup"
+          className="hero-cta-primary"
           style={{
             display: "inline-flex",
             alignItems: "center",
             gap: 10,
-            padding: "15px 34px",
+            padding: "16px 38px",
             borderRadius: "var(--radius-md)",
-            background: "linear-gradient(135deg, #3b6ef5 0%, #8b5cf6 100%)",
+            background:
+              "linear-gradient(135deg, #1e40af 0%, #3b6ef5 50%, #6d28d9 100%)",
             color: "white",
             fontWeight: 700,
             fontSize: "1rem",
             textDecoration: "none",
             boxShadow:
-              "0 4px 20px rgba(99,102,241,0.35), 0 1px 4px rgba(59,110,245,0.2)",
+              "0 8px 32px rgba(59,110,245,0.45), 0 2px 8px rgba(59,110,245,0.2)",
             letterSpacing: "0.01em",
           }}
         >
@@ -50,21 +52,23 @@ export default function HeroCTARow() {
             />
           </svg>
         </Link>
+
         <a
           href="#how-it-works"
+          className="hero-cta-secondary"
           style={{
             display: "inline-flex",
             alignItems: "center",
             gap: 10,
-            padding: "15px 34px",
+            padding: "16px 34px",
             borderRadius: "var(--radius-md)",
             background: "white",
             color: "var(--color-ink-primary)",
             fontWeight: 600,
             fontSize: "1rem",
             textDecoration: "none",
-            border: "1.5px solid rgba(99,102,241,0.18)",
-            boxShadow: "var(--shadow-card)",
+            border: "1.5px solid rgba(99,102,241,0.2)",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
           }}
         >
           See how it works
@@ -87,11 +91,11 @@ export default function HeroCTARow() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: 8,
+          gap: 10,
           flexWrap: "wrap",
         }}
       >
-        <div style={{ display: "flex", marginRight: 4 }}>
+        <div style={{ display: "flex", marginRight: 2 }}>
           {AVATAR_COLORS.map((bg, i) => (
             <div
               key={i}
@@ -100,12 +104,12 @@ export default function HeroCTARow() {
                 height: 32,
                 borderRadius: "50%",
                 background: bg,
-                border: "2px solid white",
+                border: "2.5px solid white",
                 marginLeft: i === 0 ? 0 : -10,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
               }}
             >
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
@@ -119,14 +123,16 @@ export default function HeroCTARow() {
             </div>
           ))}
         </div>
+
         <div
           style={{
             width: 1,
             height: 20,
             background: "var(--color-border)",
-            margin: "0 4px",
+            margin: "0 2px",
           }}
         />
+
         <div style={{ display: "flex", gap: 2 }}>
           {Array.from({ length: 5 }).map((_, i) => (
             <svg
@@ -140,6 +146,7 @@ export default function HeroCTARow() {
             </svg>
           ))}
         </div>
+
         <span
           style={{
             fontSize: "0.875rem",
@@ -148,20 +155,25 @@ export default function HeroCTARow() {
           }}
         >
           <strong style={{ color: "var(--color-ink-primary)" }}>
-            Any shop
+            500+ shops
           </strong>{" "}
-          — any product, any country
+          across East Africa &amp; beyond
         </span>
+
         <div
           style={{
             width: 1,
             height: 20,
             background: "var(--color-border)",
-            margin: "0 4px",
+            margin: "0 2px",
           }}
         />
+
         <span
-          style={{ fontSize: "0.875rem", color: "var(--color-ink-tertiary)" }}
+          style={{
+            fontSize: "0.875rem",
+            color: "var(--color-ink-tertiary)",
+          }}
         >
           No credit card required
         </span>

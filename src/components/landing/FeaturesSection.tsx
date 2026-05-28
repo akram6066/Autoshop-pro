@@ -5,9 +5,8 @@ const features = [
   {
     title: "Lightning-fast POS",
     desc: "Complete a sale in seconds. Accept cash, M-Pesa, card, or credit — and share receipts instantly.",
-    iconBg: "rgba(59,110,245,0.18)",
-    iconColor: "#93b4fc",
-    accentBorder: "rgba(59,110,245,0.5)",
+    iconBg: "rgba(59,110,245,0.1)",
+    iconColor: "#3b6ef5",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
         <rect
@@ -31,9 +30,8 @@ const features = [
   {
     title: "Smart Inventory",
     desc: "Track stock by room or shelf. Set reorder alerts and never run out of your fastest-moving items.",
-    iconBg: "rgba(5,150,105,0.18)",
-    iconColor: "#6ee7b7",
-    accentBorder: "rgba(5,150,105,0.5)",
+    iconBg: "rgba(5,150,105,0.1)",
+    iconColor: "#059669",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
         <path
@@ -49,9 +47,8 @@ const features = [
   {
     title: "Multi-branch ready",
     desc: "Manage all your shops from one account. Switch between branches instantly from the nav bar.",
-    iconBg: "rgba(124,58,237,0.18)",
-    iconColor: "#c4b5fd",
-    accentBorder: "rgba(124,58,237,0.5)",
+    iconBg: "rgba(124,58,237,0.1)",
+    iconColor: "#7c3aed",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
         <path
@@ -73,9 +70,8 @@ const features = [
   {
     title: "Sales Reports",
     desc: "Daily and weekly revenue, top-selling products, and low-stock alerts — all in one clear view.",
-    iconBg: "rgba(217,119,6,0.18)",
-    iconColor: "#fcd34d",
-    accentBorder: "rgba(217,119,6,0.5)",
+    iconBg: "rgba(217,119,6,0.1)",
+    iconColor: "#d97706",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
         <path
@@ -90,9 +86,8 @@ const features = [
   {
     title: "Customer Debt Tracking",
     desc: "Record credit sales and track outstanding balances per customer. No more forgotten tabs.",
-    iconBg: "rgba(225,29,72,0.18)",
-    iconColor: "#fda4af",
-    accentBorder: "rgba(225,29,72,0.5)",
+    iconBg: "rgba(225,29,72,0.1)",
+    iconColor: "#e11d48",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
         <rect
@@ -116,9 +111,8 @@ const features = [
   {
     title: "Works Offline",
     desc: "Built as a PWA. Every sale and stock change saves locally and syncs automatically when you reconnect.",
-    iconBg: "rgba(8,145,178,0.18)",
-    iconColor: "#67e8f9",
-    accentBorder: "rgba(8,145,178,0.5)",
+    iconBg: "rgba(8,145,178,0.1)",
+    iconColor: "#0891b2",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
         <path
@@ -145,43 +139,13 @@ function FeaturesSection() {
       id="features"
       style={{
         padding: "96px 0",
-        background: "linear-gradient(160deg, #080c18 0%, #0d0f1e 100%)",
-        position: "relative",
-        overflow: "hidden",
+        background: "var(--color-surface-1)",
+        borderTop: "1px solid var(--color-border-subtle)",
+        borderBottom: "1px solid var(--color-border-subtle)",
       }}
     >
-      {/* Atmospheric glows */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          top: -100,
-          left: -100,
-          width: 500,
-          height: 500,
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, rgba(59,110,245,0.12) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }}
-      />
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          bottom: -120,
-          right: -80,
-          width: 480,
-          height: 480,
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }}
-      />
-
-      <Container style={{ position: "relative" }}>
-        {/* Section head — custom colors for dark bg */}
+      <Container>
+        {/* Section head */}
         <RevealOnScroll>
           <div style={{ textAlign: "center", marginBottom: 60 }}>
             <span
@@ -189,13 +153,13 @@ function FeaturesSection() {
                 display: "inline-block",
                 padding: "4px 14px",
                 borderRadius: 999,
-                background: "rgba(99,102,241,0.15)",
-                border: "1px solid rgba(139,92,246,0.3)",
+                background: "rgba(59,110,245,0.08)",
+                border: "1px solid rgba(59,110,245,0.18)",
                 fontSize: "0.6875rem",
                 fontWeight: 700,
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
-                color: "#a5b4fc",
+                color: "var(--color-brand-600)",
                 marginBottom: 16,
               }}
             >
@@ -206,7 +170,7 @@ function FeaturesSection() {
                 fontFamily: "var(--font-display)",
                 fontSize: "clamp(1.875rem, 3.5vw, 2.75rem)",
                 lineHeight: 1.15,
-                color: "white",
+                color: "var(--color-ink-primary)",
                 marginBottom: 16,
               }}
             >
@@ -215,7 +179,7 @@ function FeaturesSection() {
             <p
               style={{
                 fontSize: "1.0625rem",
-                color: "rgba(255,255,255,0.55)",
+                color: "var(--color-ink-secondary)",
                 maxWidth: 520,
                 margin: "0 auto",
                 lineHeight: 1.72,
@@ -231,13 +195,14 @@ function FeaturesSection() {
           {features.map((f, i) => (
             <RevealOnScroll key={f.title} delay={i * 75}>
               <div
-                className="card-hover-dark"
+                className="feature-card"
                 style={{
                   padding: "28px 24px",
                   borderRadius: "var(--radius-lg)",
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.07)",
-                  borderTop: `3px solid ${f.accentBorder}`,
+                  background: "var(--color-surface-0)",
+                  border: "1px solid var(--color-border)",
+                  borderTop: "3px solid transparent",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
                   display: "flex",
                   flexDirection: "column",
                   height: "100%",
@@ -263,7 +228,7 @@ function FeaturesSection() {
                   style={{
                     fontWeight: 700,
                     fontSize: "1.0625rem",
-                    color: "rgba(255,255,255,0.95)",
+                    color: "var(--color-ink-primary)",
                     marginBottom: 8,
                   }}
                 >
@@ -272,7 +237,7 @@ function FeaturesSection() {
                 <p
                   style={{
                     fontSize: "0.9375rem",
-                    color: "rgba(255,255,255,0.52)",
+                    color: "var(--color-ink-secondary)",
                     lineHeight: 1.7,
                   }}
                 >
