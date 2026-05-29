@@ -720,6 +720,10 @@ export interface Database {
         Args: { p_email: string };
         Returns: boolean;
       };
+      void_sale: {
+        Args: { p_sale_id: string; p_shop_id: string };
+        Returns: undefined;
+      };
     };
     Enums: {
       user_role: "owner" | "staff";

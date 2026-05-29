@@ -4,7 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
-import { useAuthStore, selectShopId } from "@/stores/authStore";
+import { useAuthStore, selectShopId, selectIsOwner } from "@/stores/authStore";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { PaymentMethod } from "@/types/app";
 import type { SaleSummary } from "./_components/SaleDetailModal";
@@ -28,6 +28,7 @@ interface SaleRow {
   created_at: string;
   staff_name: string;
   total_count: number;
+  status: string;
 }
 
 const PAGE_SIZE = 25;
@@ -36,6 +37,7 @@ const PAGE_SIZE = 25;
 
 export default function SalesPage() {
   const shopId = useAuthStore(selectShopId);
+  const isOwner = useAuthStore(selectIsOwner);
   const [page, setPage] = useState(0);
   const [selectedSale, setSelectedSale] = useState<SaleSummary | null>(null);
 
@@ -151,55 +153,83 @@ export default function SalesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((sale) => (
-                    <tr
-                      key={sale.id}
-                      onClick={() => setSelectedSale(sale)}
-                      style={{ cursor: "pointer" }}
-                      className="hover:bg-[var(--color-surface-1)] transition-colors"
-                    >
-                      <td
+                  {rows.map((sale) => {
+                    const voided = sale.status === "voided";
+                    return (
+                      <tr
+                        key={sale.id}
+                        onClick={() => setSelectedSale(sale)}
                         style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 12,
-                          color: "var(--color-ink-tertiary)",
+                          cursor: "pointer",
+                          opacity: voided ? 0.5 : 1,
                         }}
+                        className="hover:bg-[var(--color-surface-1)] transition-colors"
                       >
-                        #{sale.id.slice(0, 8).toUpperCase()}
-                      </td>
-                      <td
-                        style={{
-                          fontSize: 13,
-                          color: "var(--color-ink-secondary)",
-                        }}
-                      >
-                        {formatDate(sale.created_at)}
-                      </td>
-                      <td style={{ fontSize: 13 }}>
-                        <span
-                          className="inline-flex items-center gap-1.5"
-                          style={{ color: "var(--color-ink-primary)" }}
+                        <td
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: 12,
+                            color: "var(--color-ink-tertiary)",
+                          }}
                         >
+                          <div className="flex items-center gap-1.5">
+                            #{sale.id.slice(0, 8).toUpperCase()}
+                            {voided && (
+                              <span
+                                className="text-xs font-bold px-1.5 py-0.5 rounded"
+                                style={{
+                                  background: "rgba(239,68,68,0.1)",
+                                  color: "var(--color-danger)",
+                                  fontFamily: "var(--font-sans)",
+                                }}
+                              >
+                                VOID
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td
+                          style={{
+                            fontSize: 13,
+                            color: "var(--color-ink-secondary)",
+                          }}
+                        >
+                          {formatDate(sale.created_at)}
+                        </td>
+                        <td style={{ fontSize: 13 }}>
                           <span
-                            className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold flex-shrink-0"
-                            style={{
-                              background: "var(--color-brand-100)",
-                              color: "var(--color-brand-700)",
-                            }}
+                            className="inline-flex items-center gap-1.5"
+                            style={{ color: "var(--color-ink-primary)" }}
                           >
-                            {sale.staff_name.charAt(0).toUpperCase()}
+                            <span
+                              className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold flex-shrink-0"
+                              style={{
+                                background: "var(--color-brand-100)",
+                                color: "var(--color-brand-700)",
+                              }}
+                            >
+                              {sale.staff_name.charAt(0).toUpperCase()}
+                            </span>
+                            {sale.staff_name}
                           </span>
-                          {sale.staff_name}
-                        </span>
-                      </td>
-                      <td>
-                        <PaymentBadge method={sale.payment_method ?? "cash"} />
-                      </td>
-                      <td style={{ textAlign: "right", fontWeight: 600 }}>
-                        {formatCurrency(sale.total_amount)}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td>
+                          <PaymentBadge
+                            method={sale.payment_method ?? "cash"}
+                          />
+                        </td>
+                        <td
+                          style={{
+                            textAlign: "right",
+                            fontWeight: 600,
+                            textDecoration: voided ? "line-through" : "none",
+                          }}
+                        >
+                          {formatCurrency(sale.total_amount)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -207,53 +237,67 @@ export default function SalesPage() {
 
           {/* ── Mobile card list (xs) ── */}
           <div className="sm:hidden space-y-2">
-            {rows.map((sale) => (
-              <button
-                key={sale.id}
-                type="button"
-                onClick={() => setSelectedSale(sale)}
-                className="card w-full px-4 py-3 flex items-center justify-between gap-3 text-left"
-                style={{ cursor: "pointer" }}
-              >
-                <div className="min-w-0 flex-1">
-                  {/* Staff + date row */}
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold flex-shrink-0"
-                      style={{
-                        background: "var(--color-brand-100)",
-                        color: "var(--color-brand-700)",
-                      }}
-                    >
-                      {sale.staff_name.charAt(0).toUpperCase()}
-                    </span>
-                    <span
-                      className="text-sm font-medium truncate"
-                      style={{ color: "var(--color-ink-primary)" }}
-                    >
-                      {sale.staff_name}
-                    </span>
-                  </div>
-                  {/* Date + payment */}
-                  <div className="flex items-center gap-2 pl-8">
-                    <span
-                      className="text-xs"
-                      style={{ color: "var(--color-ink-tertiary)" }}
-                    >
-                      {formatDate(sale.created_at)}
-                    </span>
-                    <PaymentBadge method={sale.payment_method ?? "cash"} />
-                  </div>
-                </div>
-                {/* Amount */}
-                <span
-                  className="text-base font-semibold flex-shrink-0"
-                  style={{ color: "var(--color-ink-primary)" }}
+            {rows.map((sale) => {
+              const voided = sale.status === "voided";
+              return (
+                <button
+                  key={sale.id}
+                  type="button"
+                  onClick={() => setSelectedSale(sale)}
+                  className="card w-full px-4 py-3 flex items-center justify-between gap-3 text-left"
+                  style={{ opacity: voided ? 0.55 : 1 }}
                 >
-                  {formatCurrency(sale.total_amount)}
-                </span>
-              </button>
-            ))}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold flex-shrink-0"
+                        style={{
+                          background: "var(--color-brand-100)",
+                          color: "var(--color-brand-700)",
+                        }}
+                      >
+                        {sale.staff_name.charAt(0).toUpperCase()}
+                      </span>
+                      <span
+                        className="text-sm font-medium truncate"
+                        style={{ color: "var(--color-ink-primary)" }}
+                      >
+                        {sale.staff_name}
+                      </span>
+                      {voided && (
+                        <span
+                          className="text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+                          style={{
+                            background: "rgba(239,68,68,0.1)",
+                            color: "var(--color-danger)",
+                          }}
+                        >
+                          VOID
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 pl-8">
+                      <span
+                        className="text-xs"
+                        style={{ color: "var(--color-ink-tertiary)" }}
+                      >
+                        {formatDate(sale.created_at)}
+                      </span>
+                      <PaymentBadge method={sale.payment_method ?? "cash"} />
+                    </div>
+                  </div>
+                  <span
+                    className="text-base font-semibold flex-shrink-0"
+                    style={{
+                      color: "var(--color-ink-primary)",
+                      textDecoration: voided ? "line-through" : "none",
+                    }}
+                  >
+                    {formatCurrency(sale.total_amount)}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Pagination */}
@@ -292,7 +336,10 @@ export default function SalesPage() {
       {selectedSale && (
         <SaleDetailModal
           sale={selectedSale}
+          shopId={shopId ?? ""}
+          isOwner={isOwner}
           onClose={() => setSelectedSale(null)}
+          onVoided={() => setSelectedSale(null)}
         />
       )}
     </div>

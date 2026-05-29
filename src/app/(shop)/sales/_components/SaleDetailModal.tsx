@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { PaymentMethod } from "@/types/app";
 import { PaymentBadge } from "./PaymentBadge";
+import { useVoidSale } from "@/hooks/useSales";
+import { friendlyError } from "@/lib/api/errors";
 
 export interface SaleSummary {
   id: string;
@@ -13,6 +15,7 @@ export interface SaleSummary {
   payment_method: PaymentMethod;
   created_at: string;
   staff_name: string;
+  status?: string;
 }
 
 interface SaleItem {
@@ -24,12 +27,23 @@ interface SaleItem {
 
 export function SaleDetailModal({
   sale,
+  shopId,
+  isOwner,
   onClose,
+  onVoided,
 }: {
   sale: SaleSummary;
+  shopId: string;
+  isOwner: boolean;
   onClose: () => void;
+  onVoided: () => void;
 }) {
   const supabase = createClient();
+  const { mutateAsync: voidSale, isPending: isVoiding } = useVoidSale();
+  const [confirmingVoid, setConfirmingVoid] = useState(false);
+  const [voidError, setVoidError] = useState("");
+
+  const isVoided = sale.status === "voided";
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -51,6 +65,17 @@ export function SaleDetailModal({
     },
     staleTime: 1000 * 60 * 10,
   });
+
+  async function handleVoid() {
+    setVoidError("");
+    try {
+      await voidSale({ saleId: sale.id, shopId });
+      onVoided();
+      onClose();
+    } catch (err: unknown) {
+      setVoidError(friendlyError(err, "Failed to void sale. Try again."));
+    }
+  }
 
   return (
     <>
@@ -79,12 +104,25 @@ export function SaleDetailModal({
               >
                 #{sale.id.slice(0, 8).toUpperCase()}
               </p>
-              <h2
-                className="text-lg font-semibold"
-                style={{ color: "var(--color-ink-primary)" }}
-              >
-                Sale details
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2
+                  className="text-lg font-semibold"
+                  style={{ color: "var(--color-ink-primary)" }}
+                >
+                  Sale details
+                </h2>
+                {isVoided && (
+                  <span
+                    className="text-xs font-bold px-2 py-0.5 rounded-full"
+                    style={{
+                      background: "rgba(239,68,68,0.1)",
+                      color: "var(--color-danger)",
+                    }}
+                  >
+                    VOIDED
+                  </span>
+                )}
+              </div>
             </div>
             <button
               type="button"
@@ -134,7 +172,10 @@ export function SaleDetailModal({
           </div>
 
           {/* ── Items ── */}
-          <div className="overflow-y-auto flex-1 p-5">
+          <div
+            className="overflow-y-auto flex-1 p-5"
+            style={{ opacity: isVoided ? 0.5 : 1 }}
+          >
             {isLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -183,7 +224,10 @@ export function SaleDetailModal({
                       <td className="py-3 pr-3">
                         <p
                           className="text-sm font-medium"
-                          style={{ color: "var(--color-ink-primary)" }}
+                          style={{
+                            color: "var(--color-ink-primary)",
+                            textDecoration: isVoided ? "line-through" : "none",
+                          }}
                         >
                           {item.products?.name ?? "Deleted product"}
                         </p>
@@ -221,26 +265,104 @@ export function SaleDetailModal({
             )}
           </div>
 
-          {/* ── Footer total ── */}
+          {/* ── Footer ── */}
           <div
-            className="flex items-center justify-between px-5 py-4"
+            className="px-5 py-4"
             style={{
               borderTop: "1px solid var(--color-surface-2)",
               background: "var(--color-surface-1)",
             }}
           >
-            <span
-              className="text-sm font-medium"
-              style={{ color: "var(--color-ink-secondary)" }}
-            >
-              Total
-            </span>
-            <span
-              className="text-lg font-bold"
-              style={{ color: "var(--color-ink-primary)" }}
-            >
-              {formatCurrency(sale.total_amount)}
-            </span>
+            {/* Total row */}
+            <div className="flex items-center justify-between mb-4">
+              <span
+                className="text-sm font-medium"
+                style={{ color: "var(--color-ink-secondary)" }}
+              >
+                Total
+              </span>
+              <span
+                className="text-lg font-bold"
+                style={{
+                  color: "var(--color-ink-primary)",
+                  textDecoration: isVoided ? "line-through" : "none",
+                  opacity: isVoided ? 0.5 : 1,
+                }}
+              >
+                {formatCurrency(sale.total_amount)}
+              </span>
+            </div>
+
+            {/* Void section — owner only, not if already voided */}
+            {isOwner && !isVoided && (
+              <>
+                {voidError && (
+                  <p
+                    className="text-sm mb-3"
+                    style={{ color: "var(--color-danger)" }}
+                  >
+                    {voidError}
+                  </p>
+                )}
+
+                {confirmingVoid ? (
+                  <div
+                    className="rounded-xl p-3"
+                    style={{
+                      background: "rgba(239,68,68,0.06)",
+                      border: "1px solid rgba(239,68,68,0.2)",
+                    }}
+                  >
+                    <p
+                      className="text-sm font-medium mb-3"
+                      style={{ color: "var(--color-danger)" }}
+                    >
+                      Void this sale? Stock will be restored and this cannot be
+                      undone.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleVoid}
+                        disabled={isVoiding}
+                        className="btn btn-sm flex-1"
+                        style={{
+                          background: "var(--color-danger)",
+                          color: "#fff",
+                          opacity: isVoiding ? 0.7 : 1,
+                        }}
+                      >
+                        {isVoiding ? "Voiding…" : "Yes, void sale"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmingVoid(false);
+                          setVoidError("");
+                        }}
+                        disabled={isVoiding}
+                        className="btn btn-secondary btn-sm flex-1"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingVoid(true)}
+                    className="btn btn-sm w-full"
+                    style={{
+                      color: "var(--color-danger)",
+                      border: "1px solid var(--color-danger)",
+                      background: "transparent",
+                    }}
+                  >
+                    Void sale
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>

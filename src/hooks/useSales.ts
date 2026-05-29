@@ -234,3 +234,30 @@ export function useRecordSale() {
     },
   });
 }
+
+// ─── Void sale (owner only) ───────────────────────────────────────────────────
+
+export function useVoidSale() {
+  const qc = useQueryClient();
+  const supabase = createClient();
+
+  return useMutation({
+    mutationFn: async ({
+      saleId,
+      shopId,
+    }: {
+      saleId: string;
+      shopId: string;
+    }) => {
+      const { error } = await supabase.rpc("void_sale", {
+        p_sale_id: saleId,
+        p_shop_id: shopId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_, { shopId }) => {
+      qc.invalidateQueries({ queryKey: ["sales-history", shopId] });
+      qc.invalidateQueries({ queryKey: ["products", shopId] });
+    },
+  });
+}
