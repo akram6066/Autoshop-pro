@@ -147,25 +147,23 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
           />
         </Link>
 
-        {/* ── Nav (md+) ──────────────────────────────────────────────────── */}
+        {/* ── Nav ───────────────────────────────────────────────────────── */}
         <nav className="hidden md:flex items-center gap-0.5 flex-1 ml-1 lg:ml-3">
-          {/* Common items — always visible inline */}
-          {commonNav.map((item) => (
-            <NavLink key={item.href} item={item} pathname={pathname} />
-          ))}
+          {/* Desktop (lg+): all items in original NAV order, no grouping */}
+          <div className="hidden lg:flex items-center gap-0.5">
+            {visibleNav.map((item) => (
+              <NavLink key={item.href} item={item} pathname={pathname} />
+            ))}
+          </div>
 
-          {/* Owner-only items */}
-          {ownerNav.length > 0 && (
-            <>
-              {/* lg+: inline alongside common items */}
-              <div className="hidden lg:flex items-center gap-0.5">
-                {ownerNav.map((item) => (
-                  <NavLink key={item.href} item={item} pathname={pathname} />
-                ))}
-              </div>
+          {/* Tablet (md–lg): common items inline + owner items in More dropdown */}
+          <div className="lg:hidden flex items-center gap-0.5">
+            {commonNav.map((item) => (
+              <NavLink key={item.href} item={item} pathname={pathname} />
+            ))}
 
-              {/* md-lg: "More" dropdown */}
-              <div className="lg:hidden relative" ref={moreRef}>
+            {ownerNav.length > 0 && (
+              <div className="relative" ref={moreRef}>
                 <button
                   type="button"
                   onClick={() => setMoreOpen((o) => !o)}
@@ -218,8 +216,8 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
                   </div>
                 )}
               </div>
-            </>
-          )}
+            )}
+          </div>
         </nav>
 
         {/* ── Right side ────────────────────────────────────────────────── */}
