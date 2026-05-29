@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import { useCustomers } from "@/hooks/useCustomers";
 import { SearchBar } from "@/components/ui/SearchBar";
-import { CollectDebtModal } from "./_components/CollectDebtModal";
+import { CollectDebtModal } from "@/components/customers/CollectDebtModal";
 import { CustomerStatsBar } from "./_components/CustomerStatsBar";
 import { CustomerList } from "./_components/CustomerList";
 import type { Customer } from "@/types/app";

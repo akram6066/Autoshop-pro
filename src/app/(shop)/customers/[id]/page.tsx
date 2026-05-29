@@ -10,11 +10,11 @@ import {
   useCustomerPayments,
   useUpdateCustomer,
   useDeleteCustomer,
-  useRecordCustomerPayment,
 } from "@/hooks/useCustomers";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/app";
 import { friendlyError } from "@/lib/api/errors";
+import { CollectDebtModal } from "@/components/customers/CollectDebtModal";
 
 // ─── Delete Confirmation Dialog ───────────────────────────────────────────────
 
@@ -77,146 +77,6 @@ function DeleteDialog({
         </div>
       </div>
     </div>
-  );
-}
-
-// ─── Record Payment Form ──────────────────────────────────────────────────────
-
-function RecordPaymentForm({
-  shopId,
-  customerId,
-  userId,
-  balance,
-}: {
-  shopId: string;
-  customerId: string;
-  userId: string;
-  balance: number;
-}) {
-  const { mutateAsync: recordPayment, isPending } = useRecordCustomerPayment();
-  const [amount, setAmount] = useState("");
-  const [note, setNote] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-
-  const parsed = parseFloat(amount);
-  const isValid = !isNaN(parsed) && parsed > 0;
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!isValid) {
-      setError("Enter a valid amount above 0");
-      return;
-    }
-    setError("");
-    try {
-      await recordPayment({
-        shopId,
-        customerId,
-        userId,
-        amount: parsed,
-        note: note || undefined,
-      });
-      setAmount("");
-      setNote("");
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err: unknown) {
-      setError(friendlyError(err, "Failed to record payment"));
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1">
-          <div className="flex items-center justify-between mb-1">
-            <label
-              className="text-xs font-medium"
-              style={{ color: "var(--color-ink-secondary)" }}
-            >
-              Amount (KES)
-            </label>
-            {balance < 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setAmount(String(Math.abs(balance)));
-                  setError("");
-                }}
-                className="text-xs font-medium"
-                style={{ color: "var(--color-brand-600)" }}
-              >
-                Pay in full
-              </button>
-            )}
-          </div>
-          <input
-            type="number"
-            min="1"
-            step="any"
-            placeholder="0"
-            value={amount}
-            onChange={(e) => {
-              setAmount(e.target.value);
-              setError("");
-            }}
-            className="input w-full"
-          />
-        </div>
-        <div className="flex-1">
-          <label
-            className="block text-xs font-medium mb-1"
-            style={{ color: "var(--color-ink-secondary)" }}
-          >
-            Note (optional)
-          </label>
-          <input
-            type="text"
-            placeholder="e.g. Cash received"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="input w-full"
-          />
-        </div>
-      </div>
-
-      {isValid && balance < 0 && (
-        <p className="text-xs" style={{ color: "var(--color-ink-tertiary)" }}>
-          Balance after:{" "}
-          <span
-            style={{
-              color:
-                balance + parsed >= 0
-                  ? "var(--color-success)"
-                  : "var(--color-danger)",
-            }}
-          >
-            {formatCurrency(balance + parsed)}
-          </span>
-        </p>
-      )}
-
-      {error && (
-        <p className="text-sm" style={{ color: "var(--color-danger)" }}>
-          {error}
-        </p>
-      )}
-
-      {success && (
-        <p className="text-sm" style={{ color: "var(--color-success)" }}>
-          Payment recorded.
-        </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={isPending || !isValid}
-        className="btn btn-primary btn-sm"
-      >
-        {isPending ? "Saving…" : "Record payment"}
-      </button>
-    </form>
   );
 }
 
@@ -320,6 +180,7 @@ export default function CustomerDetailPage({
     useDeleteCustomer();
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [collectOpen, setCollectOpen] = useState(false);
 
   async function handleDelete() {
     if (!shopId) return;
@@ -490,30 +351,46 @@ export default function CustomerDetailPage({
         </div>
       )}
 
-      {/* Record payment */}
-      {!editing && shopId && user && (
-        <div className="card p-5 mb-6">
-          <h2
-            className="font-medium text-sm mb-4"
-            style={{ color: "var(--color-ink-primary)" }}
-          >
-            Record payment
-            {isInDebt && (
-              <span
-                className="ml-2 text-xs font-normal"
+      {/* Collect payment */}
+      {!editing && isInDebt && shopId && user && (
+        <>
+          {collectOpen && (
+            <CollectDebtModal
+              customer={customer}
+              shopId={shopId}
+              userId={user.id}
+              onClose={() => setCollectOpen(false)}
+            />
+          )}
+          <div className="card p-5 mb-6 flex items-center justify-between gap-4">
+            <div>
+              <p
+                className="font-medium text-sm"
+                style={{ color: "var(--color-ink-primary)" }}
+              >
+                Collect payment
+              </p>
+              <p
+                className="text-xs mt-0.5"
                 style={{ color: "var(--color-danger)" }}
               >
                 Owes {formatCurrency(-customer.balance)}
-              </span>
-            )}
-          </h2>
-          <RecordPaymentForm
-            shopId={shopId}
-            customerId={customer.id}
-            userId={user.id}
-            balance={customer.balance}
-          />
-        </div>
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCollectOpen(true)}
+              className="btn btn-sm"
+              style={{
+                background: "var(--color-danger)",
+                color: "#fff",
+                flexShrink: 0,
+              }}
+            >
+              Collect
+            </button>
+          </div>
+        </>
       )}
 
       {/* Sales history */}
