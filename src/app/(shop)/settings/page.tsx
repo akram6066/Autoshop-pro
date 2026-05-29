@@ -11,6 +11,16 @@ import { PlanUsageSection } from "./_components/PlanUsageSection";
 import { MyShopsSection } from "./_components/MyShopsSection";
 import type { SubInfo } from "./_components/PlanUsageSection";
 
+const NAV_ITEMS = [
+  { href: "#plan", label: "Plan & Usage" },
+  { href: "#shops", label: "My Shops" },
+  { href: "#shop", label: "Shop details" },
+  { href: "#categories", label: "Categories" },
+  { href: "#rooms", label: "Rooms" },
+  { href: "#team", label: "Team" },
+  { href: "#danger", label: "Danger zone", danger: true },
+];
+
 export default function SettingsPage() {
   const supabase = createClient();
   const shopId = useAuthStore(selectShopId);
@@ -55,7 +65,8 @@ export default function SettingsPage() {
   }, [supabase]);
 
   return (
-    <div className="w-full max-w-2xl">
+    <div className="w-full">
+      {/* Page header */}
       <div className="mb-8">
         <h1
           className="text-2xl font-semibold mb-1"
@@ -68,43 +79,98 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <PlanUsageSection
-        sub={sub}
-        subLoading={subLoading}
-        ownedShopCount={ownedShopCount}
-        shopId={shopId}
-      />
-      <MyShopsSection sub={sub} />
-      <Section title="Shop details">
-        <ShopForm />
-      </Section>
-      <Section title="Product categories">
-        <CategoriesSection />
-      </Section>
-      <Section title="Storage rooms">
-        <RoomsSection />
-      </Section>
-      <Section title="Team">
-        <TeamSection maxStaff={sub?.plan.maxStaffPerShop ?? 2} />
-      </Section>
+      <div className="flex gap-10 xl:gap-16 items-start">
+        {/* ── Sticky sidebar nav — desktop only ── */}
+        <aside className="hidden lg:block w-44 flex-shrink-0">
+          <nav className="sticky top-8">
+            <p
+              className="text-xs font-semibold uppercase tracking-widest mb-3"
+              style={{ color: "var(--color-ink-tertiary)" }}
+            >
+              On this page
+            </p>
+            <ul className="space-y-0.5">
+              {NAV_ITEMS.map((item) => (
+                <li key={item.href}>
+                  <a
+                    href={item.href}
+                    className="block text-sm px-3 py-1.5 rounded-md transition-colors hover:bg-surface-1"
+                    style={{
+                      color: item.danger
+                        ? "var(--color-danger)"
+                        : "var(--color-ink-secondary)",
+                      textDecoration: "none",
+                    }}
+                  >
+                    {item.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </aside>
 
-      <Section title="Danger zone" danger>
-        <p
-          className="text-sm mb-4"
-          style={{ color: "var(--color-ink-secondary)" }}
-        >
-          Permanently deletes your account, profile, and all associated data.
-          This cannot be undone.
-        </p>
-        <button
-          type="button"
-          onClick={() => setShowDeleteConfirm(true)}
-          className="btn btn-danger"
-        >
-          Delete Account
-        </button>
-      </Section>
+        {/* ── Scrollable content ── */}
+        <div className="flex-1 min-w-0 max-w-2xl">
+          <div id="plan" className="scroll-mt-8">
+            <PlanUsageSection
+              sub={sub}
+              subLoading={subLoading}
+              ownedShopCount={ownedShopCount}
+              shopId={shopId}
+            />
+          </div>
 
+          <div id="shops" className="scroll-mt-8">
+            <MyShopsSection sub={sub} />
+          </div>
+
+          <div id="shop" className="scroll-mt-8">
+            <Section title="Shop details">
+              <ShopForm />
+            </Section>
+          </div>
+
+          <div id="categories" className="scroll-mt-8">
+            <Section title="Product categories">
+              <CategoriesSection />
+            </Section>
+          </div>
+
+          <div id="rooms" className="scroll-mt-8">
+            <Section title="Storage rooms">
+              <RoomsSection />
+            </Section>
+          </div>
+
+          <div id="team" className="scroll-mt-8">
+            <Section title="Team">
+              <TeamSection maxStaff={sub?.plan.maxStaffPerShop ?? 2} />
+            </Section>
+          </div>
+
+          <div id="danger" className="scroll-mt-8">
+            <Section title="Danger zone" danger>
+              <p
+                className="text-sm mb-4"
+                style={{ color: "var(--color-ink-secondary)" }}
+              >
+                Permanently deletes your account, profile, and all associated
+                data. This cannot be undone.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="btn btn-danger"
+              >
+                Delete Account
+              </button>
+            </Section>
+          </div>
+        </div>
+      </div>
+
+      {/* Delete confirm modal */}
       {showDeleteConfirm && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in"
