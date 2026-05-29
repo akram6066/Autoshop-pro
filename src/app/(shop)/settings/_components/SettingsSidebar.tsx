@@ -433,18 +433,25 @@ export function SettingsSidebar() {
         </nav>
       </div>
 
-      {/* ── Desktop panel sidebar (lg+) ────────────────────────────────────── */}
+      {/* ── Desktop panel sidebar (lg+) — position:fixed, never scrolls ─── */}
       <aside
-        className="hidden lg:flex flex-col flex-shrink-0 sticky self-start"
+        className="hidden lg:flex flex-col"
         style={{
+          position: "fixed",
+          // 56px sticky header + 16px gap
+          top: 72,
+          // Aligns with the left edge of the max-w-7xl + px-6 content area
+          // at every viewport width, with no JS needed.
+          left: "max(24px, calc(50vw - 640px + 24px))",
           width: 256,
-          top: 24,
-          maxHeight: "calc(100vh - 48px)",
+          height: "calc(100vh - 88px)",
           background: "var(--color-surface-0)",
           border: "1px solid var(--color-border)",
           borderRadius: 16,
           boxShadow: "0 2px 16px rgba(0,0,0,0.07)",
           overflow: "hidden",
+          // Below header (z-40) so header stays on top
+          zIndex: 30,
         }}
       >
         {/* Panel header — Settings title + user profile */}
