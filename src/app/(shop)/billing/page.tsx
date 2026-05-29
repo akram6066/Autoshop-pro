@@ -104,7 +104,7 @@ export default async function BillingPage({
   };
 
   return (
-    <div className="w-full max-w-xl sm:max-w-2xl md:max-w-3xl xl:max-w-4xl mx-auto">
+    <div className="w-full max-w-2xl">
       <h1
         style={{
           fontSize: "1.5rem",
