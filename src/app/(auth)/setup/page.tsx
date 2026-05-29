@@ -137,11 +137,7 @@ function SetupContent() {
         return;
       }
 
-      const [, { error: catSeedError }] = await Promise.all([
-        seedLocalCache(createdShop!, createdRooms as Room[], []),
-        supabase.rpc("seed_default_categories"),
-      ]);
-      if (catSeedError) console.error("[setup] seed categories:", catSeedError);
+      await seedLocalCache(createdShop!, createdRooms as Room[], []);
 
       const { data: cats } = await supabase
         .from("categories")
