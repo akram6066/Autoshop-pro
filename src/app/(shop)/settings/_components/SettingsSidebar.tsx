@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuthStore, selectUser, selectProfile } from "@/stores/authStore";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
 function PlanIcon() {
   return (
-    <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
       <path
         d="M3 3v18h18"
         stroke="currentColor"
@@ -27,7 +28,7 @@ function PlanIcon() {
 
 function ShopIcon() {
   return (
-    <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
       <path
         d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
         stroke="currentColor"
@@ -48,7 +49,7 @@ function ShopIcon() {
 
 function CategoryIcon() {
   return (
-    <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
       <path
         d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"
         stroke="currentColor"
@@ -63,13 +64,13 @@ function CategoryIcon() {
 
 function RoomIcon() {
   return (
-    <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
       <rect
         x="3"
         y="3"
         width="7"
         height="7"
-        rx="1"
+        rx="1.5"
         stroke="currentColor"
         strokeWidth="1.75"
       />
@@ -78,7 +79,7 @@ function RoomIcon() {
         y="3"
         width="7"
         height="7"
-        rx="1"
+        rx="1.5"
         stroke="currentColor"
         strokeWidth="1.75"
       />
@@ -87,7 +88,7 @@ function RoomIcon() {
         y="14"
         width="7"
         height="7"
-        rx="1"
+        rx="1.5"
         stroke="currentColor"
         strokeWidth="1.75"
       />
@@ -96,7 +97,7 @@ function RoomIcon() {
         y="14"
         width="7"
         height="7"
-        rx="1"
+        rx="1.5"
         stroke="currentColor"
         strokeWidth="1.75"
       />
@@ -106,7 +107,7 @@ function RoomIcon() {
 
 function TeamIcon() {
   return (
-    <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
       <path
         d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"
         stroke="currentColor"
@@ -128,7 +129,7 @@ function TeamIcon() {
 
 function AccountIcon() {
   return (
-    <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
       <path
         d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"
         stroke="currentColor"
@@ -227,7 +228,7 @@ const NAV_GROUPS: NavGroup[] = [
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
-// ─── Nav items renderer (shared between drawer and desktop sidebar) ────────────
+// ─── Shared nav list ──────────────────────────────────────────────────────────
 
 function NavItems({
   pathname,
@@ -237,11 +238,18 @@ function NavItems({
   onNavigate?: () => void;
 }) {
   return (
-    <div className="space-y-5">
-      {NAV_GROUPS.map(({ group, items }) => (
+    <div className="space-y-4">
+      {NAV_GROUPS.map(({ group, items }, gi) => (
         <div key={group}>
+          {/* Divider before Account group */}
+          {gi === NAV_GROUPS.length - 1 && (
+            <div
+              className="mb-3"
+              style={{ height: 1, background: "var(--color-border)" }}
+            />
+          )}
           <p
-            className="text-xs font-semibold uppercase tracking-widest mb-1.5 px-3"
+            className="text-xs font-semibold uppercase tracking-widest mb-1 px-3"
             style={{ color: "var(--color-ink-tertiary)" }}
           >
             {group}
@@ -254,12 +262,13 @@ function NavItems({
                   <Link
                     href={href}
                     onClick={onNavigate}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all"
                     style={{
+                      fontWeight: active ? 600 : 500,
                       background: active
                         ? danger
-                          ? "rgba(239,68,68,0.08)"
-                          : "rgba(59,110,245,0.08)"
+                          ? "rgba(239,68,68,0.09)"
+                          : "rgba(59,110,245,0.09)"
                         : "transparent",
                       color: active
                         ? danger
@@ -268,23 +277,18 @@ function NavItems({
                         : danger
                           ? "var(--color-danger)"
                           : "var(--color-ink-secondary)",
+                      // Left accent using inset box-shadow — no layout shift
+                      boxShadow: active
+                        ? danger
+                          ? "inset 3px 0 0 var(--color-danger)"
+                          : "inset 3px 0 0 var(--color-brand-600)"
+                        : "none",
                     }}
                   >
-                    <Icon />
-                    <span className="flex-1">{label}</span>
-                    {active && (
-                      <span
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: danger
-                            ? "var(--color-danger)"
-                            : "var(--color-brand-600)",
-                          flexShrink: 0,
-                        }}
-                      />
-                    )}
+                    <span style={{ flexShrink: 0, opacity: active ? 1 : 0.7 }}>
+                      <Icon />
+                    </span>
+                    <span className="flex-1 truncate">{label}</span>
                   </Link>
                 </li>
               );
@@ -300,23 +304,25 @@ function NavItems({
 
 export function SettingsSidebar() {
   const pathname = usePathname();
+  const user = useAuthStore(selectUser);
+  const profile = useAuthStore(selectProfile);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const activeItem = ALL_ITEMS.find((item) => pathname === item.href);
+  const avatarLetter =
+    profile?.full_name?.charAt(0)?.toUpperCase() ??
+    user?.email?.charAt(0)?.toUpperCase() ??
+    "?";
 
-  // Body scroll lock
+  // Body scroll lock when drawer open
   useEffect(() => {
-    if (drawerOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = drawerOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
   }, [drawerOpen]);
 
-  // Escape key closes drawer
+  // Escape closes drawer
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setDrawerOpen(false);
@@ -327,7 +333,7 @@ export function SettingsSidebar() {
 
   return (
     <>
-      {/* ── Mobile / Tablet trigger bar (hidden on lg+) ────────────────── */}
+      {/* ── Mobile / Tablet trigger (hidden on lg+) ────────────────────────── */}
       <div className="lg:hidden w-full mb-5">
         <button
           type="button"
@@ -336,13 +342,14 @@ export function SettingsSidebar() {
           style={{
             background: "var(--color-surface-0)",
             border: "1px solid var(--color-border)",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
           }}
         >
           <span style={{ color: "var(--color-ink-secondary)" }}>
             <MenuIcon />
           </span>
           <span
-            className="flex-1 text-sm font-medium"
+            className="flex-1 text-sm font-medium truncate"
             style={{ color: "var(--color-ink-primary)" }}
           >
             {activeItem?.label ?? "Settings"}
@@ -353,7 +360,7 @@ export function SettingsSidebar() {
         </button>
       </div>
 
-      {/* ── Drawer backdrop ────────────────────────────────────────────── */}
+      {/* ── Drawer backdrop ────────────────────────────────────────────────── */}
       {drawerOpen && (
         <div
           className="fixed inset-0 z-40 lg:hidden"
@@ -365,14 +372,14 @@ export function SettingsSidebar() {
         />
       )}
 
-      {/* ── Slide-in drawer panel ──────────────────────────────────────── */}
+      {/* ── Slide-in drawer (mobile/tablet) ────────────────────────────────── */}
       <div
         className="fixed inset-y-0 left-0 z-50 lg:hidden flex flex-col"
         style={{
           width: 280,
           background: "var(--color-surface-0)",
           borderRight: "1px solid var(--color-border)",
-          boxShadow: "4px 0 24px rgba(0,0,0,0.12)",
+          boxShadow: "4px 0 32px rgba(0,0,0,0.14)",
           transform: drawerOpen ? "translateX(0)" : "translateX(-100%)",
           transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
         }}
@@ -382,24 +389,35 @@ export function SettingsSidebar() {
           className="flex items-center justify-between px-5 py-4 flex-shrink-0"
           style={{ borderBottom: "1px solid var(--color-border)" }}
         >
-          <div>
-            <p
-              className="text-base font-semibold"
-              style={{ color: "var(--color-ink-primary)" }}
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+              style={{
+                background: "var(--color-brand-100, #eff6ff)",
+                color: "var(--color-brand-700)",
+              }}
             >
-              Settings
-            </p>
-            <p
-              className="text-xs mt-0.5"
-              style={{ color: "var(--color-ink-tertiary)" }}
-            >
-              Manage your account
-            </p>
+              {avatarLetter}
+            </div>
+            <div className="min-w-0">
+              <p
+                className="text-sm font-semibold truncate"
+                style={{ color: "var(--color-ink-primary)" }}
+              >
+                {profile?.full_name ?? "Settings"}
+              </p>
+              <p
+                className="text-xs truncate"
+                style={{ color: "var(--color-ink-tertiary)" }}
+              >
+                {user?.email ?? ""}
+              </p>
+            </div>
           </div>
           <button
             type="button"
             onClick={() => setDrawerOpen(false)}
-            className="btn btn-icon btn-ghost"
+            className="btn btn-icon btn-ghost flex-shrink-0"
             aria-label="Close menu"
           >
             <CloseIcon />
@@ -415,9 +433,62 @@ export function SettingsSidebar() {
         </nav>
       </div>
 
-      {/* ── Desktop sticky sidebar (hidden below lg) ───────────────────── */}
-      <aside className="hidden lg:block flex-shrink-0" style={{ width: 200 }}>
-        <nav className="sticky top-8">
+      {/* ── Desktop panel sidebar (lg+) ────────────────────────────────────── */}
+      <aside
+        className="hidden lg:flex flex-col flex-shrink-0 sticky self-start"
+        style={{
+          width: 256,
+          top: 24,
+          maxHeight: "calc(100vh - 48px)",
+          background: "var(--color-surface-0)",
+          border: "1px solid var(--color-border)",
+          borderRadius: 16,
+          boxShadow: "0 2px 16px rgba(0,0,0,0.07)",
+          overflow: "hidden",
+        }}
+      >
+        {/* Panel header — Settings title + user profile */}
+        <div
+          className="flex-shrink-0 px-5 pt-5 pb-4"
+          style={{ borderBottom: "1px solid var(--color-border)" }}
+        >
+          <p
+            className="text-base font-bold mb-4"
+            style={{ color: "var(--color-ink-primary)" }}
+          >
+            Settings
+          </p>
+
+          {/* User avatar + info */}
+          <div className="flex items-center gap-3">
+            <div
+              className="w-11 h-11 rounded-full flex items-center justify-center text-base font-bold flex-shrink-0"
+              style={{
+                background: "var(--color-brand-100, #eff6ff)",
+                color: "var(--color-brand-700)",
+              }}
+            >
+              {avatarLetter}
+            </div>
+            <div className="min-w-0">
+              <p
+                className="text-sm font-semibold truncate"
+                style={{ color: "var(--color-ink-primary)" }}
+              >
+                {profile?.full_name ?? "—"}
+              </p>
+              <p
+                className="text-xs truncate mt-0.5"
+                style={{ color: "var(--color-ink-tertiary)" }}
+              >
+                {user?.email ?? ""}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Panel nav */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
           <NavItems pathname={pathname} />
         </nav>
       </aside>

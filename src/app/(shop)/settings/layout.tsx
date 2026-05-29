@@ -5,8 +5,8 @@ import type { ReactNode } from "react";
 export default function SettingsLayout({ children }: { children: ReactNode }) {
   return (
     <OwnerGuard>
-      {/* Page title — above the sidebar/content split */}
-      <div className="mb-5 sm:mb-7 lg:mb-8">
+      {/* Page header — only visible on mobile/tablet (desktop title lives inside the sidebar panel) */}
+      <div className="lg:hidden mb-5 sm:mb-6">
         <h1
           className="text-xl sm:text-2xl font-semibold mb-1"
           style={{ color: "var(--color-ink-primary)" }}
@@ -18,7 +18,7 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
         </p>
       </div>
 
-      <div className="flex flex-col lg:flex-row lg:gap-10 xl:gap-14 lg:items-start">
+      <div className="flex flex-col lg:flex-row lg:gap-8 lg:items-start">
         <SettingsSidebar />
         <main className="flex-1 min-w-0 w-full max-w-2xl">{children}</main>
       </div>
