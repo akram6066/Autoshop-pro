@@ -16,24 +16,92 @@ interface ShopHeaderProps {
   onSignOut: () => Promise<void>;
 }
 
+// ─── Nav link (icon-only on tablet, icon+label on desktop) ───────────────────
+
+function NavLink({
+  item,
+  pathname,
+  onClick,
+  forceLabel = false,
+}: {
+  item: (typeof NAV)[0];
+  pathname: string;
+  onClick?: () => void;
+  forceLabel?: boolean;
+}) {
+  const active = pathname.startsWith(item.href);
+  return (
+    <Link
+      href={item.href}
+      title={item.label}
+      onClick={onClick}
+      className={`flex items-center justify-center gap-2 h-9 rounded-lg text-sm font-medium transition-all duration-150 flex-shrink-0
+        md:w-9 md:px-0 lg:w-auto lg:px-3${forceLabel ? " !w-auto !px-3" : ""}${active ? " nav-item-active" : ""}`}
+      style={
+        active
+          ? undefined
+          : { color: "var(--color-ink-secondary)", background: "transparent" }
+      }
+    >
+      <span className="flex-shrink-0">{item.icon}</span>
+      <span className={forceLabel ? "block" : "hidden lg:block"}>
+        {item.label}
+      </span>
+    </Link>
+  );
+}
+
+// ─── Dots icon for "More" button ──────────────────────────────────────────────
+
+function DotsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="5" cy="12" r="2" />
+      <circle cx="12" cy="12" r="2" />
+      <circle cx="19" cy="12" r="2" />
+    </svg>
+  );
+}
+
+// ─── ShopHeader ───────────────────────────────────────────────────────────────
+
 export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+
   const menuRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLDivElement>(null);
   const profile = useAuthStore(selectProfile);
 
   const visibleNav = NAV.filter((n) => !n.ownerOnly || role === "owner");
 
+  // Items visible to all roles (staff + owner) — always shown inline on tablet
+  const commonNav = visibleNav.filter((n) => !n.ownerOnly);
+  // Owner-only items — inline on lg+, in "More" dropdown on md-lg
+  const ownerNav = visibleNav.filter((n) => n.ownerOnly);
+  // Highlight "More" button when current page is owner-only
+  const moreActive = ownerNav.some((n) => pathname.startsWith(n.href));
+
   // Close user menu on outside click
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+    function handler(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node))
         setUserMenuOpen(false);
-      }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Close "More" dropdown on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node))
+        setMoreOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   // Body scroll lock while mobile drawer is open
@@ -79,35 +147,79 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
           />
         </Link>
 
-        {/* ── Desktop / Tablet nav (md+) ─────────────────────────────────── */}
-        {/*   md–lg:  icon only (compact)                                     */}
-        {/*   lg+:    icon + label (full)                                      */}
+        {/* ── Nav (md+) ──────────────────────────────────────────────────── */}
         <nav className="hidden md:flex items-center gap-0.5 flex-1 ml-1 lg:ml-3">
-          {visibleNav.map((item) => {
-            const active = pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={item.label}
-                className={`flex items-center justify-center gap-2 h-9 rounded-lg text-sm font-medium transition-all duration-150 flex-shrink-0
-                  md:w-9 md:px-0 lg:w-auto lg:px-3${active ? " nav-item-active" : ""}`}
-                style={
-                  active
-                    ? undefined
-                    : {
-                        color: "var(--color-ink-secondary)",
-                        background: "transparent",
-                      }
-                }
-              >
-                {/* Icon — always visible */}
-                <span className="flex-shrink-0">{item.icon}</span>
-                {/* Label — lg+ only */}
-                <span className="hidden lg:block">{item.label}</span>
-              </Link>
-            );
-          })}
+          {/* Common items — always visible inline */}
+          {commonNav.map((item) => (
+            <NavLink key={item.href} item={item} pathname={pathname} />
+          ))}
+
+          {/* Owner-only items */}
+          {ownerNav.length > 0 && (
+            <>
+              {/* lg+: inline alongside common items */}
+              <div className="hidden lg:flex items-center gap-0.5">
+                {ownerNav.map((item) => (
+                  <NavLink key={item.href} item={item} pathname={pathname} />
+                ))}
+              </div>
+
+              {/* md-lg: "More" dropdown */}
+              <div className="lg:hidden relative" ref={moreRef}>
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen((o) => !o)}
+                  title="More"
+                  className={`flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition-all flex-shrink-0${
+                    moreActive ? " nav-item-active" : ""
+                  }`}
+                  style={
+                    moreActive
+                      ? undefined
+                      : {
+                          color: "var(--color-ink-secondary)",
+                          background: "transparent",
+                        }
+                  }
+                >
+                  <DotsIcon />
+                </button>
+
+                {moreOpen && (
+                  <div
+                    className="absolute top-full left-0 mt-1 w-48 rounded-xl py-1.5 z-50 animate-fade-in-up"
+                    style={{
+                      background: "var(--color-surface-0)",
+                      border: "1px solid var(--color-border)",
+                      boxShadow: "var(--shadow-raised)",
+                    }}
+                  >
+                    {ownerNav.map((item) => {
+                      const active = pathname.startsWith(item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMoreOpen(false)}
+                          className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors${
+                            active ? " nav-item-active" : ""
+                          }`}
+                          style={
+                            active
+                              ? undefined
+                              : { color: "var(--color-ink-secondary)" }
+                          }
+                        >
+                          {item.icon}
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </nav>
 
         {/* ── Right side ────────────────────────────────────────────────── */}
@@ -116,7 +228,7 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
           <ShopSwitcher />
           <ThemeToggle />
 
-          {/* User avatar menu — md+ */}
+          {/* User avatar — md+ */}
           <div className="hidden md:block relative" ref={menuRef}>
             <button
               type="button"
@@ -240,7 +352,6 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
             onClick={() => setMobileOpen(false)}
           />
 
-          {/* Drawer panel */}
           <nav
             className="md:hidden relative z-40 border-t"
             style={{
@@ -256,7 +367,9 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
                     key={item.href}
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all${active ? " nav-item-active" : ""}`}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all${
+                      active ? " nav-item-active" : ""
+                    }`}
                     style={
                       active
                         ? undefined
