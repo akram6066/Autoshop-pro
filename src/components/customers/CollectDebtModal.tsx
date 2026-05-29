@@ -23,6 +23,7 @@ export function CollectDebtModal({ customer, shopId, userId, onClose }: Props) {
   const owed = Math.abs(customer.balance);
   const parsed = parseFloat(amount);
   const isValid = !isNaN(parsed) && parsed > 0;
+  const isOverpayment = isValid && parsed > owed;
   const balanceAfter = isValid ? customer.balance + parsed : null;
   const succeeded = finalBalance !== null;
 
@@ -203,28 +204,53 @@ export function CollectDebtModal({ customer, shopId, userId, onClose }: Props) {
               />
             </div>
 
-            {/* Balance preview */}
-            {isValid && balanceAfter !== null && (
-              <p
-                className="text-xs"
-                style={{ color: "var(--color-ink-tertiary)" }}
-              >
-                Balance after:{" "}
-                <span
+            {/* Balance preview or overpayment warning */}
+            {isValid &&
+              balanceAfter !== null &&
+              (isOverpayment ? (
+                <div
+                  className="rounded-lg px-3 py-2.5"
                   style={{
-                    fontWeight: 500,
-                    color:
-                      balanceAfter >= 0
-                        ? "var(--color-success)"
-                        : "var(--color-danger)",
+                    background: "rgba(245,158,11,0.08)",
+                    border: "1px solid rgba(245,158,11,0.28)",
                   }}
                 >
-                  {balanceAfter >= 0
-                    ? "Settled"
-                    : `${formatCurrency(Math.abs(balanceAfter))} remaining`}
-                </span>
-              </p>
-            )}
+                  <p
+                    className="text-xs font-semibold mb-0.5"
+                    style={{ color: "var(--color-warning)" }}
+                  >
+                    Exceeds debt by {formatCurrency(parsed - owed)}
+                  </p>
+                  <p
+                    className="text-xs"
+                    style={{ color: "var(--color-ink-secondary)" }}
+                  >
+                    Customer will get a credit of{" "}
+                    <strong>{formatCurrency(balanceAfter)}</strong>. Only
+                    confirm if this is intentional.
+                  </p>
+                </div>
+              ) : (
+                <p
+                  className="text-xs"
+                  style={{ color: "var(--color-ink-tertiary)" }}
+                >
+                  Balance after:{" "}
+                  <span
+                    style={{
+                      fontWeight: 500,
+                      color:
+                        balanceAfter >= 0
+                          ? "var(--color-success)"
+                          : "var(--color-danger)",
+                    }}
+                  >
+                    {balanceAfter >= 0
+                      ? "Settled"
+                      : `${formatCurrency(Math.abs(balanceAfter))} remaining`}
+                  </span>
+                </p>
+              ))}
 
             {error && (
               <p className="text-sm" style={{ color: "var(--color-danger)" }}>
@@ -236,9 +262,20 @@ export function CollectDebtModal({ customer, shopId, userId, onClose }: Props) {
               <button
                 type="submit"
                 disabled={isPending || !isValid}
-                className="btn btn-primary btn-sm flex-1"
+                className="btn btn-sm flex-1"
+                style={{
+                  background: isOverpayment
+                    ? "var(--color-warning)"
+                    : "var(--color-brand-600)",
+                  color: "#fff",
+                  opacity: isPending || !isValid ? 0.6 : 1,
+                }}
               >
-                {isPending ? "Saving…" : "Record payment"}
+                {isPending
+                  ? "Saving…"
+                  : isOverpayment
+                    ? "Confirm overpayment"
+                    : "Record payment"}
               </button>
               <button
                 type="button"
