@@ -55,7 +55,7 @@ export default function SettingsPage() {
   }, [supabase]);
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-5xl">
       <div className="mb-8">
         <h1
           className="text-2xl font-semibold mb-1"
@@ -68,25 +68,34 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <PlanUsageSection
-        sub={sub}
-        subLoading={subLoading}
-        ownedShopCount={ownedShopCount}
-        shopId={shopId}
-      />
-      <MyShopsSection sub={sub} />
-      <Section title="Shop details">
-        <ShopForm />
-      </Section>
-      <Section title="Product categories">
-        <CategoriesSection />
-      </Section>
-      <Section title="Storage rooms">
-        <RoomsSection />
-      </Section>
-      <Section title="Team">
-        <TeamSection maxStaff={sub?.plan.maxStaffPerShop ?? 2} />
-      </Section>
+      <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-6">
+        {/* Left column — account & shop identity */}
+        <div>
+          <PlanUsageSection
+            sub={sub}
+            subLoading={subLoading}
+            ownedShopCount={ownedShopCount}
+            shopId={shopId}
+          />
+          <MyShopsSection sub={sub} />
+          <Section title="Shop details">
+            <ShopForm />
+          </Section>
+        </div>
+
+        {/* Right column — configuration */}
+        <div>
+          <Section title="Product categories">
+            <CategoriesSection />
+          </Section>
+          <Section title="Storage rooms">
+            <RoomsSection />
+          </Section>
+          <Section title="Team">
+            <TeamSection maxStaff={sub?.plan.maxStaffPerShop ?? 2} />
+          </Section>
+        </div>
+      </div>
 
       <Section title="Danger zone" danger>
         <p

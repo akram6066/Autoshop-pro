@@ -104,7 +104,7 @@ export default async function BillingPage({
   };
 
   return (
-    <div style={{ maxWidth: 720, width: "100%" }}>
+    <div className="max-w-4xl w-full">
       <h1
         style={{
           fontSize: "1.5rem",
