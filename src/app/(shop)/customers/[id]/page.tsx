@@ -130,12 +130,27 @@ function RecordPaymentForm({
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1">
-          <label
-            className="block text-xs font-medium mb-1"
-            style={{ color: "var(--color-ink-secondary)" }}
-          >
-            Amount (KES)
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label
+              className="text-xs font-medium"
+              style={{ color: "var(--color-ink-secondary)" }}
+            >
+              Amount (KES)
+            </label>
+            {balance < 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setAmount(String(Math.abs(balance)));
+                  setError("");
+                }}
+                className="text-xs font-medium"
+                style={{ color: "var(--color-brand-600)" }}
+              >
+                Pay in full
+              </button>
+            )}
+          </div>
           <input
             type="number"
             min="1"
