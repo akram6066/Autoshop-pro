@@ -174,7 +174,7 @@ export function CollectDebtModal({ customer, shopId, userId, onClose }: Props) {
               <input
                 type="number"
                 min="1"
-                step="50"
+                step="any"
                 placeholder="0"
                 value={amount}
                 onChange={(e) => {
