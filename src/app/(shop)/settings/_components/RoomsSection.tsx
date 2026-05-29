@@ -89,9 +89,9 @@ export function RoomsSection() {
           ))}
         </div>
       )}
-      <form onSubmit={handleAdd} className="flex gap-2">
+      <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-2">
         <input
-          className="input flex-1"
+          className="input w-full sm:flex-1"
           type="text"
           placeholder="New room name…"
           value={newRoomName}
@@ -99,7 +99,7 @@ export function RoomsSection() {
         />
         <button
           type="submit"
-          className="btn btn-secondary"
+          className="btn btn-secondary w-full sm:w-auto"
           disabled={!newRoomName.trim()}
         >
           Add room

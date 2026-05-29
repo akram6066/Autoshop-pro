@@ -145,34 +145,36 @@ export function CategoriesSection() {
         </div>
       )}
       <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
-            className="input flex-1"
+            className="input w-full sm:flex-1"
             type="text"
             placeholder={editing ? "Edit category name…" : "New category name…"}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={!name.trim()}
-          >
-            {editing ? "Update" : "Add"}
-          </button>
-          {editing && (
+          <div className="flex gap-2">
             <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => {
-                setEditing(null);
-                setName("");
-                setColor(PRESET_COLORS[0]);
-              }}
+              type="submit"
+              className="btn btn-primary flex-1 sm:flex-none"
+              disabled={!name.trim()}
             >
-              Cancel
+              {editing ? "Update" : "Add"}
             </button>
-          )}
+            {editing && (
+              <button
+                type="button"
+                className="btn btn-secondary flex-1 sm:flex-none"
+                onClick={() => {
+                  setEditing(null);
+                  setName("");
+                  setColor(PRESET_COLORS[0]);
+                }}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <span

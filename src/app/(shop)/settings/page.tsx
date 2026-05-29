@@ -145,10 +145,10 @@ export default function SettingsPage() {
                 {deleteMsg}
               </p>
             )}
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn btn-secondary w-full sm:w-auto"
                 onClick={() => {
                   setShowDeleteConfirm(false);
                   setDeleteMsg("");
@@ -159,7 +159,7 @@ export default function SettingsPage() {
               </button>
               <button
                 type="button"
-                className="btn btn-danger"
+                className="btn btn-danger w-full sm:w-auto"
                 onClick={handleDeleteAccount}
                 disabled={isDeletingAccount}
               >

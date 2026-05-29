@@ -203,10 +203,10 @@ export function TeamSection({ maxStaff }: { maxStaff: number }) {
                 Set a new password for this staff member. They will use this to
                 log in.
               </p>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
-                  className="input text-sm"
+                  className="input text-sm w-full sm:flex-1"
                   placeholder="New password (min 8 chars)"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -215,7 +215,7 @@ export function TeamSection({ maxStaff }: { maxStaff: number }) {
                   type="button"
                   onClick={handleResetPassword}
                   disabled={isManaging || newPassword.length < 8}
-                  className="btn btn-primary btn-sm whitespace-nowrap"
+                  className="btn btn-primary btn-sm w-full sm:w-auto whitespace-nowrap"
                 >
                   Reset
                 </button>
