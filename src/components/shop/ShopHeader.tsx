@@ -82,7 +82,7 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
         {/* ── Desktop / Tablet nav (md+) ─────────────────────────────────── */}
         {/*   md–lg:  icon only (compact)                                     */}
         {/*   lg+:    icon + label (full)                                      */}
-        <nav className="hidden md:flex items-center gap-0.5 flex-1 ml-1 lg:ml-3 overflow-x-auto">
+        <nav className="hidden md:flex items-center gap-0.5 flex-1 ml-1 lg:ml-3">
           {visibleNav.map((item) => {
             const active = pathname.startsWith(item.href);
             return (
