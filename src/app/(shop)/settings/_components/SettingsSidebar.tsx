@@ -194,16 +194,16 @@ export function SettingsSidebar() {
 
   return (
     <>
-      {/* Mobile: horizontal scrollable tabs */}
-      <div className="lg:hidden w-full mb-6 -mx-1 px-1 overflow-x-auto">
-        <div className="flex gap-1.5 pb-1 min-w-max">
+      {/* Mobile / Tablet: wrapping pill tabs */}
+      <div className="lg:hidden w-full mb-6">
+        <div className="flex flex-wrap gap-2">
           {ALL_ITEMS.map(({ href, label, danger }) => {
             const active = pathname === href;
             return (
               <Link
                 key={href}
                 href={href}
-                className="flex-shrink-0 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+                className="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors"
                 style={{
                   background: active
                     ? danger

@@ -15,7 +15,7 @@ export function Section({
       style={danger ? { borderColor: "var(--color-danger)" } : undefined}
     >
       <div
-        className="px-5 py-4"
+        className="px-4 py-3 sm:px-5 sm:py-4"
         style={{
           borderBottom: "1px solid var(--color-border)",
           ...(danger ? { background: "var(--color-danger-light)" } : {}),
@@ -28,7 +28,7 @@ export function Section({
           {title}
         </h2>
       </div>
-      <div className="p-5">{children}</div>
+      <div className="p-4 sm:p-5">{children}</div>
     </div>
   );
 }
