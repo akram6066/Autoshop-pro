@@ -23,8 +23,6 @@ export default function EmailConfirmBanner() {
     return () => clearInterval(id);
   }, [cooldown]);
 
-  // mounted=false on server → no banner rendered → no hydration mismatch.
-  // After mount (client only), sessionStorage is safe to read directly in render.
   if (!mounted || !user || user.email_confirmed_at || dismissed) return null;
   if (sessionStorage.getItem(DISMISSED_KEY)) return null;
 
@@ -42,7 +40,7 @@ export default function EmailConfirmBanner() {
       setResent(true);
       setCooldown(RESEND_COOLDOWN_S);
     } catch {
-      setResendError("Couldn't send the email. Please try again in a moment.");
+      setResendError("Couldn't send. Try again.");
     } finally {
       setResending(false);
     }
@@ -57,131 +55,171 @@ export default function EmailConfirmBanner() {
     <div
       role="alert"
       style={{
-        background: resent
-          ? "var(--color-success-light)"
-          : "var(--color-warning-light)",
-        borderBottom: `1px solid ${resent ? "var(--color-success)" : "var(--color-warning)"}`,
-        padding: "10px 24px",
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        fontSize: "0.875rem",
-        color: resent
-          ? "var(--color-ink-secondary)"
-          : "var(--color-warning-text)",
+        background: resent ? "#f0fdf4" : "#fefce8",
+        borderBottom: `1px solid ${resent ? "#86efac" : "#fde68a"}`,
+        padding: "10px 20px",
       }}
     >
-      {/* Icon: envelope while pending, checkmark after sent */}
-      <svg
-        width="16"
-        height="16"
-        fill="none"
-        viewBox="0 0 24 24"
-        style={{ flexShrink: 0 }}
-        aria-hidden="true"
-      >
-        {resent ? (
-          <path
-            d="M20 6L9 17l-5-5"
-            stroke="var(--color-success)"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        ) : (
-          <path
-            d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        )}
-      </svg>
-
-      <span style={{ flex: 1 }}>
-        {resent ? (
-          <>
-            Confirmation email sent to{" "}
-            <strong style={{ color: "var(--color-ink-primary)" }}>
-              {user.email}
-            </strong>{" "}
-            — check your inbox and spam folder, then click the link.
-          </>
-        ) : (
-          <>
-            Please confirm your email address{" "}
-            <strong style={{ color: "var(--color-ink-primary)" }}>
-              {user.email}
-            </strong>{" "}
-            to secure your account.
-          </>
-        )}
-      </span>
-
       <div
         style={{
+          maxWidth: "var(--max-w, 1280px)",
+          margin: "0 auto",
           display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-end",
-          gap: 4,
-          flexShrink: 0,
+          alignItems: "center",
+          gap: 10,
+          flexWrap: "wrap",
         }}
       >
-        {resent ? (
-          cooldown > 0 ? (
-            <span style={{ fontSize: "0.75rem" }}>Resend in {cooldown}s</span>
+        {/* Icon */}
+        <div
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: "50%",
+            background: resent ? "#dcfce7" : "#fef9c3",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          {resent ? (
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+              <path
+                d="M20 6L9 17l-5-5"
+                stroke="#16a34a"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          ) : (
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+              <rect
+                x="2"
+                y="4"
+                width="20"
+                height="16"
+                rx="3"
+                stroke="#a16207"
+                strokeWidth="1.8"
+              />
+              <path
+                d="M2 7l8.586 5.586a2 2 0 002.828 0L22 7"
+                stroke="#a16207"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+          )}
+        </div>
+
+        {/* Text */}
+        <p
+          style={{
+            flex: 1,
+            margin: 0,
+            fontSize: "0.875rem",
+            color: resent ? "#15803d" : "#92400e",
+            minWidth: 0,
+          }}
+        >
+          {resent ? (
+            <>
+              Confirmation email sent to{" "}
+              <strong style={{ color: resent ? "#166534" : "#78350f" }}>
+                {user.email}
+              </strong>{" "}
+              — check inbox and spam, then click the link.
+            </>
+          ) : (
+            <>
+              Confirm your email{" "}
+              <strong style={{ color: "#78350f" }}>{user.email}</strong> to keep
+              your account secure.
+            </>
+          )}
+        </p>
+
+        {/* Actions */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexShrink: 0,
+          }}
+        >
+          {resendError && (
+            <span style={{ fontSize: "0.75rem", color: "var(--color-danger)" }}>
+              {resendError}
+            </span>
+          )}
+
+          {resent ? (
+            cooldown > 0 ? (
+              <span style={{ fontSize: "0.8125rem", color: "#6b7280" }}>
+                Resend in {cooldown}s
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setResent(false);
+                  setResendError("");
+                }}
+                className="btn btn-sm btn-secondary"
+              >
+                Send again
+              </button>
+            )
           ) : (
             <button
               type="button"
-              onClick={() => {
-                setResent(false);
-                setResendError("");
+              onClick={handleResend}
+              disabled={resending}
+              className="btn btn-sm"
+              style={{
+                background: "#fef9c3",
+                border: "1px solid #fde68a",
+                color: "#78350f",
+                fontWeight: 600,
               }}
-              className="btn btn-sm btn-secondary"
             >
-              Send again
+              {resending ? "Sending…" : "Resend email"}
             </button>
-          )
-        ) : (
+          )}
+
+          {/* Dismiss */}
           <button
             type="button"
-            onClick={handleResend}
-            disabled={resending}
-            className="btn btn-sm btn-secondary"
+            onClick={handleDismiss}
+            aria-label="Dismiss"
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: resent ? "#6b7280" : "#a16207",
+              flexShrink: 0,
+            }}
           >
-            {resending ? "Sending…" : "Resend email"}
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24">
+              <path
+                d="M18 6L6 18M6 6l12 12"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
-        )}
-        {resendError && (
-          <span style={{ fontSize: "0.75rem", color: "var(--color-danger)" }}>
-            {resendError}
-          </span>
-        )}
+        </div>
       </div>
-
-      <button
-        type="button"
-        onClick={handleDismiss}
-        className="btn-icon"
-        aria-label="Dismiss email confirmation banner"
-        style={{ flexShrink: 0 }}
-      >
-        <svg
-          width="14"
-          height="14"
-          fill="none"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path
-            d="M18 6L6 18M6 6l12 12"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-      </button>
     </div>
   );
 }
