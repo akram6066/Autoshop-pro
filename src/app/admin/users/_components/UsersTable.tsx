@@ -6,6 +6,7 @@ import {
   AdminTD,
 } from "@/app/admin/_components/AdminUI";
 import { DeleteUserButton } from "./DeleteUserButton";
+import { AdminRoleButton } from "./AdminRoleButton";
 
 export interface MergedUser {
   id: string;
@@ -25,7 +26,7 @@ export function UsersTable({ users, currentUserId }: Props) {
     <table style={{ width: "100%", borderCollapse: "collapse" }}>
       <thead>
         <tr style={{ background: "#f8fafc" }}>
-          {["User", "Email", "Role", "Joined", "Action"].map((h) => (
+          {["User", "Email", "Role", "Joined", "Admin", "Action"].map((h) => (
             <th
               key={h}
               style={{
@@ -46,7 +47,7 @@ export function UsersTable({ users, currentUserId }: Props) {
       </thead>
       <tbody>
         {users.length === 0 ? (
-          <AdminEmptyRow colSpan={5} message="No users found." />
+          <AdminEmptyRow colSpan={6} message="No users found." />
         ) : (
           users.map((u) => (
             <tr key={u.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
@@ -81,6 +82,14 @@ export function UsersTable({ users, currentUserId }: Props) {
               </AdminTD>
               <AdminTD style={{ fontSize: "0.8125rem", color: "#94a3b8" }}>
                 {new Date(u.created_at).toLocaleDateString()}
+              </AdminTD>
+              <AdminTD>
+                <AdminRoleButton
+                  userId={u.id}
+                  userName={u.full_name ?? u.email ?? u.id}
+                  isAdmin={u.is_admin}
+                  isSelf={u.id === currentUserId}
+                />
               </AdminTD>
               <AdminTD>
                 <DeleteUserButton
