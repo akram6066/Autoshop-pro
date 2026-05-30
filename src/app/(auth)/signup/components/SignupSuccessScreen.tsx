@@ -12,6 +12,12 @@ interface Props {
 
 const RESEND_COOLDOWN_S = 60;
 
+const STEPS = [
+  { n: "1", label: "Confirm email" },
+  { n: "2", label: "Set up shop" },
+  { n: "3", label: "Start selling" },
+];
+
 export default function SignupSuccessScreen({
   email,
   smtpFailed,
@@ -44,7 +50,7 @@ export default function SignupSuccessScreen({
     }
   }
 
-  const showWarning = smtpFailed && !resent;
+  const loginHref = plan ? `/login?plan=${plan}` : "/login";
 
   return (
     <div
@@ -53,192 +59,390 @@ export default function SignupSuccessScreen({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 24,
+        padding: "24px 16px",
         background: "var(--color-surface-1)",
       }}
     >
       <div
-        className="card p-8 animate-scale-in"
-        style={{ maxWidth: 420, width: "100%", textAlign: "center" }}
+        className="card animate-scale-in"
+        style={{ maxWidth: 440, width: "100%", overflow: "hidden" }}
       >
-        {/* Icon */}
+        {/* ── Top gradient accent ───────────────────────────── */}
         <div
           style={{
-            width: 68,
-            height: 68,
-            borderRadius: "50%",
-            background: showWarning
-              ? "var(--color-warning-light)"
-              : "var(--color-success-light)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            margin: "0 auto 24px",
+            height: 4,
+            background:
+              smtpFailed && !resent
+                ? "linear-gradient(90deg,#f59e0b,#d97706)"
+                : "linear-gradient(90deg,#2563eb,#4f46e5,#7c3aed)",
+            margin: "0 0 0 0",
           }}
-        >
-          {showWarning ? (
-            <svg width="30" height="30" fill="none" viewBox="0 0 24 24">
-              <path
-                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                stroke="var(--color-warning)"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          ) : (
-            <svg width="30" height="30" fill="none" viewBox="0 0 24 24">
-              <path
-                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                stroke="var(--color-success)"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          )}
-        </div>
+        />
 
-        <h2
-          style={{
-            fontWeight: 700,
-            fontSize: "1.375rem",
-            color: "var(--color-ink-primary)",
-            marginBottom: 10,
-          }}
-        >
-          {resent ? "Email sent!" : "Account created!"}
-        </h2>
-
-        <p
-          style={{
-            fontSize: "0.9375rem",
-            color: "var(--color-ink-secondary)",
-            lineHeight: 1.65,
-            marginBottom: 6,
-          }}
-        >
-          {resent ? (
-            <>
-              Confirmation email sent to{" "}
-              <strong style={{ color: "var(--color-ink-primary)" }}>
-                {email}
-              </strong>
-              . Check your inbox and spam folder, then click the link to
-              activate your account.
-            </>
-          ) : smtpFailed ? (
-            <>
-              Your account was created but we couldn&apos;t send a confirmation
-              email to{" "}
-              <strong style={{ color: "var(--color-ink-primary)" }}>
-                {email}
-              </strong>
-              . Use the button below to try again.
-            </>
-          ) : (
-            <>
-              We sent a confirmation link to{" "}
-              <strong style={{ color: "var(--color-ink-primary)" }}>
-                {email}
-              </strong>
-              . Click it to activate your account, then sign in here.
-            </>
-          )}
-        </p>
-
-        <p
-          style={{
-            fontSize: "0.8125rem",
-            color: "var(--color-ink-ghost)",
-            marginBottom: 28,
-          }}
-        >
-          Check your spam folder if you don&apos;t see it.
-        </p>
-
-        {/* Resend button */}
-        {!resent && (
-          <button
-            type="button"
-            onClick={handleResend}
-            disabled={resending}
-            className="btn btn-primary"
+        <div style={{ padding: "36px 32px 32px" }}>
+          {/* ── Icon ───────────────────────────────────────── */}
+          <div
             style={{
-              width: "100%",
+              display: "flex",
               justifyContent: "center",
-              padding: "12px",
-              fontSize: "1rem",
-              marginBottom: 12,
+              marginBottom: 20,
             }}
           >
-            {resending ? (
-              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <svg
-                  className="animate-spin"
-                  width="15"
-                  height="15"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
+            <div
+              style={{
+                width: 76,
+                height: 76,
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: resent
+                  ? "linear-gradient(135deg,#dcfce7,#bbf7d0)"
+                  : smtpFailed
+                    ? "linear-gradient(135deg,#fef9c3,#fde68a)"
+                    : "linear-gradient(135deg,#dbeafe,#ede9fe)",
+                boxShadow: resent
+                  ? "0 0 0 8px rgba(134,239,172,0.18)"
+                  : smtpFailed
+                    ? "0 0 0 8px rgba(253,230,138,0.2)"
+                    : "0 0 0 8px rgba(99,102,241,0.1)",
+                transition: "all 0.3s",
+              }}
+            >
+              {resent ? (
+                /* Checkmark */
+                <svg width="32" height="32" fill="none" viewBox="0 0 24 24">
+                  <path
+                    d="M20 6L9 17l-5-5"
+                    stroke="#16a34a"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ) : smtpFailed ? (
+                /* Envelope warning */
+                <svg width="32" height="32" fill="none" viewBox="0 0 24 24">
+                  <rect
+                    x="2"
+                    y="4"
+                    width="20"
+                    height="16"
+                    rx="3"
+                    stroke="#d97706"
+                    strokeWidth="1.8"
+                  />
+                  <path
+                    d="M2 7l8.586 5.586a2 2 0 002.828 0L22 7"
+                    stroke="#d97706"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M12 12v3M12 17h.01"
+                    stroke="#d97706"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              ) : (
+                /* Sparkle checkmark — account just created */
+                <svg width="32" height="32" fill="none" viewBox="0 0 24 24">
                   <circle
                     cx="12"
                     cy="12"
                     r="10"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeOpacity="0.25"
+                    stroke="#3b6ef5"
+                    strokeWidth="1.6"
                   />
                   <path
-                    d="M12 2a10 10 0 0110 10"
-                    stroke="currentColor"
-                    strokeWidth="3"
+                    d="M8 12l3 3 5-5"
+                    stroke="#3b6ef5"
+                    strokeWidth="2"
                     strokeLinecap="round"
+                    strokeLinejoin="round"
                   />
                 </svg>
-                Sending…
-              </span>
-            ) : smtpFailed ? (
-              "Resend confirmation email"
-            ) : (
-              "Resend email"
-            )}
-          </button>
-        )}
+              )}
+            </div>
+          </div>
 
-        {resendError && (
-          <p
+          {/* ── Headline ───────────────────────────────────── */}
+          <h1
             style={{
-              fontSize: "0.8125rem",
-              color: "var(--color-danger)",
-              marginBottom: 12,
+              textAlign: "center",
+              fontWeight: 800,
+              fontSize: "1.5rem",
+              color: "var(--color-ink-primary)",
+              letterSpacing: "-0.025em",
+              marginBottom: 8,
             }}
           >
-            {resendError}
-          </p>
-        )}
+            {resent
+              ? "Email sent!"
+              : smtpFailed
+                ? "Account created"
+                : "Account created! 🎉"}
+          </h1>
 
-        {/* Sign-in CTA — shown after resend and on normal confirmation path after cooldown */}
-        {resent && (
-          <>
+          {/* ── Subheading ─────────────────────────────────── */}
+          <p
+            style={{
+              textAlign: "center",
+              fontSize: "0.9375rem",
+              color: "var(--color-ink-secondary)",
+              lineHeight: 1.65,
+              marginBottom: 20,
+            }}
+          >
+            {resent
+              ? "New confirmation link sent to:"
+              : smtpFailed
+                ? "We couldn't send a confirmation email. Try resending below."
+                : "One last step — confirm your email to activate your account."}
+          </p>
+
+          {/* ── Email pill ─────────────────────────────────── */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              padding: "10px 16px",
+              borderRadius: 10,
+              background: "var(--color-surface-1)",
+              border: "1px solid var(--color-border)",
+              marginBottom: 20,
+            }}
+          >
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
+              <rect
+                x="2"
+                y="4"
+                width="20"
+                height="16"
+                rx="3"
+                stroke="var(--color-ink-tertiary)"
+                strokeWidth="1.75"
+              />
+              <path
+                d="M2 7l8.586 5.586a2 2 0 002.828 0L22 7"
+                stroke="var(--color-ink-tertiary)"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span
+              style={{
+                fontSize: "0.9375rem",
+                fontWeight: 700,
+                color: "var(--color-ink-primary)",
+                wordBreak: "break-all",
+              }}
+            >
+              {email}
+            </span>
+          </div>
+
+          {/* ── 3-step journey ─────────────────────────────── */}
+          {!smtpFailed && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr auto 1fr auto 1fr",
+                alignItems: "center",
+                gap: 6,
+                padding: "14px 10px",
+                borderRadius: 10,
+                background: "var(--color-surface-1)",
+                border: "1px solid var(--color-border)",
+                marginBottom: 24,
+              }}
+            >
+              {STEPS.flatMap((step, i) => {
+                const done = resent ? i < 1 : false;
+                const active = resent ? i === 1 : i === 0;
+                return [
+                  <div key={step.n} style={{ textAlign: "center" }}>
+                    <div
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        margin: "0 auto 5px",
+                        background: done
+                          ? "var(--color-success)"
+                          : active
+                            ? "var(--color-brand-500)"
+                            : "var(--color-surface-2)",
+                        transition: "background 0.2s",
+                      }}
+                    >
+                      {done ? (
+                        <svg
+                          width="12"
+                          height="12"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M20 6L9 17l-5-5"
+                            stroke="white"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: "0.6875rem",
+                            fontWeight: 800,
+                            color: active ? "white" : "var(--color-ink-ghost)",
+                          }}
+                        >
+                          {step.n}
+                        </span>
+                      )}
+                    </div>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "0.6875rem",
+                        fontWeight: 600,
+                        color:
+                          active || done
+                            ? "var(--color-ink-secondary)"
+                            : "var(--color-ink-ghost)",
+                      }}
+                    >
+                      {step.label}
+                    </p>
+                  </div>,
+                  i < STEPS.length - 1 ? (
+                    <svg
+                      key={`arrow-${i}`}
+                      width="14"
+                      height="14"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M9 18l6-6-6-6"
+                        stroke="var(--color-ink-ghost)"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  ) : null,
+                ].filter(Boolean);
+              })}
+            </div>
+          )}
+
+          {/* ── After resend: Sign in CTA ───────────────────── */}
+          {resent && (
             <Link
-              href={plan ? `/login?plan=${plan}` : "/login"}
+              href={loginHref}
               className="btn btn-primary"
               style={{
                 width: "100%",
                 justifyContent: "center",
+                padding: "13px",
+                marginBottom: 12,
+                fontSize: "0.9375rem",
+              }}
+            >
+              Go to sign in →
+            </Link>
+          )}
+
+          {/* ── Resend button ──────────────────────────────── */}
+          {!resent && (
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resending}
+              className={smtpFailed ? "btn btn-primary" : "btn btn-secondary"}
+              style={{
+                width: "100%",
+                justifyContent: "center",
                 padding: "12px",
-                fontSize: "1rem",
                 marginBottom: 12,
               }}
             >
-              Sign in →
-            </Link>
+              {resending ? (
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <svg
+                    width="14"
+                    height="14"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    style={{ animation: "spin 0.7s linear infinite" }}
+                  >
+                    <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeOpacity="0.25"
+                    />
+                    <path
+                      d="M12 2a10 10 0 0110 10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  Sending…
+                </span>
+              ) : smtpFailed ? (
+                "Resend confirmation email"
+              ) : (
+                "Resend email"
+              )}
+            </button>
+          )}
+
+          {/* ── Error message ──────────────────────────────── */}
+          {resendError && (
             <p
-              style={{ fontSize: "0.8125rem", color: "var(--color-ink-ghost)" }}
+              style={{
+                fontSize: "0.8125rem",
+                color: "var(--color-danger)",
+                textAlign: "center",
+                padding: "8px 12px",
+                background: "var(--color-danger-light)",
+                borderRadius: 8,
+                marginBottom: 12,
+              }}
+            >
+              {resendError}
+            </p>
+          )}
+
+          {/* ── Cooldown / send again ──────────────────────── */}
+          {resent && (
+            <p
+              style={{
+                textAlign: "center",
+                fontSize: "0.8125rem",
+                color: "var(--color-ink-ghost)",
+                marginBottom: 16,
+              }}
             >
               {cooldown > 0 ? (
-                <>Didn&apos;t receive it? You can resend in {cooldown}s.</>
+                <>
+                  Didn&apos;t receive it? Resend in <strong>{cooldown}s</strong>
+                  .
+                </>
               ) : (
                 <button
                   type="button"
@@ -260,31 +464,62 @@ export default function SignupSuccessScreen({
                 </button>
               )}
             </p>
-          </>
-        )}
+          )}
 
-        {/* Already confirmed? Sign in — shown while resend is pending */}
-        {!resent && (
-          <p
+          {/* ── Divider ────────────────────────────────────── */}
+          <div
             style={{
-              fontSize: "0.8125rem",
-              color: "var(--color-ink-ghost)",
-              marginTop: 8,
+              height: 1,
+              background: "var(--color-border-subtle)",
+              margin: "4px 0 16px",
+            }}
+          />
+
+          {/* ── Footer links ───────────────────────────────── */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+              alignItems: "center",
             }}
           >
-            Already confirmed?{" "}
-            <Link
-              href={plan ? `/login?plan=${plan}` : "/login"}
+            <p
               style={{
-                color: "var(--color-brand-600)",
-                textDecoration: "none",
-                fontWeight: 600,
+                margin: 0,
+                fontSize: "0.8125rem",
+                color: "var(--color-ink-ghost)",
+                textAlign: "center",
               }}
             >
-              Sign in →
-            </Link>
-          </p>
-        )}
+              Not in inbox?{" "}
+              <strong style={{ color: "var(--color-ink-tertiary)" }}>
+                Check spam folder.
+              </strong>
+            </p>
+            {!resent && (
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "0.8125rem",
+                  color: "var(--color-ink-ghost)",
+                }}
+              >
+                Already confirmed?{" "}
+                <Link
+                  href={loginHref}
+                  style={{
+                    color: "var(--color-brand-600)",
+                    textDecoration: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  Sign in →
+                </Link>
+              </p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
