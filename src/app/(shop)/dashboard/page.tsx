@@ -6,6 +6,7 @@ import type { LowStockProduct } from "@/types/app";
 import DashboardSkeleton from "./loading";
 import { getSubscription, isActive, daysLeft } from "@/lib/subscription";
 import { SubscriptionBanner } from "./_components/SubscriptionBanner";
+import { LimitSummaryBanner } from "./_components/LimitSummaryBanner";
 import { ShopsGrid } from "./_components/ShopsGrid";
 import type { ShopRow } from "./_components/ShopsGrid";
 import { KPICards } from "./_components/KPICards";
@@ -62,33 +63,57 @@ async function DashboardContent() {
 
   // HEAD request per shop — transfers only the count header, not row data.
   // For the typical 1-2 shop case this is 1-2 cheap parallel requests.
-  const [shopCounts, lowStockRes, todaySalesRes, pendingOrdersRes] =
-    await Promise.all([
-      Promise.all(
-        shopIds.map((id) =>
-          supabase
-            .from("products")
-            .select("*", { count: "exact", head: true })
-            .eq("shop_id", id)
-            .then((r) => [id, r.count ?? 0] as const),
-        ),
+  const monthStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    1,
+  ).toISOString();
+
+  const [
+    shopCounts,
+    lowStockRes,
+    todaySalesRes,
+    pendingOrdersRes,
+    monthlySalesRes,
+    staffCountRes,
+  ] = await Promise.all([
+    Promise.all(
+      shopIds.map((id) =>
+        supabase
+          .from("products")
+          .select("*", { count: "exact", head: true })
+          .eq("shop_id", id)
+          .then((r) => [id, r.count ?? 0] as const),
       ),
-      supabase.rpc("get_low_stock_products", { p_shop_id: activeShopId }),
-      // Direct live-table query — bypasses the stale materialized view in get_sales_summary
-      supabase
-        .from("sales")
-        .select("total_amount")
-        .eq("shop_id", activeShopId)
-        .gte("created_at", todayStart.toISOString())
-        .lte("created_at", todayEnd.toISOString()),
-      supabase
-        .from("purchase_orders")
-        .select("id, supplier_name, status, created_at")
-        .eq("shop_id", activeShopId)
-        .in("status", ["draft", "partial"])
-        .order("created_at", { ascending: false })
-        .limit(5),
-    ]);
+    ),
+    supabase.rpc("get_low_stock_products", { p_shop_id: activeShopId }),
+    // Direct live-table query — bypasses the stale materialized view in get_sales_summary
+    supabase
+      .from("sales")
+      .select("total_amount")
+      .eq("shop_id", activeShopId)
+      .gte("created_at", todayStart.toISOString())
+      .lte("created_at", todayEnd.toISOString()),
+    supabase
+      .from("purchase_orders")
+      .select("id, supplier_name, status, created_at")
+      .eq("shop_id", activeShopId)
+      .in("status", ["draft", "partial"])
+      .order("created_at", { ascending: false })
+      .limit(5),
+    // Monthly sales count for limit warning
+    supabase
+      .from("sales")
+      .select("id", { count: "exact", head: true })
+      .eq("shop_id", activeShopId)
+      .gte("created_at", monthStart),
+    // Staff count for limit warning
+    supabase
+      .from("shop_members")
+      .select("id", { count: "exact", head: true })
+      .eq("shop_id", activeShopId)
+      .eq("role", "staff"),
+  ]);
 
   const countMap = Object.fromEntries(shopCounts);
   const shops: ShopRow[] = rows.map((m) => ({
@@ -111,7 +136,8 @@ async function DashboardContent() {
   const isOwner = rows.some((r) => r.role === "owner");
   const hour = now.getHours();
 
-  // Subscription banner: only for owners, only when action needed
+  // Subscription banner: only for owners whose paid plan has expired/is expiring.
+  // Free (trial) users never see this — the free plan is permanent.
   const subActive = sub ? isActive(sub) : false;
   const subDays = sub ? daysLeft(sub) : 0;
   const showBanner =
@@ -119,8 +145,16 @@ async function DashboardContent() {
     sub &&
     !sub.is_admin_override &&
     sub.status !== "free" &&
+    sub.status !== "trial" &&
     sub.status !== "active";
   const bannerUrgent = showBanner && (!subActive || subDays <= 5);
+
+  // Limit warning for free/trial users (or any user near their plan limits)
+  const activeProductCount = countMap[activeShopId] ?? 0;
+  const monthlySalesCount = monthlySalesRes.count ?? 0;
+  const staffCount = staffCountRes.count ?? 0;
+  const showLimitBanner = isOwner && sub && !sub.is_admin_override;
+
   const greeting =
     hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = profile.full_name?.split(" ")[0] || "there";
@@ -159,12 +193,27 @@ async function DashboardContent() {
         </div>
       </div>
 
-      {/* Subscription banner — trial expiring / expired */}
+      {/* Subscription banner — paid plan expired/expiring */}
       {showBanner && (
         <SubscriptionBanner
           subActive={subActive}
           subDays={subDays}
           bannerUrgent={!!bannerUrgent}
+        />
+      )}
+
+      {/* Limit warning — shown when approaching or at plan limits */}
+      {showLimitBanner && (
+        <LimitSummaryBanner
+          products={{
+            current: activeProductCount,
+            max: sub!.plan.max_products_per_shop,
+          }}
+          sales={{
+            current: monthlySalesCount,
+            max: sub!.plan.max_sales_per_month,
+          }}
+          staff={{ current: staffCount, max: sub!.plan.max_staff_per_shop }}
         />
       )}
 

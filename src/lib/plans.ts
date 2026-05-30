@@ -139,10 +139,9 @@ export function dbPlanToBilling(plan: DbPlan): BillingPlan {
       productsLabel(plan.max_products_per_shop),
       salesLabel(plan.max_sales_per_month),
       staffLabel(plan.max_staff_per_shop),
-      isUnlimited(plan.max_staff_per_shop)
-        ? "Priority WhatsApp support"
-        : "Full reports & analytics",
+      "Full reports & analytics",
       "Customer debt tracking",
+      ...(plan.name === "ultra_pro" ? ["Priority WhatsApp support"] : []),
     ],
   };
 }

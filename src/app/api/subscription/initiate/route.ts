@@ -35,12 +35,11 @@ export async function POST(req: NextRequest) {
   const db = adminDb();
 
   // Get current subscription record (for subscription_id)
-  const { data: sub } = (await db
+  const { data: sub } = await db
     .from("subscriptions")
     .select("id")
     .eq("user_id", user.id)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .single()) as { data: any };
+    .single();
 
   if (!sub)
     return NextResponse.json(
@@ -49,12 +48,11 @@ export async function POST(req: NextRequest) {
     );
 
   // Fetch the target plan price from DB (source of truth)
-  const { data: plan } = (await db
+  const { data: plan } = await db
     .from("subscription_plans")
     .select("price_kes, display_name, name")
     .eq("name", requestedPlan)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .single()) as { data: any };
+    .single();
 
   if (!plan?.price_kes)
     return NextResponse.json({ error: "Plan not found" }, { status: 400 });

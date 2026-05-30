@@ -2,7 +2,21 @@
 
 import { adminDb } from "@/lib/admin/db";
 import { activateProShops, downgradeShops } from "@/lib/subscription";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { logAdminAction } from "@/lib/admin/logger";
 import { revalidatePath } from "next/cache";
+
+async function getAdminId(): Promise<string | undefined> {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return user?.id;
+  } catch {
+    return undefined;
+  }
+}
 
 export async function grantFreeAccess(userId: string, notes: string) {
   const db = adminDb();
@@ -26,6 +40,12 @@ export async function grantFreeAccess(userId: string, notes: string) {
   );
 
   await activateProShops(userId);
+  await logAdminAction({
+    action: "GRANT_FREE_ACCESS",
+    targetUserId: userId,
+    adminId: await getAdminId(),
+    details: { notes },
+  });
   revalidatePath("/admin/subscriptions");
 }
 
@@ -51,6 +71,11 @@ export async function revokeAccess(userId: string) {
     .eq("user_id", userId);
 
   await downgradeShops(userId);
+  await logAdminAction({
+    action: "REVOKE_ACCESS",
+    targetUserId: userId,
+    adminId: await getAdminId(),
+  });
   revalidatePath("/admin/subscriptions");
 }
 
@@ -77,6 +102,12 @@ export async function extendTrial(userId: string, days: number) {
     })
     .eq("user_id", userId);
 
+  await logAdminAction({
+    action: "EXTEND_TRIAL",
+    targetUserId: userId,
+    adminId: await getAdminId(),
+    details: { days },
+  });
   revalidatePath("/admin/subscriptions");
 }
 
@@ -110,6 +141,12 @@ export async function activatePlan(
   );
 
   await activateProShops(userId, planName);
+  await logAdminAction({
+    action: "ACTIVATE_PLAN",
+    targetUserId: userId,
+    adminId: await getAdminId(),
+    details: { planName, months },
+  });
   revalidatePath("/admin/subscriptions");
 }
 
@@ -136,6 +173,12 @@ export async function extendSubscription(userId: string, months: number) {
     })
     .eq("user_id", userId);
 
+  await logAdminAction({
+    action: "EXTEND_SUBSCRIPTION",
+    targetUserId: userId,
+    adminId: await getAdminId(),
+    details: { months },
+  });
   revalidatePath("/admin/subscriptions");
 }
 
@@ -151,7 +194,7 @@ export async function updatePlan(planId: string, fd: FormData) {
   const displayName = fd.get("display_name");
   if (displayName) patch.display_name = String(displayName);
 
-  const fields: Array<keyof typeof patch> = [
+  const fields = [
     "price_kes",
     "annual_discount_pct",
     "trial_days",
@@ -159,9 +202,10 @@ export async function updatePlan(planId: string, fd: FormData) {
     "max_products_per_shop",
     "max_staff_per_shop",
     "max_sales_per_month",
-  ];
+  ] as const;
+
   for (const f of fields) {
-    const v = toInt(f as string);
+    const v = toInt(f);
     if (v !== undefined) patch[f] = v;
   }
 

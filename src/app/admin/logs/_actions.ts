@@ -18,3 +18,18 @@ export async function clearLogs(category?: string, level?: string) {
   await q;
   revalidatePath("/admin/logs");
 }
+
+export async function pruneOldLogs() {
+  const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+  await adminDb().from("admin_logs").delete().lt("created_at", cutoff);
+  revalidatePath("/admin/logs");
+}
+
+export async function countOldLogs(): Promise<number> {
+  const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+  const { count } = await adminDb()
+    .from("admin_logs")
+    .select("id", { count: "exact", head: true })
+    .lt("created_at", cutoff);
+  return count ?? 0;
+}

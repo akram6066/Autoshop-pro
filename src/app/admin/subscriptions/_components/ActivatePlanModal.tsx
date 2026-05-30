@@ -1,13 +1,15 @@
 "use client";
 
 import { AdminOverlay } from "./AdminOverlay";
+import type { PaidPlan } from "./SubActions";
 
 interface Props {
   userName: string;
-  selectedPlan: "pro" | "ultra_pro";
+  plans: PaidPlan[];
+  selectedPlan: string;
   months: number;
   pending: boolean;
-  onPlanChange: (p: "pro" | "ultra_pro") => void;
+  onPlanChange: (p: string) => void;
   onMonthsChange: (m: number) => void;
   onCancel: () => void;
   onActivate: () => void;
@@ -15,6 +17,7 @@ interface Props {
 
 export function ActivatePlanModal({
   userName,
+  plans,
   selectedPlan,
   months,
   pending,
@@ -23,6 +26,8 @@ export function ActivatePlanModal({
   onCancel,
   onActivate,
 }: Props) {
+  const activePlan = plans.find((p) => p.name === selectedPlan) ?? plans[0];
+
   return (
     <AdminOverlay onClose={() => !pending && onCancel()}>
       <div
@@ -53,7 +58,7 @@ export function ActivatePlanModal({
           without requiring M-Pesa payment.
         </p>
 
-        {/* Plan picker */}
+        {/* Plan picker — driven by DB, not hardcoded */}
         <div style={{ marginBottom: 16 }}>
           <label
             style={{
@@ -66,23 +71,28 @@ export function ActivatePlanModal({
           >
             Plan
           </label>
-          <div style={{ display: "flex", gap: 8 }}>
-            {(["pro", "ultra_pro"] as const).map((p) => (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {plans.map((p) => (
               <button
-                key={p}
-                onClick={() => onPlanChange(p)}
+                key={p.name}
+                type="button"
+                onClick={() => onPlanChange(p.name)}
                 className="btn btn-sm"
                 style={{
                   background:
-                    selectedPlan === p ? "#6d28d9" : "var(--color-surface-2)",
+                    selectedPlan === p.name
+                      ? "#6d28d9"
+                      : "var(--color-surface-2)",
                   color:
-                    selectedPlan === p ? "white" : "var(--color-ink-secondary)",
+                    selectedPlan === p.name
+                      ? "white"
+                      : "var(--color-ink-secondary)",
                   border: "1px solid",
                   borderColor:
-                    selectedPlan === p ? "#7c3aed" : "var(--color-border)",
+                    selectedPlan === p.name ? "#7c3aed" : "var(--color-border)",
                 }}
               >
-                {p === "pro" ? "Pro — KES 1,000" : "Ultra Pro — KES 2,500"}
+                {p.display_name} — KES {p.price_kes.toLocaleString()}
               </button>
             ))}
           </div>
@@ -105,6 +115,7 @@ export function ActivatePlanModal({
             {[1, 3, 6, 12].map((m) => (
               <button
                 key={m}
+                type="button"
                 onClick={() => onMonthsChange(m)}
                 className="btn btn-sm"
                 style={{
@@ -138,6 +149,7 @@ export function ActivatePlanModal({
             className="btn btn-secondary"
             onClick={onCancel}
             disabled={pending}
+            type="button"
           >
             Cancel
           </button>
@@ -145,10 +157,11 @@ export function ActivatePlanModal({
             className="btn btn-primary"
             onClick={onActivate}
             disabled={pending}
+            type="button"
           >
             {pending
               ? "Activating…"
-              : `Activate ${selectedPlan === "pro" ? "Pro" : "Ultra Pro"} for ${months}mo`}
+              : `Activate ${activePlan?.display_name ?? selectedPlan} for ${months}mo`}
           </button>
         </div>
       </div>

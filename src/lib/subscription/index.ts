@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { adminDb } from "@/lib/admin/db";
 
 export interface Plan {
@@ -38,22 +37,32 @@ export async function getSubscription(
     .single();
 
   if (error || !data) return null;
+  type Row = {
+    id: string;
+    status: SubscriptionInfo["status"];
+    trial_ends_at: string | null;
+    current_period_end: string | null;
+    is_admin_override: boolean;
+    subscription_plans: Plan | Plan[];
+  };
+  const row = data as unknown as Row;
   return {
-    id: (data as any).id,
-    status: (data as any).status,
-    trial_ends_at: (data as any).trial_ends_at,
-    current_period_end: (data as any).current_period_end,
-    is_admin_override: (data as any).is_admin_override,
-    plan: (data as any).subscription_plans as Plan,
+    id: row.id,
+    status: row.status,
+    trial_ends_at: row.trial_ends_at,
+    current_period_end: row.current_period_end,
+    is_admin_override: row.is_admin_override,
+    plan: Array.isArray(row.subscription_plans)
+      ? row.subscription_plans[0]
+      : row.subscription_plans,
   };
 }
 
 export function isActive(sub: SubscriptionInfo): boolean {
   if (sub.is_admin_override) return true;
   if (sub.status === "free") return true;
-  if (sub.status === "trial" && sub.trial_ends_at) {
-    return new Date(sub.trial_ends_at) > new Date();
-  }
+  // Trial is permanently free — never expires regardless of trial_ends_at
+  if (sub.status === "trial") return true;
   if (sub.status === "active" && sub.current_period_end) {
     return new Date(sub.current_period_end) > new Date();
   }
@@ -61,9 +70,15 @@ export function isActive(sub: SubscriptionInfo): boolean {
 }
 
 export function daysLeft(sub: SubscriptionInfo): number {
-  if (sub.is_admin_override || sub.status === "free") return 9999;
-  const end =
-    sub.status === "trial" ? sub.trial_ends_at : sub.current_period_end;
+  // Free and trial plans have no countdown — return sentinel value
+  if (
+    sub.is_admin_override ||
+    sub.status === "free" ||
+    sub.status === "trial"
+  ) {
+    return 9999;
+  }
+  const end = sub.current_period_end;
   if (!end) return 0;
   return Math.max(
     0,
@@ -84,7 +99,7 @@ export async function activateProShops(
     .eq("role", "owner");
 
   if (!ownedShops?.length) return;
-  const ids = ownedShops.map((m: any) => m.shop_id);
+  const ids = ownedShops.map((m) => m.shop_id as string);
   await db.from("shops").update({ plan: planName }).in("id", ids);
 }
 
@@ -98,6 +113,6 @@ export async function downgradeShops(userId: string) {
     .eq("role", "owner");
 
   if (!ownedShops?.length) return;
-  const ids = ownedShops.map((m: any) => m.shop_id);
+  const ids = ownedShops.map((m) => m.shop_id as string);
   await db.from("shops").update({ plan: "free" }).in("id", ids);
 }

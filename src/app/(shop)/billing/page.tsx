@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { adminDb } from "@/lib/admin/db";
@@ -50,7 +49,7 @@ export default async function BillingPage({
     .select("shop_id")
     .eq("id", user.id)
     .single();
-  const shopId = (profile as any)?.shop_id as string | null;
+  const shopId = (profile?.shop_id ?? null) as string | null;
 
   const db = adminDb();
   const monthStart = new Date(
@@ -90,15 +89,15 @@ export default async function BillingPage({
   const usage = {
     shops: { current: shopsRes.count ?? 0, max: sub.plan.max_shops },
     products: {
-      current: (productsRes as any).count ?? 0,
+      current: ("count" in productsRes ? productsRes.count : 0) ?? 0,
       max: sub.plan.max_products_per_shop,
     },
     staff: {
-      current: (staffRes as any).count ?? 0,
+      current: ("count" in staffRes ? staffRes.count : 0) ?? 0,
       max: sub.plan.max_staff_per_shop,
     },
     sales: {
-      current: (salesRes as any).count ?? 0,
+      current: ("count" in salesRes ? salesRes.count : 0) ?? 0,
       max: sub.plan.max_sales_per_month,
     },
   };

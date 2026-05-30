@@ -1,7 +1,9 @@
 import { adminDb } from "@/lib/admin/db";
 import { LogsFilters } from "./_components/LogsFilters";
 import { LogsTable } from "./_components/LogsTable";
-import { ClearLogsButton } from "./_components/LogActions";
+import { ClearLogsButton, PruneLogsButton } from "./_components/LogActions";
+import { countOldLogs } from "./_actions";
+import { AdminPagination } from "@/app/admin/_components/AdminUI";
 
 interface PageProps {
   searchParams: Promise<{ category?: string; level?: string; page?: string }>;
@@ -32,6 +34,37 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
   const total = count ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
+  // Resolve UUIDs to names
+  const userIds = [
+    ...new Set((logs ?? []).map((l) => l.user_id).filter(Boolean)),
+  ] as string[];
+  const shopIds = [
+    ...new Set((logs ?? []).map((l) => l.shop_id).filter(Boolean)),
+  ] as string[];
+
+  const [profilesRes, shopsRes, oldCount] = await Promise.all([
+    userIds.length > 0
+      ? db.from("profiles").select("id, full_name").in("id", userIds)
+      : { data: [] },
+    shopIds.length > 0
+      ? db.from("shops").select("id, name").in("id", shopIds)
+      : { data: [] },
+    countOldLogs(),
+  ]);
+
+  const userNames = new Map(
+    (profilesRes.data ?? []).map((p) => [
+      p.id as string,
+      (p.full_name ?? "Unknown") as string,
+    ]),
+  );
+  const shopNames = new Map(
+    (shopsRes.data ?? []).map((s) => [
+      s.id as string,
+      (s.name ?? "Unknown") as string,
+    ]),
+  );
+
   function filterHref(overrides: Record<string, string>) {
     const p = new URLSearchParams({ category, level, page: "1", ...overrides });
     if (!overrides.category && !category) p.delete("category");
@@ -46,14 +79,17 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
-          gap: 16,
+          gap: 12,
           marginBottom: 6,
         }}
       >
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0f172a" }}>
           Logs
         </h1>
-        <ClearLogsButton total={total} category={category} level={level} />
+        <div style={{ display: "flex", gap: 8 }}>
+          <PruneLogsButton oldCount={oldCount} />
+          <ClearLogsButton total={total} category={category} level={level} />
+        </div>
       </div>
       <p style={{ fontSize: "0.9375rem", color: "#64748b", marginBottom: 24 }}>
         {total} log entr{total !== 1 ? "ies" : "y"}
@@ -61,41 +97,16 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
       </p>
 
       <LogsFilters category={category} level={level} filterHref={filterHref} />
-
-      <LogsTable logs={logs ?? []} />
-
-      {totalPages > 1 && (
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            marginTop: 20,
-            justifyContent: "flex-end",
-          }}
-        >
-          {Array.from(
-            { length: Math.min(totalPages, 10) },
-            (_, i) => i + 1,
-          ).map((p) => (
-            <a
-              key={p}
-              href={filterHref({ page: String(p) })}
-              style={{
-                padding: "6px 12px",
-                borderRadius: 6,
-                fontSize: "0.875rem",
-                fontWeight: p === pageNum ? 700 : 400,
-                background: p === pageNum ? "#0f172a" : "white",
-                color: p === pageNum ? "white" : "#475569",
-                border: "1px solid #e2e8f0",
-                textDecoration: "none",
-              }}
-            >
-              {p}
-            </a>
-          ))}
-        </div>
-      )}
+      <LogsTable
+        logs={logs ?? []}
+        userNames={userNames}
+        shopNames={shopNames}
+      />
+      <AdminPagination
+        current={pageNum}
+        total={totalPages}
+        hrefFn={(p) => filterHref({ page: String(p) })}
+      />
     </div>
   );
 }

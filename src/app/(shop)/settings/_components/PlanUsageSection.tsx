@@ -5,6 +5,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Section } from "./Section";
 import { SettingsUsageBar } from "./SettingsUsageBar";
+import {
+  LimitWarningBanner,
+  type LimitItem,
+} from "@/components/shop/LimitWarningBanner";
 
 // ─── Subscription types ────────────────────────────────────────────────────────
 
@@ -232,6 +236,40 @@ export function PlanUsageSection({
               current={sales ?? 0}
               max={sub.plan.maxSalesPerMonth}
             />
+
+            {/* Upgrade prompt when any limit is near/at full */}
+            {(() => {
+              const limitItems: LimitItem[] = [
+                {
+                  label: "products",
+                  current: products ?? 0,
+                  max: sub.plan.maxProductsPerShop,
+                },
+                {
+                  label: "staff",
+                  current: staff ?? 0,
+                  max: sub.plan.maxStaffPerShop,
+                },
+                {
+                  label: "sales this month",
+                  current: sales ?? 0,
+                  max: sub.plan.maxSalesPerMonth,
+                },
+              ];
+              const anyNear = limitItems.some((i) => {
+                if (i.max >= 999999) return false;
+                return i.current / i.max >= 0.8;
+              });
+              if (!anyNear || isPro) return null;
+              return (
+                <div style={{ marginTop: 16 }}>
+                  <LimitWarningBanner
+                    items={limitItems}
+                    upgradeHref="/billing?plan=pro"
+                  />
+                </div>
+              );
+            })()}
           </div>
         </>
       )}

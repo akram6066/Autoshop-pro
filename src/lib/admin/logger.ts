@@ -27,7 +27,25 @@ export async function logEvent(opts: LogOptions): Promise<void> {
         path: opts.path ?? null,
       });
   } catch (err) {
-    // Never throw from the logger itself
     console.error("[admin/logger] write failed:", err);
   }
+}
+
+export async function logAdminAction(opts: {
+  action: string;
+  targetUserId: string;
+  adminId?: string;
+  details?: Record<string, unknown>;
+}): Promise<void> {
+  await logEvent({
+    category: "user_management",
+    level: "info",
+    message: `Admin action: ${opts.action} on user ${opts.targetUserId}`,
+    details: {
+      action: opts.action,
+      targetUserId: opts.targetUserId,
+      ...opts.details,
+    },
+    userId: opts.adminId,
+  });
 }

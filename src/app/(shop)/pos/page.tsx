@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer, useMemo, useState } from "react";
+import { useReducer, useMemo, useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
@@ -10,6 +10,9 @@ import { useRecordSale } from "@/hooks/useSales";
 import { useCustomers, useCreateCustomer } from "@/hooks/useCustomers";
 import { useCart } from "@/hooks/useCart";
 import { useShopVariants } from "@/hooks/useVariants";
+import { useSubscription } from "@/hooks/useSubscription";
+import { LimitWarningBanner } from "@/components/shop/LimitWarningBanner";
+import { createClient } from "@/lib/supabase/client";
 import type { ReceiptData } from "@/components/pos/SaleReceipt";
 import type { Customer, PaymentMethod, ProductVariant } from "@/types/app";
 import { ProductGrid } from "./_components/ProductGrid";
@@ -136,7 +139,26 @@ function checkoutReducer(
 export default function POSPage() {
   const shopId = useAuthStore(selectShopId);
   const user = useAuthStore((s) => s.user);
+  const { sub } = useSubscription();
   const { data: products = [], isLoading } = useProducts(shopId);
+
+  // Monthly sales count for limit warning
+  const [monthlySales, setMonthlySales] = useState<number | null>(null);
+  useEffect(() => {
+    if (!shopId) return;
+    const supabase = createClient();
+    const monthStart = new Date(
+      new Date().getFullYear(),
+      new Date().getMonth(),
+      1,
+    ).toISOString();
+    supabase
+      .from("sales")
+      .select("id", { count: "exact", head: true })
+      .eq("shop_id", shopId)
+      .gte("created_at", monthStart)
+      .then(({ count }) => setMonthlySales(count ?? 0));
+  }, [shopId]);
   const { data: categories = [] } = useCategories();
   const { data: customers = [] } = useCustomers(shopId);
   const { data: allVariants = [] } = useShopVariants(shopId);
@@ -254,8 +276,25 @@ export default function POSPage() {
     return <SaleReceipt receipt={receipt} onDismiss={handleDismissReceipt} />;
   }
 
+  const salesLimitItems =
+    sub && monthlySales !== null
+      ? [
+          {
+            label: "sales this month",
+            current: monthlySales,
+            max: sub.plan.maxSalesPerMonth,
+          },
+        ]
+      : [];
+
   return (
     <>
+      {salesLimitItems.length > 0 && (
+        <LimitWarningBanner
+          items={salesLimitItems}
+          upgradeHref="/billing?plan=pro"
+        />
+      )}
       <div className="flex flex-col sm:flex-row gap-6 sm:h-[calc(100vh-7rem)]">
         <ProductGrid
           products={products}

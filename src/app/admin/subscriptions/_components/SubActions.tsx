@@ -13,11 +13,18 @@ import { ActivatePlanModal } from "./ActivatePlanModal";
 import { ExtendSubModal } from "./ExtendSubModal";
 import { ExtendTrialModal } from "./ExtendTrialModal";
 
+export interface PaidPlan {
+  name: string;
+  display_name: string;
+  price_kes: number;
+}
+
 interface Props {
   userId: string;
   userName: string;
   status: string;
   isAdminOverride: boolean;
+  paidPlans: PaidPlan[];
 }
 
 export function SubActions({
@@ -25,6 +32,7 @@ export function SubActions({
   userName,
   status,
   isAdminOverride,
+  paidPlans,
 }: Props) {
   const [pending, startTransition] = useTransition();
   const [modal, setModal] = useState<
@@ -33,7 +41,7 @@ export function SubActions({
   const [notes, setNotes] = useState("");
   const [days, setDays] = useState(30);
   const [months, setMonths] = useState(1);
-  const [selectedPlan, setSelectedPlan] = useState<"pro" | "ultra_pro">("pro");
+  const [selectedPlan, setSelectedPlan] = useState(paidPlans[0]?.name ?? "pro");
 
   function handleGrant() {
     startTransition(async () => {
@@ -105,7 +113,7 @@ export function SubActions({
             className="btn btn-sm"
             onClick={() => {
               setMonths(1);
-              setSelectedPlan("pro");
+              setSelectedPlan(paidPlans[0]?.name ?? "pro");
               setModal("activate");
             }}
             disabled={pending}
@@ -156,10 +164,10 @@ export function SubActions({
           onGrant={handleGrant}
         />
       )}
-
       {modal === "activate" && (
         <ActivatePlanModal
           userName={userName}
+          plans={paidPlans}
           selectedPlan={selectedPlan}
           months={months}
           pending={pending}
@@ -169,7 +177,6 @@ export function SubActions({
           onActivate={handleActivate}
         />
       )}
-
       {modal === "extendSub" && (
         <ExtendSubModal
           userName={userName}
@@ -180,7 +187,6 @@ export function SubActions({
           onExtend={handleExtendSub}
         />
       )}
-
       {modal === "extend" && (
         <ExtendTrialModal
           userName={userName}

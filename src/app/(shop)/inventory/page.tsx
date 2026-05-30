@@ -9,6 +9,8 @@ import { useRooms } from "@/hooks/useRooms";
 import { useCategories } from "@/hooks/useCategories";
 import { useShopVariants } from "@/hooks/useVariants";
 import type { Category, ProductVariant } from "@/types/app";
+import { useSubscription } from "@/hooks/useSubscription";
+import { LimitWarningBanner } from "@/components/shop/LimitWarningBanner";
 import { InventoryFilters } from "./_components/InventoryFilters";
 import { InventoryTable } from "./_components/InventoryTable";
 import { InventoryMobileList } from "./_components/InventoryMobileList";
@@ -16,6 +18,7 @@ import { DeleteProductModal } from "./_components/DeleteProductModal";
 
 export default function InventoryPage() {
   const shopId = useAuthStore(selectShopId);
+  const { sub } = useSubscription();
   const { data: products = [], isLoading: isLoadingProducts } =
     useProducts(shopId);
   const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProduct();
@@ -80,8 +83,26 @@ export default function InventoryPage() {
     return p.quantity <= p.min_stock;
   }).length;
 
+  const productLimitItem = sub
+    ? [
+        {
+          label: "products",
+          current: products.length,
+          max: sub.plan.maxProductsPerShop,
+        },
+      ]
+    : [];
+
   return (
     <div>
+      {/* Product limit warning */}
+      {productLimitItem.length > 0 && (
+        <LimitWarningBanner
+          items={productLimitItem}
+          upgradeHref="/billing?plan=pro"
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>

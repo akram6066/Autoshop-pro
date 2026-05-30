@@ -66,9 +66,13 @@ export async function POST(
   if (!payment) return NextResponse.json({ ResultCode: 0 });
 
   // Activate the plan the user chose (pro or ultra_pro), default pro
+  const paymentData = payment as {
+    subscription_id: string | null;
+    user_id: string | null;
+    target_plan_name: string | null;
+  };
   const planName =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (payment as any).target_plan_name === "ultra_pro" ? "ultra_pro" : "pro";
+    paymentData.target_plan_name === "ultra_pro" ? "ultra_pro" : "pro";
 
   const { data: chosenPlan } = await db
     .from("subscription_plans")
@@ -76,12 +80,12 @@ export async function POST(
     .eq("name", planName)
     .single();
 
-  if (payment.subscription_id && chosenPlan) {
+  if (paymentData.subscription_id && chosenPlan) {
     // Extend from existing period end if still active, otherwise from now
     const { data: existingSub } = await db
       .from("subscriptions")
       .select("current_period_end")
-      .eq("id", payment.subscription_id)
+      .eq("id", paymentData.subscription_id)
       .single();
 
     const base =
@@ -99,12 +103,12 @@ export async function POST(
         current_period_end: base.toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq("id", payment.subscription_id);
+      .eq("id", paymentData.subscription_id);
   }
 
   // Activate the chosen plan on all owned shops
-  if (payment.user_id) {
-    await activateProShops(payment.user_id, planName);
+  if (paymentData.user_id) {
+    await activateProShops(paymentData.user_id, planName);
   }
 
   return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });
