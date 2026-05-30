@@ -58,6 +58,7 @@ export interface Profile {
   shop_id: string | null;
   full_name: string;
   role: UserRole;
+  is_admin?: boolean;
   created_at: string;
 }
 

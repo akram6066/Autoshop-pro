@@ -101,13 +101,21 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
     }));
 
     // No active shop on profile AND no memberships → first-time setup.
+    // Admin users skip setup and go directly to the admin panel.
     if (!profile.shop_id && shops.length === 0) {
-      router.replace("/setup");
+      router.replace(profile.is_admin ? "/admin" : "/setup");
       return;
     }
 
     const activeShop =
       shops.find((s) => s.id === profile.shop_id) ?? shops[0] ?? null;
+
+    // profile.shop_id may point to a permanently deleted shop that is no
+    // longer in shop_members. Treat this the same as having no shop.
+    if (!activeShop && shops.length === 0) {
+      router.replace(profile.is_admin ? "/admin" : "/setup");
+      return;
+    }
 
     if (activeShop) {
       Promise.all([

@@ -126,7 +126,9 @@ export async function loadAuthSessionState(
   const plan = planParam && /^[a-z_]+$/.test(planParam) ? planParam : null;
 
   const base = !activeShopWithRole
-    ? "/setup"
+    ? profile.is_admin
+      ? "/admin"
+      : "/setup"
     : activeShopWithRole.role === "staff"
       ? "/pos"
       : "/dashboard";
