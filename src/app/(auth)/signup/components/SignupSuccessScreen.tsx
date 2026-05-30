@@ -55,12 +55,13 @@ export default function SignupSuccessScreen({
   return (
     <div
       style={{
-        minHeight: "100vh",
+        flex: 1,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: "24px 16px",
         background: "var(--color-surface-1)",
+        width: "100%",
       }}
     >
       <div
