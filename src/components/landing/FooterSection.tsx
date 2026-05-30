@@ -1,8 +1,5 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import Container from "./Container";
 
 const footerCols = [
@@ -141,7 +138,6 @@ const socials = [
 ];
 
 function FooterSection() {
-  const pathname = usePathname();
   return (
     <footer>
       {/* ── Main body — light gradient, dark logo ── */}
@@ -285,26 +281,20 @@ function FooterSection() {
                     gap: 13,
                   }}
                 >
-                  {col.links.map((l) => {
-                    const isActive = pathname === l.href;
-                    return (
-                      <li key={l.label}>
-                        <Link
-                          href={l.href}
-                          style={{
-                            fontSize: "0.9375rem",
-                            color: isActive
-                              ? "var(--color-brand-600)"
-                              : "var(--color-ink-tertiary)",
-                            textDecoration: "none",
-                            fontWeight: isActive ? 600 : 400,
-                          }}
-                        >
-                          {l.label}
-                        </Link>
-                      </li>
-                    );
-                  })}
+                  {col.links.map((l) => (
+                    <li key={l.label}>
+                      <Link
+                        href={l.href}
+                        style={{
+                          fontSize: "0.9375rem",
+                          color: "var(--color-ink-tertiary)",
+                          textDecoration: "none",
+                        }}
+                      >
+                        {l.label}
+                      </Link>
+                    </li>
+                  ))}
                 </ul>
               </div>
             ))}

@@ -1,4 +1,6 @@
-export default function HeroHeadline({ typedText }: { typedText: string }) {
+import { HeroTypewriter } from "./HeroTypewriter";
+
+export default function HeroHeadline() {
   return (
     <>
       {/* Pill badge */}
@@ -61,19 +63,7 @@ export default function HeroHeadline({ typedText }: { typedText: string }) {
             minHeight: "1.1em",
           }}
         >
-          <span
-            aria-live="polite"
-            aria-atomic="true"
-            style={{
-              background:
-                "linear-gradient(135deg, #1e40af 0%, #3b6ef5 50%, #7c3aed 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
-            {typedText}
-          </span>
+          <HeroTypewriter />
           <span className="h-cursor" aria-hidden="true" />
         </span>
       </h1>

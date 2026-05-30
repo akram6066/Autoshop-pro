@@ -46,8 +46,9 @@ export default function HeroBackground() {
           borderRadius: "50%",
           background: "radial-gradient(circle, #a5b4fc 0%, transparent 70%)",
           opacity: 0.28,
-          filter: "blur(72px)",
+          filter: "blur(48px)",
           pointerEvents: "none",
+          willChange: "opacity",
         }}
       />
 
@@ -65,9 +66,10 @@ export default function HeroBackground() {
           borderRadius: "50%",
           background: "radial-gradient(circle, #c4b5fd 0%, transparent 70%)",
           opacity: 0.24,
-          filter: "blur(72px)",
+          filter: "blur(48px)",
           pointerEvents: "none",
           animationDelay: "3s",
+          willChange: "opacity",
         }}
       />
 
@@ -84,8 +86,8 @@ export default function HeroBackground() {
           height: 300,
           borderRadius: "50%",
           background:
-            "radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)",
-          filter: "blur(48px)",
+            "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)",
+          filter: "blur(32px)",
           pointerEvents: "none",
         }}
       />

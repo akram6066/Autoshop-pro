@@ -39,22 +39,23 @@ function LandingNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Active section tracking
+  // Active section tracking — one observer watching all sections
   useEffect(() => {
-    const ids = NAV_LINKS.map((l) => l.id);
-    const observers = ids.map((id) => {
-      const el = document.getElementById(id);
-      if (!el) return null;
-      const obs = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) setActiveSection(id);
-        },
-        { threshold: 0.25 },
-      );
-      obs.observe(el);
-      return obs;
-    });
-    return () => observers.forEach((o) => o?.disconnect());
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) setActiveSection(entry.target.id);
+        });
+      },
+      { threshold: 0.25 },
+    );
+    NAV_LINKS.map((l) => l.id)
+      .filter(Boolean)
+      .forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) observer.observe(el);
+      });
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
