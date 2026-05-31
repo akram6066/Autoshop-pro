@@ -4,30 +4,22 @@ import HeroSection from "@/components/landing/HeroSection";
 import ProblemSection from "@/components/landing/ProblemSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
+import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import StatsSection from "@/components/landing/StatsSection";
+import WhoItsForSection from "@/components/landing/WhoItsForSection";
+import FinalCTASection from "@/components/landing/FinalCTASection";
 import FooterSection from "@/components/landing/FooterSection";
 import WhatsAppButton from "@/components/landing/WhatsAppButton";
 import { fetchPlans, dbPlanToLanding } from "@/lib/plans";
 
-// Deferred: below-the-fold client component (annual/monthly toggle)
+// PricingSection is "use client" (annual/monthly toggle) — defer its JS.
 const PricingSection = dynamic(() =>
   import("@/components/landing/PricingSection").then((m) => ({
     default: m.PricingSection,
   })),
 );
 
-// Deferred: purely server sections far below fold — code-split HTML chunks
-const TestimonialsSection = dynamic(
-  () => import("@/components/landing/TestimonialsSection"),
-);
-const WhoItsForSection = dynamic(
-  () => import("@/components/landing/WhoItsForSection"),
-);
-const FinalCTASection = dynamic(
-  () => import("@/components/landing/FinalCTASection"),
-);
-
-// Deferred: "use client" accordion
+// FAQSection is "use client" (accordion) and far below the fold — defer its JS.
 const FAQSection = dynamic(() => import("@/components/landing/FAQSection"));
 
 // Revalidate pricing every hour so admin changes reflect without a deploy.
