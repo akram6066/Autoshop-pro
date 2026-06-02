@@ -20,20 +20,30 @@ export function ProductLimitBanner({
         <div
           className="mb-4 flex items-start gap-3 p-4 rounded-xl"
           style={{
-            background: "#fee2e2",
-            border: "1px solid #fca5a5",
+            background: "var(--color-danger-light)",
+            border: "1px solid var(--color-danger)",
           }}
         >
           <AlertTriangle
             size={16}
-            style={{ color: "#dc2626", flexShrink: 0, marginTop: 1 }}
+            style={{
+              color: "var(--color-danger)",
+              flexShrink: 0,
+              marginTop: 1,
+            }}
           />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold" style={{ color: "#991b1b" }}>
+            <p
+              className="text-sm font-semibold"
+              style={{ color: "var(--color-danger-text)" }}
+            >
               Product limit reached ({productLimit!.current} /{" "}
               {productLimit!.max})
             </p>
-            <p className="text-xs mt-0.5" style={{ color: "#b91c1c" }}>
+            <p
+              className="text-xs mt-0.5"
+              style={{ color: "var(--color-danger-text)" }}
+            >
               You&apos;ve used all your product slots. Upgrade your plan to add
               more products.
             </p>
@@ -52,9 +62,9 @@ export function ProductLimitBanner({
         <div
           className="mb-4 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
           style={{
-            background: "#fffbeb",
-            border: "1px solid #fcd34d",
-            color: "#92400e",
+            background: "var(--color-warning-bg)",
+            border: "1px solid var(--color-warning-border)",
+            color: "var(--color-warning-text-strong)",
           }}
         >
           <AlertTriangle size={13} style={{ flexShrink: 0 }} />
@@ -62,7 +72,10 @@ export function ProductLimitBanner({
           approaching limit.{" "}
           <Link
             href="/billing"
-            style={{ color: "#7c3aed", textDecoration: "underline" }}
+            style={{
+              color: "var(--color-badge-purple-text)",
+              textDecoration: "underline",
+            }}
           >
             Upgrade
           </Link>

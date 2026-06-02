@@ -1,10 +1,9 @@
 import Container from "./Container";
 import { RevealOnScroll } from "./RevealOnScroll";
 
-const BLUE = "#3b6ef5";
-const BLUE_BG = "rgba(59,110,245,0.08)";
-const BLUE_BORDER = "rgba(59,110,245,0.18)";
-// icon container still uses BLUE/BLUE_BG/BLUE_BORDER
+const BLUE = "var(--color-brand-500)";
+const BLUE_BG = "var(--color-brand-50)";
+const BLUE_BORDER = "var(--color-brand-100)";
 
 const stats = [
   {

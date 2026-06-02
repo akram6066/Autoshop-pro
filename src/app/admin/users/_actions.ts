@@ -4,6 +4,29 @@ import { adminDb } from "@/lib/admin/db";
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
+export async function createAdminUser(
+  fullName: string,
+  email: string,
+  password: string,
+): Promise<{ error?: string }> {
+  const db = adminDb();
+
+  const { data, error } = await db.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { full_name: fullName },
+  });
+
+  if (error) return { error: error.message };
+
+  // Trigger auto-creates the profile; set is_admin immediately
+  await db.from("profiles").update({ is_admin: true }).eq("id", data.user.id);
+
+  revalidatePath("/admin/users");
+  return {};
+}
+
 export async function setAdminRole(userId: string, makeAdmin: boolean) {
   await adminDb()
     .from("profiles")

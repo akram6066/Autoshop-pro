@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export interface LimitItem {
-  label: string; // "products", "sales this month", "staff"
+  label: string;
   current: number;
   max: number;
 }
@@ -15,7 +15,6 @@ function severity(item: LimitItem): "full" | "warn" | "ok" {
 
 interface Props {
   items: LimitItem[];
-  /** Where the Upgrade button links. Defaults to /billing. */
   upgradeHref?: string;
 }
 
@@ -29,12 +28,17 @@ export function LimitWarningBanner({ items, upgradeHref = "/billing" }: Props) {
   const affected = isBlocking ? fulls : warns;
   const labels = affected.map((i) => i.label).join(" and ");
 
-  // colours
-  const bg = isBlocking ? "#fee2e2" : "#fffbeb";
-  const border = isBlocking ? "#fca5a5" : "#fcd34d";
-  const color = isBlocking ? "#991b1b" : "#92400e";
-  const iconColor = isBlocking ? "#dc2626" : "#d97706";
-  const subColor = isBlocking ? "#b91c1c" : "#b45309";
+  const bg = isBlocking
+    ? "var(--color-danger-light)"
+    : "var(--color-warning-bg)";
+  const border = isBlocking
+    ? "var(--color-danger)"
+    : "var(--color-warning-border)";
+  const color = isBlocking
+    ? "var(--color-danger-text)"
+    : "var(--color-warning-text-strong)";
+  const iconColor = isBlocking ? "var(--color-danger)" : "var(--color-warning)";
+  const ctaBg = isBlocking ? "var(--color-danger)" : "var(--color-warning)";
 
   const headline = isBlocking
     ? `${labels.charAt(0).toUpperCase() + labels.slice(1)} limit reached`
@@ -57,7 +61,6 @@ export function LimitWarningBanner({ items, upgradeHref = "/billing" }: Props) {
         border: `1px solid ${border}`,
       }}
     >
-      {/* Icon */}
       <svg
         width="16"
         height="16"
@@ -73,7 +76,6 @@ export function LimitWarningBanner({ items, upgradeHref = "/billing" }: Props) {
         />
       </svg>
 
-      {/* Text */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <p
           style={{
@@ -85,10 +87,9 @@ export function LimitWarningBanner({ items, upgradeHref = "/billing" }: Props) {
         >
           {headline}
         </p>
-        <p style={{ fontSize: "0.8125rem", color: subColor }}>{detail}</p>
+        <p style={{ fontSize: "0.8125rem", color }}>{detail}</p>
       </div>
 
-      {/* CTA */}
       <Link
         href={upgradeHref}
         style={{
@@ -98,7 +99,7 @@ export function LimitWarningBanner({ items, upgradeHref = "/billing" }: Props) {
           fontSize: "0.8125rem",
           fontWeight: 700,
           textDecoration: "none",
-          background: isBlocking ? "#dc2626" : "#d97706",
+          background: ctaBg,
           color: "white",
           whiteSpace: "nowrap",
         }}
@@ -109,7 +110,6 @@ export function LimitWarningBanner({ items, upgradeHref = "/billing" }: Props) {
   );
 }
 
-/** Convenience: compute the pct for a single item (0–100). */
 export function usagePct(current: number, max: number): number {
   if (max >= 999999) return 0;
   return Math.min(100, Math.round((current / max) * 100));

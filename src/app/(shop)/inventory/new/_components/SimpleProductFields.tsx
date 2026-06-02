@@ -1,6 +1,7 @@
 "use client";
 
 import { NumInput } from "./NumInput";
+import { generateSku } from "@/lib/sku";
 
 interface Props {
   sku: string;
@@ -9,6 +10,7 @@ interface Props {
   minStock: number;
   price: number;
   useVariants: boolean;
+  productName: string;
   onSkuChange: (v: string) => void;
   onSizeChange: (v: string) => void;
   onQuantityChange: (v: number) => void;
@@ -23,40 +25,25 @@ export function SimpleProductFields({
   minStock,
   price,
   useVariants,
+  productName,
   onSkuChange,
   onSizeChange,
   onQuantityChange,
   onMinStockChange,
   onPriceChange,
 }: Props) {
+  function autoFillSku() {
+    if (!sku.trim() && productName.trim() && size.trim()) {
+      onSkuChange(generateSku(productName, size));
+    }
+  }
+
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1.5">
-            SKU <span style={{ color: "var(--color-danger)" }}>*</span>
-          </label>
-          <input
-            className="input"
-            type="text"
-            value={sku}
-            onChange={(e) => onSkuChange(e.target.value)}
-            required={!useVariants}
-            placeholder="e.g. TYR-MPS4S-245-40-18"
-            style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1.5">
-            Size{" "}
-            <span
-              style={{
-                color: "var(--color-ink-ghost)",
-                fontWeight: 400,
-              }}
-            >
-              (optional)
-            </span>
+            Size <span style={{ color: "var(--color-danger)" }}>*</span>
           </label>
           <input
             className="input"
@@ -64,11 +51,37 @@ export function SimpleProductFields({
             placeholder="e.g. 245/40R18"
             value={size}
             onChange={(e) => onSizeChange(e.target.value)}
+            onBlur={autoFillSku}
+            required={!useVariants}
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1.5">
+            SKU{" "}
+            <span style={{ color: "var(--color-ink-ghost)", fontWeight: 400 }}>
+              (optional)
+            </span>
+          </label>
+          <input
+            className="input"
+            type="text"
+            value={sku}
+            onChange={(e) => onSkuChange(e.target.value)}
+            placeholder="Auto-generated from name + size"
+            style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}
+          />
+          {sku && (
+            <p
+              className="text-xs mt-1"
+              style={{ color: "var(--color-ink-tertiary)" }}
+            >
+              Clear to regenerate automatically
+            </p>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1.5">
             Initial qty

@@ -267,8 +267,8 @@ function NavItems({
                       fontWeight: active ? 600 : 500,
                       background: active
                         ? danger
-                          ? "rgba(239,68,68,0.09)"
-                          : "rgba(59,110,245,0.09)"
+                          ? "var(--color-danger-light)"
+                          : "var(--color-brand-50)"
                         : "transparent",
                       color: active
                         ? danger

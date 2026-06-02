@@ -7,6 +7,7 @@ import DashboardSkeleton from "./loading";
 import { getSubscription, isActive, daysLeft } from "@/lib/subscription";
 import { SubscriptionBanner } from "./_components/SubscriptionBanner";
 import { LimitSummaryBanner } from "./_components/LimitSummaryBanner";
+import { PlanBadge } from "./_components/PlanBadge";
 import { ShopsGrid } from "./_components/ShopsGrid";
 import type { ShopRow } from "./_components/ShopsGrid";
 import { KPICards } from "./_components/KPICards";
@@ -170,12 +171,22 @@ async function DashboardContent() {
           >
             {greeting}, {firstName}
           </p>
-          <h1
-            className="text-2xl font-semibold"
-            style={{ color: "var(--color-ink-primary)" }}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              flexWrap: "wrap",
+            }}
           >
-            Dashboard
-          </h1>
+            <h1
+              className="text-2xl font-semibold"
+              style={{ color: "var(--color-ink-primary)" }}
+            >
+              Dashboard
+            </h1>
+            {sub && <PlanBadge sub={sub} />}
+          </div>
           <p
             className="text-sm mt-1"
             style={{ color: "var(--color-ink-tertiary)" }}

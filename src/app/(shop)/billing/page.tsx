@@ -4,8 +4,7 @@ import { adminDb } from "@/lib/admin/db";
 import { getSubscription } from "@/lib/subscription";
 import { fetchPlans, dbPlanToBilling } from "@/lib/plans";
 import { BillingStatusCard } from "./_components/BillingStatusCard";
-import { PlanChooserCards } from "./_components/PlanChooserCards";
-import { PaymentCard } from "./_components/PaymentCard";
+import { PlanSelector } from "./_components/PlanSelector";
 import { AdminOverrideBanner } from "./_components/AdminOverrideBanner";
 
 export const metadata = { title: "Billing — AutoShop Pro" };
@@ -33,12 +32,12 @@ export default async function BillingPage({
     .filter((p) => p.price_kes > 0 && p.name !== "free_forever")
     .map(dbPlanToBilling);
   const planKeys = new Set(paidPlans.map((p) => p.key));
+
+  // targetPlan/targetPlanKey kept for any URL-driven flows (e.g. ?plan=pro links)
   const targetPlanKey =
     planParam && planKeys.has(planParam)
       ? planParam
       : (paidPlans[0]?.key ?? "pro");
-  const targetPlan =
-    paidPlans.find((p) => p.key === targetPlanKey) ?? paidPlans[0];
 
   const isPro =
     sub.status === "active" || sub.is_admin_override || sub.status === "free";
@@ -104,41 +103,75 @@ export default async function BillingPage({
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <h1
-        style={{
-          fontSize: "1.5rem",
-          fontWeight: 700,
-          color: "var(--color-ink-primary)",
-          marginBottom: 4,
-        }}
-      >
-        Billing &amp; Subscription
-      </h1>
-      <p
-        style={{
-          fontSize: "0.9375rem",
-          color: "var(--color-ink-tertiary)",
-          marginBottom: 32,
-        }}
-      >
-        Manage your plan and payment method.
-      </p>
+      {/* Page header */}
+      <div style={{ marginBottom: 32 }}>
+        <h1
+          style={{
+            fontSize: "1.625rem",
+            fontWeight: 800,
+            color: "var(--color-ink-primary)",
+            letterSpacing: "-0.02em",
+            marginBottom: 6,
+          }}
+        >
+          Billing &amp; Subscription
+        </h1>
+        <p
+          style={{ fontSize: "0.9375rem", color: "var(--color-ink-tertiary)" }}
+        >
+          Manage your plan, usage, and payment.
+        </p>
+      </div>
 
+      {/* Current plan + usage */}
       <BillingStatusCard sub={sub} usage={usage} />
 
-      {canPay && (
-        <>
-          <PlanChooserCards plans={paidPlans} targetPlanKey={targetPlanKey} />
-          <PaymentCard
-            isPro={isPro}
-            sub={sub}
-            targetPlan={targetPlan}
-            targetPlanKey={targetPlanKey}
-          />
-        </>
-      )}
-
+      {/* Admin override — no payment needed */}
       {sub.is_admin_override && <AdminOverrideBanner />}
+
+      {/* Upgrade section — only when payment is allowed */}
+      {canPay && (
+        <div style={{ marginTop: 8 }}>
+          {/* Section heading */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 16,
+            }}
+          >
+            <div
+              style={{
+                flex: 1,
+                height: 1,
+                background: "var(--color-border-subtle)",
+              }}
+            />
+            <p
+              style={{
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                color: "var(--color-ink-ghost)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {isPro ? "Renew or change plan" : "Choose a plan"}
+            </p>
+            <div
+              style={{
+                flex: 1,
+                height: 1,
+                background: "var(--color-border-subtle)",
+              }}
+            />
+          </div>
+
+          <PlanSelector plans={paidPlans} isPro={isPro} sub={sub} />
+        </div>
+      )}
     </div>
   );
 }

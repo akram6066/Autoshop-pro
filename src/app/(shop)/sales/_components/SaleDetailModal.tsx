@@ -115,7 +115,7 @@ export function SaleDetailModal({
                   <span
                     className="text-xs font-bold px-2 py-0.5 rounded-full"
                     style={{
-                      background: "rgba(239,68,68,0.1)",
+                      background: "var(--color-danger-light)",
                       color: "var(--color-danger)",
                     }}
                   >
@@ -309,8 +309,8 @@ export function SaleDetailModal({
                   <div
                     className="rounded-xl p-3"
                     style={{
-                      background: "rgba(239,68,68,0.06)",
-                      border: "1px solid rgba(239,68,68,0.2)",
+                      background: "var(--color-danger-light)",
+                      border: "1px solid var(--color-danger)",
                     }}
                   >
                     <p

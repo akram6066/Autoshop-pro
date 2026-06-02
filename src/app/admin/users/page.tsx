@@ -1,12 +1,9 @@
 import { adminDb } from "@/lib/admin/db";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import {
-  AdminCard,
-  AdminPageHeader,
-  AdminPagination,
-} from "@/app/admin/_components/AdminUI";
+import { AdminCard, AdminPagination } from "@/app/admin/_components/AdminUI";
 import { UserSearchForm } from "./_components/UserSearchForm";
 import { UsersTable, type MergedUser } from "./_components/UsersTable";
+import { CreateAdminUserButton } from "./_components/CreateAdminUserButton";
 
 interface PageProps {
   searchParams: Promise<{ q?: string; page?: string }>;
@@ -77,10 +74,32 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
 
   return (
     <div style={{ padding: "32px 36px", maxWidth: 1100 }}>
-      <AdminPageHeader
-        title="Users"
-        description={`${total} registered account${total !== 1 ? "s" : ""}`}
-      />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          marginBottom: 28,
+          gap: 16,
+        }}
+      >
+        <div>
+          <h1
+            style={{
+              fontSize: "1.5rem",
+              fontWeight: 700,
+              color: "#0f172a",
+              marginBottom: 6,
+            }}
+          >
+            Users
+          </h1>
+          <p style={{ fontSize: "0.9375rem", color: "#64748b" }}>
+            {total} registered account{total !== 1 ? "s" : ""}
+          </p>
+        </div>
+        <CreateAdminUserButton />
+      </div>
       <UserSearchForm q={q} />
       <AdminCard>
         <UsersTable users={users} currentUserId={currentUser?.id ?? ""} />

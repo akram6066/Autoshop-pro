@@ -17,10 +17,19 @@ export function RevealOnScroll({
     const el = ref.current;
     if (!el) return;
 
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      el.classList.add("visible");
-      return;
-    }
+    // Never animate when user prefers reduced motion
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    // Check if element is already in the viewport on first paint.
+    // If so, skip the animation entirely — no reveal class, stays visible.
+    const rect = el.getBoundingClientRect();
+    const alreadyVisible = rect.top < window.innerHeight && rect.bottom > 0;
+
+    if (alreadyVisible) return;
+
+    // Element is below the fold — add reveal class (hides it) then watch
+    // for when it scrolls into view.
+    el.classList.add("reveal");
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -29,7 +38,7 @@ export function RevealOnScroll({
           observer.unobserve(el);
         }
       },
-      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" },
+      { threshold: 0.08, rootMargin: "0px 0px -30px 0px" },
     );
 
     observer.observe(el);
@@ -39,7 +48,7 @@ export function RevealOnScroll({
   return (
     <div
       ref={ref}
-      className={`reveal ${className}`}
+      className={className}
       style={delay ? { transitionDelay: `${delay}ms` } : undefined}
     >
       {children}

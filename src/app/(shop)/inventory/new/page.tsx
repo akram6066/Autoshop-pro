@@ -12,10 +12,13 @@ import { useCategories } from "@/hooks/useCategories";
 import { productSchema, variantSchema } from "@/lib/validations/domain";
 import { friendlyError } from "@/lib/api/errors";
 import { createClient } from "@/lib/supabase/client";
+import { generateSku } from "@/lib/sku";
 import { ProductLimitBanner } from "./_components/ProductLimitBanner";
 import { VariantTable } from "./_components/VariantTable";
 import type { VariantRow } from "./_components/VariantTable";
 import { SimpleProductFields } from "./_components/SimpleProductFields";
+import { ImportSheet } from "./_components/ImportSheet";
+import type { ImportRow } from "./_components/ImportSheet";
 
 function newRow(): VariantRow {
   return {
@@ -39,6 +42,8 @@ export default function NewProductPage() {
   const { data: rooms = [] } = useRooms(shopId);
 
   const [error, setError] = useState("");
+  const [tab, setTab] = useState<"single" | "import">("single");
+  const [importing, setImporting] = useState(false);
   const mounted = useMounted();
 
   // Product limit check
@@ -98,6 +103,34 @@ export default function NewProductPage() {
   const effectiveCategory = category || categories[0]?.name || "";
   const isPending = isCreatingProduct || isCreatingVariants;
 
+  async function handleImport(rows: ImportRow[]) {
+    if (!shopId || !effectiveRoomId) return;
+    setImporting(true);
+    let saved = 0;
+    for (const row of rows) {
+      const finalSku = row.sku.trim() || generateSku(row.name, row.size);
+      const result = await createProduct({
+        shopId,
+        data: {
+          room_id: effectiveRoomId,
+          name: row.name.trim(),
+          sku: finalSku,
+          category: row.category || effectiveCategory,
+          quantity: row.quantity,
+          min_stock: row.min_stock,
+          price: row.price,
+          size: row.size.trim() || null,
+        },
+      });
+      if (result.status !== "error") saved++;
+    }
+    setImporting(false);
+    toast.success(
+      `${saved} of ${rows.length} product${rows.length !== 1 ? "s" : ""} imported.`,
+    );
+    router.push("/inventory");
+  }
+
   function addVariantRow() {
     setVariants((prev) => [...prev, newRow()]);
   }
@@ -144,11 +177,16 @@ export default function NewProductPage() {
         }
       }
     } else {
+      if (!size.trim()) {
+        setError("Size is required.");
+        return;
+      }
+      const effectiveSku = sku.trim() || generateSku(name, size);
       const pParsed = productSchema.safeParse({
         name,
-        sku,
+        sku: effectiveSku,
         category: effectiveCategory,
-        size: size || null,
+        size,
         quantity,
         min_stock: minStock,
         price,
@@ -161,12 +199,13 @@ export default function NewProductPage() {
 
     setError("");
 
+    const effectiveSku = sku.trim() || generateSku(name, size);
     const result = await createProduct({
       shopId,
       data: {
         room_id: effectiveRoomId,
         name: name.trim(),
-        sku: useVariants ? "" : sku.trim(),
+        sku: useVariants ? "" : effectiveSku,
         category: effectiveCategory,
         quantity: useVariants ? 0 : quantity,
         min_stock: useVariants ? 0 : minStock,
@@ -240,12 +279,48 @@ export default function NewProductPage() {
         Back to inventory
       </button>
 
-      <h1
-        className="text-2xl font-semibold mb-6"
-        style={{ color: "var(--color-ink-primary)" }}
-      >
-        Add product
-      </h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1
+          className="text-2xl font-semibold"
+          style={{ color: "var(--color-ink-primary)" }}
+        >
+          Add product
+        </h1>
+        <div
+          style={{
+            display: "flex",
+            background: "var(--color-surface-1)",
+            border: "1px solid var(--color-border-input)",
+            borderRadius: 8,
+            padding: 3,
+            gap: 2,
+          }}
+        >
+          {(["single", "import"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              style={{
+                padding: "5px 14px",
+                borderRadius: 6,
+                border: "none",
+                fontSize: "0.8125rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                background: tab === t ? "white" : "transparent",
+                color:
+                  tab === t
+                    ? "var(--color-ink-primary)"
+                    : "var(--color-ink-tertiary)",
+                boxShadow: tab === t ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+              }}
+            >
+              {t === "single" ? "Single" : "Import sheet"}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <ProductLimitBanner
         productLimit={productLimit}
@@ -253,172 +328,197 @@ export default function NewProductPage() {
         productNearLimit={productNearLimit}
       />
 
-      <div className="card p-6 animate-scale-in">
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Product name */}
-          <div>
-            <label className="block text-sm font-medium mb-1.5">
-              Product name{" "}
-              <span style={{ color: "var(--color-danger)" }}>*</span>
-            </label>
-            <input
-              className="input"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              autoFocus
-              placeholder="e.g. Michelin Pilot Sport 4S"
+      {tab === "import" && (
+        <div className="card p-6 animate-scale-in">
+          {importing ? (
+            <div style={{ textAlign: "center", padding: "40px 0" }}>
+              <p
+                className="text-sm"
+                style={{ color: "var(--color-ink-tertiary)" }}
+              >
+                Importing products…
+              </p>
+            </div>
+          ) : (
+            <ImportSheet
+              defaultCategory={effectiveCategory}
+              onImport={handleImport}
+              onCancel={() => setTab("single")}
             />
-          </div>
+          )}
+        </div>
+      )}
 
-          {/* Category + Room */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {tab === "single" && (
+        <div className="card p-6 animate-scale-in">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Product name */}
             <div>
               <label className="block text-sm font-medium mb-1.5">
-                Category
+                Product name{" "}
+                <span style={{ color: "var(--color-danger)" }}>*</span>
               </label>
-              {categories.length === 0 ? (
-                <div
-                  className="input flex items-center text-sm"
-                  style={{ color: "var(--color-ink-tertiary)" }}
-                >
-                  No categories — create in Settings
-                </div>
-              ) : (
+              <input
+                className="input"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                autoFocus
+                placeholder="e.g. Michelin Pilot Sport 4S"
+              />
+            </div>
+
+            {/* Category + Room */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1.5">
+                  Category
+                </label>
+                {categories.length === 0 ? (
+                  <div
+                    className="input flex items-center text-sm"
+                    style={{ color: "var(--color-ink-tertiary)" }}
+                  >
+                    No categories — create in Settings
+                  </div>
+                ) : (
+                  <select
+                    className="input"
+                    value={effectiveCategory}
+                    onChange={(e) => setCategory(e.target.value)}
+                    required
+                  >
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Room</label>
                 <select
                   className="input"
-                  value={effectiveCategory}
-                  onChange={(e) => setCategory(e.target.value)}
+                  value={effectiveRoomId}
+                  onChange={(e) => setRoomId(e.target.value)}
                   required
                 >
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name}
+                  {rooms.length === 0 && (
+                    <option value="">No rooms — create in Settings</option>
+                  )}
+                  {rooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
                     </option>
                   ))}
                 </select>
-              )}
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1.5">Room</label>
-              <select
-                className="input"
-                value={effectiveRoomId}
-                onChange={(e) => setRoomId(e.target.value)}
-                required
-              >
-                {rooms.length === 0 && (
-                  <option value="">No rooms — create in Settings</option>
-                )}
-                {rooms.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
 
-          {/* Variant mode toggle */}
-          <div
-            className="flex items-center justify-between rounded-xl px-4 py-3"
-            style={{
-              background: useVariants
-                ? "var(--color-brand-50)"
-                : "var(--color-surface-1)",
-              border: `1px solid ${useVariants ? "var(--color-brand-200)" : "var(--color-border-input)"}`,
-            }}
-          >
-            <div>
-              <p
-                className="text-sm font-medium"
-                style={{ color: "var(--color-ink-primary)" }}
-              >
-                Multiple sizes
-              </p>
-              <p
-                className="text-xs"
-                style={{ color: "var(--color-ink-tertiary)" }}
-              >
-                One brand, different sizes each with their own qty & price
-              </p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={useVariants}
-              onClick={() => setUseVariants((v) => !v)}
-              className="flex-shrink-0 w-10 h-6 rounded-full transition-colors relative"
+            {/* Variant mode toggle */}
+            <div
+              className="flex items-center justify-between rounded-xl px-4 py-3"
               style={{
                 background: useVariants
-                  ? "var(--color-brand-500)"
-                  : "var(--color-surface-3)",
+                  ? "var(--color-brand-50)"
+                  : "var(--color-surface-1)",
+                border: `1px solid ${useVariants ? "var(--color-brand-200)" : "var(--color-border-input)"}`,
               }}
             >
-              <span
-                className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all"
-                style={{ left: useVariants ? "1.25rem" : "0.25rem" }}
+              <div>
+                <p
+                  className="text-sm font-medium"
+                  style={{ color: "var(--color-ink-primary)" }}
+                >
+                  Multiple sizes
+                </p>
+                <p
+                  className="text-xs"
+                  style={{ color: "var(--color-ink-tertiary)" }}
+                >
+                  One brand, different sizes each with their own qty & price
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={useVariants}
+                onClick={() => setUseVariants((v) => !v)}
+                className="flex-shrink-0 w-10 h-6 rounded-full transition-colors relative"
+                style={{
+                  background: useVariants
+                    ? "var(--color-brand-500)"
+                    : "var(--color-surface-3)",
+                }}
+              >
+                <span
+                  className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all"
+                  style={{ left: useVariants ? "1.25rem" : "0.25rem" }}
+                />
+              </button>
+            </div>
+
+            {/* ── Variant rows or Simple fields ── */}
+            {useVariants ? (
+              <VariantTable
+                variants={variants}
+                productName={name}
+                onAddRow={addVariantRow}
+                onRemoveRow={removeVariantRow}
+                onUpdateRow={updateVariantRow}
               />
-            </button>
-          </div>
+            ) : (
+              <SimpleProductFields
+                sku={sku}
+                size={size}
+                quantity={quantity}
+                minStock={minStock}
+                price={price}
+                useVariants={useVariants}
+                productName={name}
+                onSkuChange={setSku}
+                onSizeChange={setSize}
+                onQuantityChange={setQuantity}
+                onMinStockChange={setMinStock}
+                onPriceChange={setPrice}
+              />
+            )}
 
-          {/* ── Variant rows or Simple fields ── */}
-          {useVariants ? (
-            <VariantTable
-              variants={variants}
-              onAddRow={addVariantRow}
-              onRemoveRow={removeVariantRow}
-              onUpdateRow={updateVariantRow}
-            />
-          ) : (
-            <SimpleProductFields
-              sku={sku}
-              size={size}
-              quantity={quantity}
-              minStock={minStock}
-              price={price}
-              useVariants={useVariants}
-              onSkuChange={setSku}
-              onSizeChange={setSize}
-              onQuantityChange={setQuantity}
-              onMinStockChange={setMinStock}
-              onPriceChange={setPrice}
-            />
-          )}
+            {error && (
+              <p className="text-sm" style={{ color: "var(--color-danger)" }}>
+                {error}
+              </p>
+            )}
 
-          {error && (
-            <p className="text-sm" style={{ color: "var(--color-danger)" }}>
-              {error}
-            </p>
-          )}
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={
-                !mounted ||
-                isPending ||
-                productAtLimit ||
-                !name.trim() ||
-                (!useVariants && !sku.trim()) ||
-                !effectiveRoomId ||
-                !effectiveCategory
-              }
-            >
-              {isPending ? "Saving…" : "Save product"}
-            </button>
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="btn btn-secondary"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={
+                  !mounted ||
+                  isPending ||
+                  productAtLimit ||
+                  !name.trim() ||
+                  (!useVariants && !size.trim()) ||
+                  !effectiveRoomId ||
+                  !effectiveCategory
+                }
+              >
+                {isPending ? "Saving…" : "Save product"}
+              </button>
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

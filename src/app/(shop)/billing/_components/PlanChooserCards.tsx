@@ -1,209 +1,147 @@
 import Link from "next/link";
 import type { BillingPlan } from "@/lib/plans";
 
+const PLAN_CONFIG: Record<
+  string,
+  { accent: string; accentBg: string; icon: string }
+> = {
+  pro: {
+    accent: "var(--color-badge-blue-text)",
+    accentBg: "var(--color-badge-blue-bg)",
+    icon: "⚡",
+  },
+  ultra_pro: {
+    accent: "var(--color-badge-purple-text)",
+    accentBg: "var(--color-badge-purple-bg)",
+    icon: "🚀",
+  },
+};
+
 export function PlanChooserCards({
   plans,
-  targetPlanKey,
+  selectedPlanKey,
 }: {
   plans: BillingPlan[];
-  targetPlanKey: string;
+  selectedPlanKey: string | null;
 }) {
   return (
     <div
-      className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-      style={{ marginBottom: 16 }}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        marginBottom: 20,
+      }}
     >
       {plans.map((plan) => {
-        const key = plan.key;
-        const selected = key === targetPlanKey;
-        const isUltra = key === "ultra_pro";
+        const selected = plan.key === selectedPlanKey;
+        const cfg = PLAN_CONFIG[plan.key] ?? PLAN_CONFIG.pro;
+
         return (
           <Link
-            key={key}
-            href={`?plan=${key}`}
+            key={plan.key}
+            href={`?plan=${plan.key}`}
             style={{ textDecoration: "none" }}
           >
             <div
               style={{
-                position: "relative",
-                padding: "20px 22px",
-                borderRadius: "var(--radius-lg)",
+                display: "flex",
+                alignItems: "center",
+                gap: 16,
+                padding: "18px 20px",
+                borderRadius: 12,
                 border: selected
-                  ? isUltra
-                    ? "2px solid #7c3aed"
-                    : "2px solid var(--color-brand-500)"
+                  ? `2px solid ${cfg.accent}`
                   : "1.5px solid var(--color-border)",
-                background: selected
-                  ? isUltra
-                    ? "linear-gradient(135deg,#faf5ff 0%,#ede9fe 100%)"
-                    : "linear-gradient(135deg,#eff6ff 0%,#eef2ff 100%)"
-                  : "var(--color-surface-0)",
-                boxShadow: selected
-                  ? isUltra
-                    ? "0 4px 20px rgba(124,58,237,0.12)"
-                    : "0 4px 20px rgba(99,102,241,0.12)"
-                  : "none",
+                background: selected ? cfg.accentBg : "var(--color-surface-0)",
                 cursor: "pointer",
-                transition: "all 0.15s ease",
-                height: "100%",
+                transition: "border-color 0.15s, background 0.15s",
+                position: "relative",
               }}
             >
-              {plan.badge && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: -11,
-                    left: 18,
-                    background: "var(--color-brand-500)",
-                    color: "white",
-                    fontSize: "0.6875rem",
-                    fontWeight: 700,
-                    letterSpacing: "0.07em",
-                    textTransform: "uppercase",
-                    padding: "3px 10px",
-                    borderRadius: 999,
-                  }}
-                >
-                  {plan.badge}
-                </span>
-              )}
-
-              {selected && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 16,
-                    right: 16,
-                    width: 20,
-                    height: 20,
-                    borderRadius: "50%",
-                    background: isUltra ? "#7c3aed" : "var(--color-brand-500)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <svg width="11" height="11" fill="none" viewBox="0 0 24 24">
-                    <path
-                      d="M20 6L9 17l-5-5"
-                      stroke="white"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-              )}
-
-              <p
-                style={{
-                  fontSize: "0.6875rem",
-                  fontWeight: 700,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: selected
-                    ? isUltra
-                      ? "#7c3aed"
-                      : "var(--color-brand-600)"
-                    : "var(--color-ink-tertiary)",
-                  marginBottom: 6,
-                }}
-              >
-                {plan.displayName}
-              </p>
-
+              {/* Radio indicator */}
               <div
                 style={{
-                  display: "flex",
-                  alignItems: "baseline",
-                  gap: 3,
-                  marginBottom: 6,
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  border: selected
+                    ? `6px solid ${cfg.accent}`
+                    : "2px solid var(--color-border-input)",
+                  background: "var(--color-surface-0)",
+                  flexShrink: 0,
+                  transition: "border 0.15s",
                 }}
-              >
-                <span
-                  style={{
-                    fontSize: "0.8125rem",
-                    fontWeight: 600,
-                    color: "var(--color-ink-tertiary)",
-                  }}
-                >
-                  KES
-                </span>
-                <span
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: "1.75rem",
-                    fontWeight: 700,
-                    lineHeight: 1,
-                    color: "var(--color-ink-primary)",
-                  }}
-                >
-                  {plan.priceKes.toLocaleString()}
-                </span>
-                <span
-                  style={{
-                    fontSize: "0.8125rem",
-                    color: "var(--color-ink-tertiary)",
-                  }}
-                >
-                  /mo
-                </span>
-              </div>
+              />
 
-              <p
-                style={{
-                  fontSize: "0.8125rem",
-                  color: "var(--color-ink-tertiary)",
-                  lineHeight: 1.5,
-                  marginBottom: 12,
-                }}
-              >
-                {plan.description}
-              </p>
-
-              <ul
-                style={{
-                  listStyle: "none",
-                  padding: 0,
-                  margin: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 6,
-                }}
-              >
-                {plan.features.map((f) => (
-                  <li
-                    key={f}
+              {/* Plan info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 2,
+                  }}
+                >
+                  <span
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 7,
-                      fontSize: "0.8125rem",
-                      color: "var(--color-ink-secondary)",
+                      fontSize: "0.9375rem",
+                      fontWeight: 700,
+                      color: selected ? cfg.accent : "var(--color-ink-primary)",
                     }}
                   >
-                    <svg
-                      width="13"
-                      height="13"
-                      fill="none"
-                      viewBox="0 0 24 24"
+                    {plan.displayName}
+                  </span>
+                  {plan.badge && (
+                    <span
                       style={{
-                        flexShrink: 0,
-                        color: isUltra ? "#7c3aed" : "var(--color-success)",
+                        fontSize: "0.6875rem",
+                        fontWeight: 700,
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        background: "var(--color-success-light)",
+                        color: "var(--color-success)",
+                        letterSpacing: "0.03em",
                       }}
                     >
-                      <path
-                        d="M20 6L9 17l-5-5"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    {f}
-                  </li>
-                ))}
-              </ul>
+                      {plan.badge}
+                    </span>
+                  )}
+                </div>
+                <p
+                  style={{
+                    fontSize: "0.8125rem",
+                    color: "var(--color-ink-tertiary)",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {plan.description}
+                </p>
+              </div>
+
+              {/* Price */}
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <p
+                  style={{
+                    fontSize: "1.125rem",
+                    fontWeight: 800,
+                    color: "var(--color-ink-primary)",
+                    lineHeight: 1,
+                  }}
+                >
+                  KES {plan.priceKes.toLocaleString()}
+                </p>
+                <p
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "var(--color-ink-ghost)",
+                    marginTop: 2,
+                  }}
+                >
+                  /month
+                </p>
+              </div>
             </div>
           </Link>
         );

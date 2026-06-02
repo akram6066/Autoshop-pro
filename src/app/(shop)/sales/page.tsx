@@ -178,7 +178,7 @@ export default function SalesPage() {
                               <span
                                 className="text-xs font-bold px-1.5 py-0.5 rounded"
                                 style={{
-                                  background: "rgba(239,68,68,0.1)",
+                                  background: "var(--color-danger-light)",
                                   color: "var(--color-danger)",
                                   fontFamily: "var(--font-sans)",
                                 }}

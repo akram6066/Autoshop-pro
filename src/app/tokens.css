@@ -63,6 +63,26 @@
   --color-border-input: oklch(88% 0.006 250);
   --color-border-hover: oklch(76% 0.01 250);
 
+  /* Badge — blue (Pro) */
+  --color-badge-blue-bg: #eff6ff;
+  --color-badge-blue-text: #1d4ed8;
+  --color-badge-blue-border: #bfdbfe;
+
+  /* Badge — purple (Ultra Pro) */
+  --color-badge-purple-bg: #f5f3ff;
+  --color-badge-purple-text: #6d28d9;
+  --color-badge-purple-border: #ddd6fe;
+
+  /* Warning banner (yellow) */
+  --color-warning-bg: #fffbeb;
+  --color-warning-border: #fde68a;
+  --color-warning-text-strong: #92400e;
+
+  /* Orange / urgent banner */
+  --color-orange-bg: #fff7ed;
+  --color-orange-border: #fed7aa;
+  --color-orange-text: #9a3412;
+
   /* Status text — on colored badge / chip backgrounds */
   --color-success-text: #15803d;
   --color-warning-text: #92400e;
@@ -71,6 +91,11 @@
 
   /* Focus ring */
   --color-focus-ring: oklch(62% 0.2 258 / 18%);
+
+  /* Badge — neutral (Free/trial) */
+  --color-badge-neutral-bg: oklch(95.5% 0.004 250);
+  --color-badge-neutral-text: oklch(38% 0.012 250);
+  --color-badge-neutral-border: oklch(88% 0.006 250);
 
   /* Scrollbar — tokens so dark overrides need no extra rules */
   --color-scrollbar: oklch(78% 0 0);
@@ -129,6 +154,29 @@
 
   /* Focus ring */
   --color-focus-ring: oklch(67% 0.225 254 / 24%);
+
+  /* Badge — blue */
+  --color-badge-blue-bg: oklch(22% 0.06 262);
+  --color-badge-blue-text: oklch(76% 0.18 254);
+  --color-badge-blue-border: oklch(32% 0.09 262);
+
+  /* Badge — purple */
+  --color-badge-purple-bg: oklch(22% 0.06 292);
+  --color-badge-purple-text: oklch(76% 0.15 292);
+  --color-badge-purple-border: oklch(32% 0.09 292);
+
+  /* Badge — neutral */
+  --color-badge-neutral-bg: oklch(22% 0.013 250);
+  --color-badge-neutral-text: oklch(67% 0.009 250);
+  --color-badge-neutral-border: oklch(31% 0.015 250);
+
+  /* Warning / orange banners */
+  --color-warning-bg: oklch(20% 0.05 82);
+  --color-warning-border: oklch(36% 0.1 82);
+  --color-warning-text-strong: #fde68a;
+  --color-orange-bg: oklch(20% 0.05 52);
+  --color-orange-border: oklch(36% 0.1 52);
+  --color-orange-text: #fdba74;
 
   /* Scrollbar */
   --color-scrollbar: oklch(32% 0.012 250);

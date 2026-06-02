@@ -1,6 +1,7 @@
 "use client";
 
 import { NumInput } from "./NumInput";
+import { generateSku } from "@/lib/sku";
 
 export interface VariantRow {
   _key: string; // local React key only
@@ -13,6 +14,7 @@ export interface VariantRow {
 
 interface Props {
   variants: VariantRow[];
+  productName: string;
   onAddRow: () => void;
   onRemoveRow: (key: string) => void;
   onUpdateRow: (key: string, patch: Partial<Omit<VariantRow, "_key">>) => void;
@@ -20,6 +22,7 @@ interface Props {
 
 export function VariantTable({
   variants,
+  productName,
   onAddRow,
   onRemoveRow,
   onUpdateRow,
@@ -59,6 +62,13 @@ export function VariantTable({
               placeholder="e.g. 205/55R16"
               value={row.size}
               onChange={(e) => onUpdateRow(row._key, { size: e.target.value })}
+              onBlur={() => {
+                if (!row.sku.trim() && productName.trim() && row.size.trim()) {
+                  onUpdateRow(row._key, {
+                    sku: generateSku(productName, row.size),
+                  });
+                }
+              }}
               required
             />
             <input
@@ -113,6 +123,17 @@ export function VariantTable({
                 onChange={(e) =>
                   onUpdateRow(row._key, { size: e.target.value })
                 }
+                onBlur={() => {
+                  if (
+                    !row.sku.trim() &&
+                    productName.trim() &&
+                    row.size.trim()
+                  ) {
+                    onUpdateRow(row._key, {
+                      sku: generateSku(productName, row.size),
+                    });
+                  }
+                }}
                 required
               />
               <button

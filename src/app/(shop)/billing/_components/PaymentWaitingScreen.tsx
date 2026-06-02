@@ -21,8 +21,8 @@ export function PaymentWaitingScreen({
         style={{
           display: "flex",
           gap: 12,
-          background: "#f0fdf4",
-          border: "1px solid #bbf7d0",
+          background: "var(--color-success-light)",
+          border: "1px solid var(--color-success)",
           borderRadius: 10,
           padding: "14px 16px",
           alignItems: "flex-start",
@@ -33,7 +33,7 @@ export function PaymentWaitingScreen({
           height="18"
           fill="none"
           viewBox="0 0 24 24"
-          style={{ flexShrink: 0, marginTop: 1, color: "#15803d" }}
+          style={{ flexShrink: 0, marginTop: 1, color: "var(--color-success)" }}
         >
           <path
             d="M12 22C6.48 22 2 17.52 2 12S6.48 2 12 2s10 4.48 10 10-4.48 10-10 10zm0-11v5m0-8h.01"
@@ -46,15 +46,25 @@ export function PaymentWaitingScreen({
           <p
             style={{
               fontWeight: 600,
-              color: "#15803d",
+              color: "var(--color-success)",
               marginBottom: 2,
               fontSize: "0.9375rem",
             }}
           >
             Check your phone
           </p>
-          <p style={{ fontSize: "0.875rem", color: "#166534" }}>{message}</p>
-          <p style={{ fontSize: "0.8125rem", color: "#4ade80", marginTop: 4 }}>
+          <p
+            style={{ fontSize: "0.875rem", color: "var(--color-success-text)" }}
+          >
+            {message}
+          </p>
+          <p
+            style={{
+              fontSize: "0.8125rem",
+              color: "var(--color-success)",
+              marginTop: 4,
+            }}
+          >
             Enter your M-Pesa PIN to complete payment of{" "}
             <strong>KES {priceKes.toLocaleString()}</strong>.
           </p>

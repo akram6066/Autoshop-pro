@@ -21,7 +21,7 @@ export function PaymentSuccessScreen() {
           width: 56,
           height: 56,
           borderRadius: "50%",
-          background: "#dcfce7",
+          background: "var(--color-success-light)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -30,13 +30,13 @@ export function PaymentSuccessScreen() {
         <svg width="26" height="26" fill="none" viewBox="0 0 24 24">
           <path
             d="M22 11.08V12a10 10 0 11-5.93-9.14"
-            stroke="#15803d"
+            stroke="var(--color-success)"
             strokeWidth="2"
             strokeLinecap="round"
           />
           <path
             d="M22 4L12 14.01l-3-3"
-            stroke="#15803d"
+            stroke="var(--color-success)"
             strokeWidth="2"
             strokeLinecap="round"
           />

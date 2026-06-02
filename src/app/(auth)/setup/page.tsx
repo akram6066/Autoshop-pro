@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, Suspense } from "react";
+import { useState, useTransition, Suspense, useEffect } from "react";
 import { useMounted } from "@/hooks/useMounted";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
@@ -37,11 +37,32 @@ function SetupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAddingNew = searchParams.get("new") === "1";
-  const planParam = searchParams.get("plan");
 
   const setAll = useAuthStore((s) => s.setAll);
   const profile = useAuthStore((s) => s.profile);
   const existingShops = useAuthStore(selectShops);
+
+  // Redirect platform admins away from setup — they don't need a shop
+  useEffect(() => {
+    async function checkAdmin() {
+      if (profile?.is_admin) {
+        router.replace("/admin");
+        return;
+      }
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", user.id)
+        .single<{ is_admin: boolean }>();
+      if (data?.is_admin) router.replace("/admin");
+    }
+    checkAdmin();
+  }, [profile, router]);
 
   const [step, setStep] = useState<Step>("shop");
   const [isPending, startTransition] = useTransition();
@@ -216,11 +237,7 @@ function SetupContent() {
       setStep("done");
 
       setTimeout(() => {
-        if (planParam && !isAddingNew) {
-          router.push(`/billing?plan=${planParam}`);
-        } else {
-          router.push(isAddingNew ? "/overview" : "/dashboard");
-        }
+        router.push(isAddingNew ? "/overview" : "/choose-plan");
       }, 1200);
     });
   }

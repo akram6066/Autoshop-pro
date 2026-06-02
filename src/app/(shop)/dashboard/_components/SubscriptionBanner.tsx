@@ -11,6 +11,46 @@ export function SubscriptionBanner({
   subDays,
   bannerUrgent,
 }: SubscriptionBannerProps) {
+  const bg = !subActive
+    ? "var(--color-danger-light)"
+    : bannerUrgent
+      ? "var(--color-orange-bg)"
+      : "var(--color-warning-bg)";
+
+  const border = !subActive
+    ? "var(--color-danger)"
+    : bannerUrgent
+      ? "var(--color-orange-border)"
+      : "var(--color-warning-border)";
+
+  const iconBg = !subActive
+    ? "var(--color-danger-light)"
+    : bannerUrgent
+      ? "var(--color-orange-bg)"
+      : "var(--color-warning-light)";
+
+  const iconColor = !subActive
+    ? "var(--color-danger)"
+    : bannerUrgent
+      ? "var(--color-orange-text)"
+      : "var(--color-warning)";
+
+  const titleColor = !subActive
+    ? "var(--color-danger)"
+    : bannerUrgent
+      ? "var(--color-orange-text)"
+      : "var(--color-warning-text-strong)";
+
+  const bodyColor = !subActive
+    ? "var(--color-danger-text)"
+    : "var(--color-warning-text-strong)";
+
+  const ctaBg = !subActive
+    ? "var(--color-danger)"
+    : bannerUrgent
+      ? "var(--color-orange-text)"
+      : "var(--color-warning)";
+
   return (
     <div
       className="animate-fade-in-up"
@@ -21,12 +61,8 @@ export function SubscriptionBanner({
         padding: "12px 16px",
         borderRadius: 10,
         marginBottom: 24,
-        background: !subActive
-          ? "var(--color-danger-light)"
-          : bannerUrgent
-            ? "#fff7ed"
-            : "#fefce8",
-        border: `1px solid ${!subActive ? "#fca5a5" : bannerUrgent ? "#fed7aa" : "#fde68a"}`,
+        background: bg,
+        border: `1px solid ${border}`,
       }}
     >
       {/* Icon */}
@@ -39,16 +75,8 @@ export function SubscriptionBanner({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: !subActive
-            ? "#fee2e2"
-            : bannerUrgent
-              ? "#ffedd5"
-              : "#fef9c3",
-          color: !subActive
-            ? "var(--color-danger)"
-            : bannerUrgent
-              ? "#c2410c"
-              : "#a16207",
+          background: iconBg,
+          color: iconColor,
         }}
       >
         {!subActive ? (
@@ -85,11 +113,7 @@ export function SubscriptionBanner({
           style={{
             fontSize: "0.875rem",
             fontWeight: 600,
-            color: !subActive
-              ? "var(--color-danger)"
-              : bannerUrgent
-                ? "#9a3412"
-                : "#92400e",
+            color: titleColor,
             marginBottom: 1,
           }}
         >
@@ -99,12 +123,7 @@ export function SubscriptionBanner({
               ? `Trial expires in ${subDays} day${subDays !== 1 ? "s" : ""}!`
               : `${subDays} days left in your free trial`}
         </p>
-        <p
-          style={{
-            fontSize: "0.8125rem",
-            color: !subActive ? "#ef4444" : "#b45309",
-          }}
-        >
+        <p style={{ fontSize: "0.8125rem", color: bodyColor }}>
           {!subActive
             ? "Upgrade to keep all features — pay via M-Pesa."
             : "Upgrade now — from KES 1,000/month via M-Pesa."}
@@ -121,11 +140,7 @@ export function SubscriptionBanner({
           fontSize: "0.8125rem",
           fontWeight: 700,
           textDecoration: "none",
-          background: !subActive
-            ? "var(--color-danger)"
-            : bannerUrgent
-              ? "#ea580c"
-              : "#d97706",
+          background: ctaBg,
           color: "white",
           whiteSpace: "nowrap",
         }}
