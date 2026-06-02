@@ -1,17 +1,21 @@
 "use server";
 
 import { adminDb } from "@/lib/admin/db";
+import { requireAdmin } from "@/lib/admin/require-admin";
+import { saveTrialSettingsSchema } from "@/lib/admin/schemas";
 import { revalidatePath } from "next/cache";
 
 export async function saveTrialSettings(enabled: boolean, days: number) {
-  const safedays = Math.max(1, Math.min(365, Math.round(days)));
-  await adminDb()
+  await requireAdmin();
+  const validated = saveTrialSettingsSchema.parse({ enabled, days });
+  const { error } = await adminDb()
     .from("app_settings")
     .upsert({
       key: "trial",
-      value: { enabled, days: safedays },
+      value: { enabled: validated.enabled, days: validated.days },
       updated_at: new Date().toISOString(),
     });
+  if (error) throw new Error("Failed to save trial settings");
   revalidatePath("/admin/settings");
   revalidatePath("/choose-plan");
 }

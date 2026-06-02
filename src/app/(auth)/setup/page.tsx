@@ -180,7 +180,11 @@ function SetupContent() {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("categories")
-        .insert({ name: catName.trim(), color: catColor })
+        .insert({
+          shop_id: createdShop!.id,
+          name: catName.trim(),
+          color: catColor,
+        })
         .select()
         .single();
       if (error) throw error;

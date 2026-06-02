@@ -2,14 +2,13 @@
 
 import { useEffect, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useAuthStore } from "@/stores/authStore";
 
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
         staleTime: 60 * 1000,
-        retry: 1,
+        retry: 3,
       },
     },
   });
@@ -47,12 +46,9 @@ function requestSync() {
 export function Providers({ children }: { children: ReactNode }) {
   const queryClient = getQueryClient();
 
-  // Restore persisted shop/role from localStorage after client hydration.
-  // skipHydration: true in the store prevents a server/client mismatch on
-  // first render; this call is the manual trigger that actually loads the data.
-  useEffect(() => {
-    useAuthStore.persist.rehydrate();
-  }, []);
+  // Note: Zustand rehydration is handled exclusively in ShopLayout.init()
+  // after hydration is complete. Do NOT call rehydrate() here — it would
+  // overwrite freshly-fetched server state with stale localStorage values.
 
   // Register Service Worker — only in production.
   // In dev, cache-first for /_next/static/ causes hydration mismatches because

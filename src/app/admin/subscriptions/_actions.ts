@@ -1,24 +1,24 @@
 "use server";
 
 import { adminDb } from "@/lib/admin/db";
+import { requireAdmin } from "@/lib/admin/require-admin";
 import { activateProShops, downgradeShops } from "@/lib/subscription";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { logAdminAction } from "@/lib/admin/logger";
+import {
+  grantFreeAccessSchema,
+  extendTrialSchema,
+  activatePlanSchema,
+  extendSubscriptionSchema,
+} from "@/lib/admin/schemas";
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
-async function getAdminId(): Promise<string | undefined> {
-  try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    return user?.id;
-  } catch {
-    return undefined;
-  }
-}
+const uuidSchema = z.string().uuid("Invalid user ID");
 
 export async function grantFreeAccess(userId: string, notes: string) {
+  const { adminId } = await requireAdmin();
+  const validated = grantFreeAccessSchema.parse({ userId, notes });
+
   const db = adminDb();
   const { data: plan } = await db
     .from("subscription_plans")
@@ -27,29 +27,33 @@ export async function grantFreeAccess(userId: string, notes: string) {
     .single();
   if (!plan) throw new Error("free_forever plan not found");
 
-  await db.from("subscriptions").upsert(
+  const { error } = await db.from("subscriptions").upsert(
     {
-      user_id: userId,
+      user_id: validated.userId,
       plan_id: plan.id,
       status: "free",
       is_admin_override: true,
-      notes: notes || null,
+      notes: validated.notes ?? null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },
   );
+  if (error) throw new Error("Failed to grant access");
 
-  await activateProShops(userId);
+  await activateProShops(validated.userId);
   await logAdminAction({
     action: "GRANT_FREE_ACCESS",
-    targetUserId: userId,
-    adminId: await getAdminId(),
-    details: { notes },
+    targetUserId: validated.userId,
+    adminId,
+    details: { notes: validated.notes },
   });
   revalidatePath("/admin/subscriptions");
 }
 
 export async function revokeAccess(userId: string) {
+  const { adminId } = await requireAdmin();
+  const validUserId = uuidSchema.parse(userId);
+
   const db = adminDb();
   const { data: plan } = await db
     .from("subscription_plans")
@@ -58,7 +62,7 @@ export async function revokeAccess(userId: string) {
     .single();
   if (!plan) throw new Error("trial plan not found");
 
-  await db
+  const { error } = await db
     .from("subscriptions")
     .update({
       plan_id: plan.id,
@@ -68,45 +72,52 @@ export async function revokeAccess(userId: string) {
       notes: null,
       updated_at: new Date().toISOString(),
     })
-    .eq("user_id", userId);
+    .eq("user_id", validUserId);
 
-  await downgradeShops(userId);
+  if (error) throw new Error("Failed to revoke access");
+
+  await downgradeShops(validUserId);
   await logAdminAction({
     action: "REVOKE_ACCESS",
-    targetUserId: userId,
-    adminId: await getAdminId(),
+    targetUserId: validUserId,
+    adminId,
   });
   revalidatePath("/admin/subscriptions");
 }
 
 export async function extendTrial(userId: string, days: number) {
+  const { adminId } = await requireAdmin();
+  const validated = extendTrialSchema.parse({ userId, days });
+
   const db = adminDb();
   const { data: sub } = await db
     .from("subscriptions")
     .select("trial_ends_at")
-    .eq("user_id", userId)
+    .eq("user_id", validated.userId)
     .single();
 
   const base =
     sub?.trial_ends_at && new Date(sub.trial_ends_at) > new Date()
       ? new Date(sub.trial_ends_at)
       : new Date();
-  base.setDate(base.getDate() + days);
+  base.setDate(base.getDate() + validated.days);
 
-  await db
+  const { error } = await db
     .from("subscriptions")
     .update({
       status: "trial",
       trial_ends_at: base.toISOString(),
       updated_at: new Date().toISOString(),
     })
-    .eq("user_id", userId);
+    .eq("user_id", validated.userId);
+
+  if (error) throw new Error("Failed to extend trial");
 
   await logAdminAction({
     action: "EXTEND_TRIAL",
-    targetUserId: userId,
-    adminId: await getAdminId(),
-    details: { days },
+    targetUserId: validated.userId,
+    adminId,
+    details: { days: validated.days },
   });
   revalidatePath("/admin/subscriptions");
 }
@@ -116,20 +127,23 @@ export async function activatePlan(
   planName: string,
   months: number,
 ) {
+  const { adminId } = await requireAdmin();
+  const validated = activatePlanSchema.parse({ userId, planName, months });
+
   const db = adminDb();
   const { data: plan } = await db
     .from("subscription_plans")
     .select("id")
-    .eq("name", planName)
+    .eq("name", validated.planName)
     .single();
-  if (!plan) throw new Error(`Plan "${planName}" not found`);
+  if (!plan) throw new Error(`Plan "${validated.planName}" not found`);
 
   const end = new Date();
-  end.setMonth(end.getMonth() + months);
+  end.setMonth(end.getMonth() + validated.months);
 
-  await db.from("subscriptions").upsert(
+  const { error } = await db.from("subscriptions").upsert(
     {
-      user_id: userId,
+      user_id: validated.userId,
       plan_id: plan.id,
       status: "active",
       is_admin_override: false,
@@ -139,60 +153,68 @@ export async function activatePlan(
     },
     { onConflict: "user_id" },
   );
+  if (error) throw new Error("Failed to activate plan");
 
-  await activateProShops(userId, planName);
+  await activateProShops(validated.userId, validated.planName);
   await logAdminAction({
     action: "ACTIVATE_PLAN",
-    targetUserId: userId,
-    adminId: await getAdminId(),
-    details: { planName, months },
+    targetUserId: validated.userId,
+    adminId,
+    details: { planName: validated.planName, months: validated.months },
   });
   revalidatePath("/admin/subscriptions");
 }
 
 export async function extendSubscription(userId: string, months: number) {
+  const { adminId } = await requireAdmin();
+  const validated = extendSubscriptionSchema.parse({ userId, months });
+
   const db = adminDb();
   const { data: sub } = await db
     .from("subscriptions")
     .select("current_period_end")
-    .eq("user_id", userId)
+    .eq("user_id", validated.userId)
     .single();
 
   const base =
     sub?.current_period_end && new Date(sub.current_period_end) > new Date()
       ? new Date(sub.current_period_end)
       : new Date();
-  base.setMonth(base.getMonth() + months);
+  base.setMonth(base.getMonth() + validated.months);
 
-  await db
+  const { error } = await db
     .from("subscriptions")
     .update({
       status: "active",
       current_period_end: base.toISOString(),
       updated_at: new Date().toISOString(),
     })
-    .eq("user_id", userId);
+    .eq("user_id", validated.userId);
+
+  if (error) throw new Error("Failed to extend subscription");
 
   await logAdminAction({
     action: "EXTEND_SUBSCRIPTION",
-    targetUserId: userId,
-    adminId: await getAdminId(),
-    details: { months },
+    targetUserId: validated.userId,
+    adminId,
+    details: { months: validated.months },
   });
   revalidatePath("/admin/subscriptions");
 }
 
 export async function updatePlan(planId: string, fd: FormData) {
+  await requireAdmin();
+
   const toInt = (key: string) => {
     const v = fd.get(key);
     if (v === null || v === "") return undefined;
     const n = parseInt(String(v), 10);
-    return isNaN(n) ? undefined : n;
+    return isNaN(n) ? undefined : Math.max(0, n);
   };
 
   const patch: Record<string, string | number> = {};
   const displayName = fd.get("display_name");
-  if (displayName) patch.display_name = String(displayName);
+  if (displayName) patch.display_name = String(displayName).slice(0, 100);
 
   const fields = [
     "price_kes",
@@ -210,6 +232,12 @@ export async function updatePlan(planId: string, fd: FormData) {
   }
 
   if (Object.keys(patch).length === 0) return;
-  await adminDb().from("subscription_plans").update(patch).eq("id", planId);
+
+  const { error } = await adminDb()
+    .from("subscription_plans")
+    .update(patch)
+    .eq("id", planId);
+
+  if (error) throw new Error("Failed to update plan");
   revalidatePath("/admin/subscriptions");
 }

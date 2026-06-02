@@ -109,12 +109,21 @@ export const POST = withAuth(
         return NextResponse.json({ error: message }, { status });
       }
 
-      // Explicitly remove membership row — auth cascade may not cover shop_members
-      await adminClient
-        .from("shop_members")
-        .delete()
-        .eq("shop_id", input.shop_id)
-        .eq("user_id", input.user_id);
+      // Remove membership + clean up orphaned sync_queue rows in parallel.
+      // auth.admin.deleteUser cascades to auth.users but not to shop_members
+      // or sync_queue (which has no FK to auth.users).
+      await Promise.all([
+        adminClient
+          .from("shop_members")
+          .delete()
+          .eq("shop_id", input.shop_id)
+          .eq("user_id", input.user_id),
+        adminClient
+          .from("sync_queue")
+          .delete()
+          .eq("shop_id", input.shop_id)
+          .eq("user_id", input.user_id),
+      ]);
 
       return NextResponse.json({ ok: true });
     } catch (err) {

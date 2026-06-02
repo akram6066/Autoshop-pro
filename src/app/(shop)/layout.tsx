@@ -9,6 +9,7 @@ import { seedLocalCache } from "@/lib/db/instance";
 import { listenForCrossTabSync } from "@/lib/sync/queue";
 import { ShopHeader } from "@/components/shop/ShopHeader";
 import EmailConfirmBanner from "@/components/EmailConfirmBanner";
+import { PendingInviteBanner } from "@/components/shop/PendingInviteBanner";
 import { fetchAllProducts } from "@/lib/supabase/fetchAllProducts";
 import type { Profile, Room, ShopWithRole } from "@/types/app";
 
@@ -154,6 +155,12 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       if (event === "SIGNED_OUT") {
         initialised.current = false;
         reset();
+        // Clear persisted shop context so the next user starts clean
+        useAuthStore.persist.clearStorage();
+        // Clear POS cart (sessionStorage) so stale items don't bleed into next session
+        try {
+          sessionStorage.removeItem("autoshop_pos_cart");
+        } catch {}
         if (signingOut.current) {
           signingOut.current = false;
           router.replace("/login");
@@ -196,6 +203,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       style={{ background: "var(--color-surface-1)" }}
     >
       <ShopHeader role={role} shopId={shopId} onSignOut={handleSignOut} />
+      <PendingInviteBanner />
       <EmailConfirmBanner />
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">

@@ -159,7 +159,7 @@ export default function POSPage() {
       .gte("created_at", monthStart)
       .then(({ count }) => setMonthlySales(count ?? 0));
   }, [shopId]);
-  const { data: categories = [] } = useCategories();
+  const { data: categories = [] } = useCategories(shopId);
   const { data: customers = [] } = useCustomers(shopId);
   const { data: allVariants = [] } = useShopVariants(shopId);
   const { mutateAsync: recordSale, isPending: isSaving } = useRecordSale();

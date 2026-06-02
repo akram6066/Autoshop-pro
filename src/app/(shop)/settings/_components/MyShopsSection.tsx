@@ -54,31 +54,28 @@ export function MyShopsSection({ sub }: { sub: SubInfo | null }) {
     setFormError("");
     startTransition(async () => {
       const supabase = createClient();
-      const { data: newShop, error: shopError } = await supabase
-        .from("shops")
-        .insert({ name: name.trim(), address: address.trim() || null })
-        .select()
-        .single();
+      const { data: newShop, error } = await supabase.rpc(
+        "create_additional_shop",
+        { p_name: name.trim(), p_address: address.trim() || null },
+      );
 
-      if (shopError) {
-        setFormError(
-          shopError.code === "23505"
-            ? "A shop with that name already exists."
-            : shopError.message,
-        );
+      if (error) {
+        if (error.message?.includes("shop_limit_reached")) {
+          setFormError(
+            `Your plan allows up to ${maxShops} shop${maxShops !== 1 ? "s" : ""}. Upgrade to add more.`,
+          );
+        } else if (error.code === "23505") {
+          setFormError("A shop with that name already exists.");
+        } else {
+          setFormError(error.message);
+        }
         return;
       }
 
-      const { error: memberError } = await supabase
-        .from("shop_members")
-        .insert({ shop_id: newShop.id, user_id: user.id, role: "owner" });
-
-      if (memberError) {
-        setFormError(memberError.message);
-        return;
-      }
-
-      const created: ShopWithRole = { ...(newShop as Shop), role: "owner" };
+      const created: ShopWithRole = {
+        ...(newShop as unknown as Shop),
+        role: "owner",
+      };
       setShops([...shops, created]);
       await switchShopFn(created);
       resetForm();

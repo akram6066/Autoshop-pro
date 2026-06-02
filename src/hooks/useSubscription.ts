@@ -1,19 +1,23 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useQuery } from "@tanstack/react-query";
 import type { SubInfo } from "@/app/(shop)/settings/_components/PlanUsageSection";
 
-export function useSubscription() {
-  const [sub, setSub] = useState<SubInfo | null>(null);
-  const [subLoading, setSubLoading] = useState(true);
+async function fetchSubscription(): Promise<SubInfo | null> {
+  const res = await fetch("/api/subscription/status");
+  if (!res.ok) throw new Error("Failed to load subscription");
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data as SubInfo;
+}
 
-  useEffect(() => {
-    fetch("/api/subscription/status")
-      .then((r) => r.json())
-      .then((data) => {
-        if (!data.error) setSub(data as SubInfo);
-      })
-      .finally(() => setSubLoading(false));
-  }, []);
+export function useSubscription() {
+  const { data: sub = null, isLoading: subLoading } = useQuery({
+    queryKey: ["subscription"],
+    queryFn: fetchSubscription,
+    staleTime: 1000 * 60 * 5,
+    retry: 2,
+  });
 
   return { sub, subLoading };
 }

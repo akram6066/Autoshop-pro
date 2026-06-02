@@ -34,7 +34,7 @@ function EditForm({
   const user = useAuthStore((s) => s.user);
   const { mutateAsync: updateProduct, isPending } = useUpdateProduct();
 
-  const { data: categories = [] } = useCategories();
+  const { data: categories = [] } = useCategories(shopId);
   const [name, setName] = useState(product.name);
   const [sku, setSku] = useState(product.sku);
   const [category, setCategory] = useState<Category>(product.category);

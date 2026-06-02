@@ -38,7 +38,7 @@ export default function NewProductPage() {
     useCreateProduct();
   const { mutateAsync: createVariants, isPending: isCreatingVariants } =
     useCreateVariants(shopId);
-  const { data: categories = [] } = useCategories();
+  const { data: categories = [] } = useCategories(shopId);
   const { data: rooms = [] } = useRooms(shopId);
 
   const [error, setError] = useState("");

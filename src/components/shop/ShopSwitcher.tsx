@@ -10,10 +10,9 @@ export function ShopSwitcher() {
   const shop = useAuthStore(selectShop);
   const switchShop = useAuthStore((s) => s.switchShop);
   const [open, setOpen] = useState(false);
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
-
-  const ownerShops = shops.filter((s) => s.role === "owner");
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -30,12 +29,24 @@ export function ShopSwitcher() {
       : shop.name
     : "—";
 
+  async function handleSwitch(s: (typeof shops)[number]) {
+    if (s.id === shop?.id || switchingId) return;
+    setSwitchingId(s.id);
+    try {
+      await switchShop(s);
+      setOpen(false);
+      router.refresh();
+    } finally {
+      setSwitchingId(null);
+    }
+  }
+
   return (
     <div ref={ref} className="relative">
-      {/* Trigger — sm+: name + chevron pill; mobile: icon + chevron only */}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
+        disabled={!!switchingId}
         className="flex items-center gap-1.5"
         style={{
           background: "var(--color-surface-2)",
@@ -44,19 +55,30 @@ export function ShopSwitcher() {
           padding: "6px 12px",
           fontSize: 13,
           color: "var(--color-ink-primary)",
+          opacity: switchingId ? 0.6 : 1,
         }}
       >
-        <span
-          className="hidden sm:block"
-          style={{
-            maxWidth: 160,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {displayName}
-        </span>
+        {switchingId ? (
+          <span
+            className="hidden sm:block"
+            style={{ color: "var(--color-ink-tertiary)" }}
+          >
+            Switching…
+          </span>
+        ) : (
+          <span
+            className="hidden sm:block"
+            style={{
+              maxWidth: 160,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {displayName}
+          </span>
+        )}
+
         {/* Store icon — mobile only */}
         <svg
           className="sm:hidden"
@@ -80,6 +102,7 @@ export function ShopSwitcher() {
             strokeLinejoin="round"
           />
         </svg>
+
         <svg
           width="12"
           height="12"
@@ -102,7 +125,6 @@ export function ShopSwitcher() {
         </svg>
       </button>
 
-      {/* Dropdown */}
       {open && (
         <div
           className="absolute top-full right-0 mt-1 z-50 animate-scale-in"
@@ -111,32 +133,35 @@ export function ShopSwitcher() {
             border: "1px solid var(--color-border)",
             borderRadius: "var(--radius-lg)",
             boxShadow: "var(--shadow-dropdown)",
-            minWidth: 200,
+            minWidth: 220,
           }}
         >
-          {ownerShops.map((s) => {
+          {shops.map((s) => {
             const isActive = s.id === shop?.id;
+            const isSwitching = switchingId === s.id;
+
             return (
               <button
                 key={s.id}
                 type="button"
-                onClick={async () => {
-                  await switchShop(s);
-                  setOpen(false);
-                  router.refresh();
-                }}
+                disabled={isActive || !!switchingId}
+                onClick={() => handleSwitch(s)}
                 className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-2.5 transition-colors"
                 style={{
                   color: "var(--color-ink-primary)",
                   background: "transparent",
+                  opacity: !isActive && switchingId && !isSwitching ? 0.4 : 1,
+                  cursor: isActive ? "default" : "pointer",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "var(--color-surface-2)";
+                  if (!isActive && !switchingId)
+                    e.currentTarget.style.background = "var(--color-surface-2)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "transparent";
                 }}
               >
+                {/* Active checkmark / spinner column */}
                 <span
                   style={{
                     width: 16,
@@ -144,7 +169,26 @@ export function ShopSwitcher() {
                     color: "var(--color-brand-500)",
                   }}
                 >
-                  {isActive && (
+                  {isSwitching ? (
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      style={{ animation: "spin 0.7s linear infinite" }}
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeDasharray="31.4"
+                        strokeDashoffset="10"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  ) : isActive ? (
                     <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                       <path
                         d="M20 6L9 17l-5-5"
@@ -154,12 +198,38 @@ export function ShopSwitcher() {
                         strokeLinejoin="round"
                       />
                     </svg>
-                  )}
+                  ) : null}
                 </span>
+
                 <span className="truncate flex-1">{s.name}</span>
+
+                {/* Role badge — only show for non-active rows to reduce noise */}
+                {!isActive && (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      padding: "1px 6px",
+                      borderRadius: 4,
+                      background:
+                        s.role === "owner"
+                          ? "var(--color-brand-50, #eff6ff)"
+                          : "var(--color-surface-2)",
+                      color:
+                        s.role === "owner"
+                          ? "var(--color-brand-600, #2563eb)"
+                          : "var(--color-ink-tertiary)",
+                      flexShrink: 0,
+                      textTransform: "capitalize",
+                    }}
+                  >
+                    {s.role}
+                  </span>
+                )}
               </button>
             );
           })}
+
           <div
             style={{
               borderTop: "1px solid var(--color-border)",

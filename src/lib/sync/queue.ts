@@ -16,13 +16,14 @@ let _flushing = false;
 let _flushTimeout: ReturnType<typeof setTimeout> | null = null;
 let _broadcastChannel: BroadcastChannel | null = null;
 
-// Release the lock after 30 s in case the tab that acquired it crashes mid-flush
+// Release the lock after 10 s in case the tab that acquired it crashes mid-flush.
+// Most RPCs time out at 8-10 s so 10 s is the natural safety net.
 function _acquireFlushLock() {
   _flushing = true;
   if (_flushTimeout) clearTimeout(_flushTimeout);
   _flushTimeout = setTimeout(() => {
     _flushing = false;
-  }, 30_000);
+  }, 10_000);
 }
 
 function _releaseFlushLock() {
@@ -124,18 +125,21 @@ async function _doFlush(shopId: string): Promise<void> {
           commands: chunk.map((c) => ({
             id: c.id,
             command: c.command,
-            // Inject the queue item's stable UUID as idempotency_key so the
-            // record_sale RPC can detect and skip duplicate offline syncs.
-            payload:
-              c.command === "RECORD_SALE"
+            // Always inject the queue item's stable UUID as idempotency_key
+            // so every server-side RPC can detect and skip duplicate replays,
+            // not just RECORD_SALE.
+            payload: {
+              ...c.payload,
+              idempotency_key: c.id,
+              ...(c.command === "RECORD_SALE" && c.payload.sale
                 ? {
-                    ...c.payload,
                     sale: {
                       ...(c.payload.sale as Record<string, unknown>),
                       idempotency_key: c.id,
                     },
                   }
-                : c.payload,
+                : {}),
+            },
             created_at: c.created_at,
           })),
         }),

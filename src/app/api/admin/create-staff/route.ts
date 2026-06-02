@@ -2,11 +2,9 @@ import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { sanitizeError } from "@/lib/api/errors";
-import { getLimits } from "@/lib/limits";
 import { logRequest } from "@/lib/api/logger";
 import { staffInviteSchema } from "@/lib/validations/api";
 import { withAuth } from "@/lib/api/with-auth";
-import type { Plan } from "@/lib/limits";
 
 // Module-level singleton — avoids re-creating a TCP connection on every request.
 const adminClient = createClient(
@@ -41,14 +39,21 @@ export const POST = withAuth(
       // Run all three validation queries in parallel instead of sequentially.
       // Previously: 3 round-trips × ~150ms = ~450ms sequential.
       // Now: 1 parallel batch = ~150ms total.
-      const [memberRes, shopRes, staffCountRes] = await Promise.all([
+      const [memberRes, planLimitRes, staffCountRes] = await Promise.all([
         supabase
           .from("shop_members")
           .select("role")
           .eq("shop_id", input.shop_id)
           .eq("user_id", user.id)
           .single(),
-        supabase.from("shops").select("plan").eq("id", input.shop_id).single(),
+        // Resolve the live plan limit from subscription_plans via the user's
+        // active subscription — not the hardcoded getLimits() map.
+        // Use adminClient to bypass RLS on the subscriptions table.
+        adminClient
+          .from("subscriptions")
+          .select("subscription_plans(max_staff_per_shop)")
+          .eq("user_id", user.id)
+          .single(),
         supabase
           .from("shop_members")
           .select("id", { count: "exact", head: true })
@@ -67,12 +72,18 @@ export const POST = withAuth(
         );
       }
 
-      const plan: Plan = shopRes.data?.plan === "pro" ? "pro" : "free";
-      const maxStaff = getLimits(plan).staff;
+      const planData = (
+        planLimitRes.data as unknown as {
+          subscription_plans: { max_staff_per_shop: number } | null;
+        } | null
+      )?.subscription_plans;
+      const maxStaff = planData?.max_staff_per_shop ?? 3;
       const currentStaff = (staffCountRes.count as number | null) ?? 0;
       if (currentStaff >= maxStaff) {
         return NextResponse.json(
-          { error: "Staff limit reached. Free plan allows 3 staff members." },
+          {
+            error: `Staff limit reached. Your plan allows ${maxStaff} staff member${maxStaff !== 1 ? "s" : ""}.`,
+          },
           { status: 403 },
         );
       }

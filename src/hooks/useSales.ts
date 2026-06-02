@@ -61,6 +61,7 @@ export function useSales(shopId: string | null, pageSize = 50) {
         ? lastPage[lastPage.length - 1].created_at
         : null,
     enabled: !!shopId,
+    staleTime: 1000 * 60 * 5,
   });
 }
 

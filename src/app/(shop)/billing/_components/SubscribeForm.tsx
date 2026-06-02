@@ -22,11 +22,14 @@ export function SubscribeForm({
   const [phone, setPhone] = useState("");
   const [stage, setStage] = useState<Stage>("idle");
   const [message, setMessage] = useState("");
+  const [checkAttempts, setCheckAttempts] = useState(0);
+  const MAX_CHECK_ATTEMPTS = 8;
 
   async function handlePay() {
     if (!phone.trim()) return;
     setStage("pending");
     setMessage("");
+    setCheckAttempts(0);
 
     try {
       const res = await fetch("/api/subscription/initiate", {
@@ -51,6 +54,17 @@ export function SubscribeForm({
   }
 
   async function handleCheckStatus() {
+    const nextAttempt = checkAttempts + 1;
+    setCheckAttempts(nextAttempt);
+
+    if (nextAttempt > MAX_CHECK_ATTEMPTS) {
+      setStage("waiting");
+      setMessage(
+        "Payment is taking longer than expected. If you approved the M-Pesa prompt, your account will be activated within a few minutes. You can close this page.",
+      );
+      return;
+    }
+
     setStage("confirming");
     setMessage("");
     try {
@@ -61,7 +75,7 @@ export function SubscribeForm({
       } else {
         setStage("waiting");
         setMessage(
-          "Payment not yet confirmed. Wait a few seconds and try again.",
+          `Payment not yet confirmed (check ${nextAttempt}/${MAX_CHECK_ATTEMPTS}). Wait a moment and try again.`,
         );
       }
     } catch {

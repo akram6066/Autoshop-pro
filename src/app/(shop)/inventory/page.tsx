@@ -8,6 +8,7 @@ import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
 import { useRooms } from "@/hooks/useRooms";
 import { useCategories } from "@/hooks/useCategories";
 import { useShopVariants } from "@/hooks/useVariants";
+import { useDebounce } from "@/hooks/useDebounce";
 import type { Category, ProductVariant } from "@/types/app";
 import { useSubscription } from "@/hooks/useSubscription";
 import { LimitWarningBanner } from "@/components/shop/LimitWarningBanner";
@@ -23,13 +24,14 @@ export default function InventoryPage() {
     useProducts(shopId);
   const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProduct();
   const { data: rooms = [] } = useRooms(shopId);
-  const { data: categories = [] } = useCategories();
+  const { data: categories = [] } = useCategories(shopId);
   const { data: allVariants = [], isLoading: isLoadingVariants } =
     useShopVariants(shopId);
 
   const isLoading = isLoadingProducts || isLoadingVariants;
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [roomFilter, setRoomFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<Category | "all">("all");
   const [sortBy, setSortBy] = useState<"name" | "qty" | "price">("name");
@@ -52,7 +54,7 @@ export default function InventoryPage() {
   }, [allVariants]);
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim();
+    const q = debouncedSearch.toLowerCase().trim();
     let result = products.filter((p) => {
       const matchRoom = roomFilter === "all" || p.room_id === roomFilter;
       const matchCat =
@@ -71,7 +73,7 @@ export default function InventoryPage() {
     });
 
     return result;
-  }, [products, search, roomFilter, categoryFilter, sortBy]);
+  }, [products, debouncedSearch, roomFilter, categoryFilter, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);

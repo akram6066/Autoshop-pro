@@ -28,10 +28,10 @@ const DEFAULT_COLOR = PRESET_COLORS[0];
 export function CategoriesSection() {
   const supabase = createClient();
   const shopId = useAuthStore(selectShopId);
-  const { data: categories = [] } = useCategories();
-  const { mutateAsync: createCategory } = useCreateCategory();
-  const { mutateAsync: deleteCategory } = useDeleteCategory();
-  const { mutateAsync: updateCategory } = useUpdateCategory();
+  const { data: categories = [] } = useCategories(shopId);
+  const { mutateAsync: createCategory } = useCreateCategory(shopId);
+  const { mutateAsync: deleteCategory } = useDeleteCategory(shopId);
+  const { mutateAsync: updateCategory } = useUpdateCategory(shopId);
   const [name, setName] = useState("");
   const [color, setColor] = useState(DEFAULT_COLOR);
   const [msg, setMsg] = useState("");

@@ -6,49 +6,55 @@ import { categorySchema, parseOrThrow } from "@/lib/validations/domain";
 import type { CategoryItem } from "@/types/app";
 
 export const categoryKeys = {
-  all: () => ["categories"] as const,
+  all: (shopId: string) => ["categories", shopId] as const,
 };
 
-// RLS (owner_id = auth.uid()) scopes results to the current user automatically.
-export function useCategories() {
+export function useCategories(shopId: string | null) {
   const supabase = createClient();
 
   return useQuery({
-    queryKey: categoryKeys.all(),
+    queryKey: shopId ? categoryKeys.all(shopId) : ["categories-disabled"],
     queryFn: async (): Promise<CategoryItem[]> => {
       const { data, error } = await supabase
         .from("categories")
         .select("*")
+        .eq("shop_id", shopId!)
         .order("name");
       if (error) throw error;
       return data as CategoryItem[];
     },
+    enabled: !!shopId,
     staleTime: 1000 * 60 * 5,
   });
 }
 
-export function useCreateCategory() {
+export function useCreateCategory(shopId: string | null) {
   const qc = useQueryClient();
   const supabase = createClient();
 
   return useMutation({
     mutationFn: async ({ name, color }: { name: string; color: string }) => {
+      if (!shopId) throw new Error("No active shop");
       const validated = parseOrThrow(categorySchema, { name, color });
       const { data, error } = await supabase
         .from("categories")
-        .insert({ name: validated.name, color: validated.color })
+        .insert({
+          shop_id: shopId,
+          name: validated.name,
+          color: validated.color,
+        })
         .select()
         .single();
       if (error) throw error;
       return data as CategoryItem;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: categoryKeys.all() });
+      if (shopId) qc.invalidateQueries({ queryKey: categoryKeys.all(shopId) });
     },
   });
 }
 
-export function useDeleteCategory() {
+export function useDeleteCategory(shopId: string | null) {
   const qc = useQueryClient();
   const supabase = createClient();
 
@@ -61,12 +67,12 @@ export function useDeleteCategory() {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: categoryKeys.all() });
+      if (shopId) qc.invalidateQueries({ queryKey: categoryKeys.all(shopId) });
     },
   });
 }
 
-export function useUpdateCategory() {
+export function useUpdateCategory(shopId: string | null) {
   const qc = useQueryClient();
   const supabase = createClient();
 
@@ -88,7 +94,7 @@ export function useUpdateCategory() {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: categoryKeys.all() });
+      if (shopId) qc.invalidateQueries({ queryKey: categoryKeys.all(shopId) });
     },
   });
 }

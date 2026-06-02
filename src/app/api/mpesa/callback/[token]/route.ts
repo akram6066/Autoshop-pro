@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/admin/db";
 import { activateProShops } from "@/lib/subscription";
+import { logEvent } from "@/lib/admin/logger";
 
 // Daraja calls this URL after the customer confirms/declines payment on their phone.
 // The [token] path segment acts as a shared secret — requests with a wrong token
@@ -80,35 +81,54 @@ export async function POST(
     .eq("name", planName)
     .single();
 
-  if (paymentData.subscription_id && chosenPlan) {
-    // Extend from existing period end if still active, otherwise from now
-    const { data: existingSub } = await db
-      .from("subscriptions")
-      .select("current_period_end")
-      .eq("id", paymentData.subscription_id)
-      .single();
+  try {
+    if (paymentData.subscription_id && chosenPlan) {
+      const { data: existingSub } = await db
+        .from("subscriptions")
+        .select("current_period_end")
+        .eq("id", paymentData.subscription_id)
+        .single();
 
-    const base =
-      existingSub?.current_period_end &&
-      new Date(existingSub.current_period_end) > new Date()
-        ? new Date(existingSub.current_period_end)
-        : new Date();
-    base.setDate(base.getDate() + 30);
+      const base =
+        existingSub?.current_period_end &&
+        new Date(existingSub.current_period_end) > new Date()
+          ? new Date(existingSub.current_period_end)
+          : new Date();
+      base.setDate(base.getDate() + 30);
 
-    await db
-      .from("subscriptions")
-      .update({
-        plan_id: chosenPlan.id,
-        status: "active",
-        current_period_end: base.toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", paymentData.subscription_id);
-  }
+      const { error: subErr } = await db
+        .from("subscriptions")
+        .update({
+          plan_id: chosenPlan.id,
+          status: "active",
+          current_period_end: base.toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", paymentData.subscription_id);
 
-  // Activate the chosen plan on all owned shops
-  if (paymentData.user_id) {
-    await activateProShops(paymentData.user_id, planName);
+      if (subErr) throw subErr;
+    }
+
+    if (paymentData.user_id) {
+      await activateProShops(paymentData.user_id, planName);
+    }
+  } catch (activationErr) {
+    // Payment is marked completed but subscription activation failed.
+    // Log an admin alert so ops can reconcile manually.
+    await logEvent({
+      category: "shop_management",
+      level: "error",
+      message: `M-Pesa payment ${CheckoutRequestID} completed but subscription activation failed`,
+      details: {
+        checkoutRequestId: CheckoutRequestID,
+        userId: paymentData.user_id,
+        subscriptionId: paymentData.subscription_id,
+        planName,
+        error: String(activationErr),
+      },
+    }).catch(console.error);
+
+    console.error("[mpesa/callback] activation failed:", activationErr);
   }
 
   return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });

@@ -70,21 +70,21 @@ export interface Database {
       categories: {
         Row: {
           id: string;
-          owner_id: string;
+          shop_id: string;
           name: string;
           color: string;
           created_at: string;
         };
         Insert: {
           id?: string;
-          owner_id?: string;
+          shop_id: string;
           name: string;
           color?: string;
           created_at?: string;
         };
         Update: {
           id?: string;
-          owner_id?: string;
+          shop_id?: string;
           name?: string;
           color?: string;
           created_at?: string;
@@ -220,6 +220,7 @@ export interface Database {
           shop_id: string | null;
           full_name: string;
           role: "owner" | "staff";
+          is_admin: boolean;
           created_at: string;
         };
         Insert: {
@@ -227,6 +228,7 @@ export interface Database {
           shop_id?: string | null;
           full_name: string;
           role?: "owner" | "staff";
+          is_admin?: boolean;
           created_at?: string;
         };
         Update: {
@@ -234,6 +236,7 @@ export interface Database {
           shop_id?: string | null;
           full_name?: string;
           role?: "owner" | "staff";
+          is_admin?: boolean;
           created_at?: string;
         };
         Relationships: [];
@@ -588,6 +591,14 @@ export interface Database {
       };
     };
     Functions: {
+      create_additional_shop: {
+        Args: { p_name: string; p_address?: string | null };
+        Returns: Json;
+      };
+      expire_stale_subscriptions: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
       setup_owner_shop: {
         Args: {
           p_user_id: string;
