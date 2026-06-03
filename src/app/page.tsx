@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import LandingNav from "@/components/landing/LandingNav";
 import HeroSection from "@/components/landing/HeroSection";
+import { AuthCallbackHandler } from "@/components/AuthCallbackHandler";
 import StatsSection from "@/components/landing/StatsSection";
 import ProblemSection from "@/components/landing/ProblemSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
@@ -60,6 +61,10 @@ export default async function LandingPage() {
       </main>
       <FooterSection />
       <WhatsAppButton />
+      {/* Silently forwards auth tokens to /api/auth/callback when Supabase
+          falls back to the Site URL (landing page) instead of the intended
+          emailRedirectTo URL. Zero visible UI — runs only when params present. */}
+      <AuthCallbackHandler />
     </div>
   );
 }

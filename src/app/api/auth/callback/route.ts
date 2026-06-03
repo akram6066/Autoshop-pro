@@ -56,10 +56,21 @@ export async function GET(request: NextRequest) {
     if (!error) return response;
   }
 
-  // Both paths failed — link is expired, already used, or the token was
+  // Legacy implicit flow — AuthCallbackHandler on the landing page extracts
+  // access_token from the URL hash and forwards it here as a query param.
+  const accessToken = url.searchParams.get("access_token");
+  const refreshToken = url.searchParams.get("refresh_token") ?? "";
+  if (accessToken) {
+    const { error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+    if (!error) return response;
+  }
+
+  // All paths failed — link is expired, already used, or the token was
   // consumed by an email security scanner before the user clicked it.
-  // Send to login with a clear error so the user can request a new link.
-  // Use ?reason= so the login form's SESSION_BANNERS map picks it up.
+  // Use ?reason= so the login form's SESSION_BANNERS map shows the message.
   return NextResponse.redirect(
     new URL("/login?reason=confirmation_failed", request.url),
   );
