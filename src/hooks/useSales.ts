@@ -187,6 +187,7 @@ export function useRecordSale() {
               id: crypto.randomUUID(),
               shop_id: shopId,
               product_id: i.product.id,
+              variant_id: i.variantId ?? null,
               type: "OUT" as const,
               delta: i.quantity,
               snapshot_qty: i.product.quantity - i.quantity,

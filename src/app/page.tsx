@@ -11,7 +11,7 @@ import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import FinalCTASection from "@/components/landing/FinalCTASection";
 import FooterSection from "@/components/landing/FooterSection";
 import WhatsAppButton from "@/components/landing/WhatsAppButton";
-import { fetchPlans, dbPlanToLanding } from "@/lib/plans";
+import { fetchPlans, dbPlanToLanding, FALLBACK_PLANS } from "@/lib/plans";
 
 // Defer client-heavy sections — both have interactive JS (toggle / accordion)
 const PricingSection = dynamic(
@@ -31,9 +31,10 @@ export const revalidate = 3600;
 
 export default async function LandingPage() {
   const dbPlans = await fetchPlans();
-  const plans = dbPlans
+  const mapped = dbPlans
     .filter((p) => ["trial", "pro", "ultra_pro"].includes(p.name))
     .map(dbPlanToLanding);
+  const plans = mapped.length > 0 ? mapped : FALLBACK_PLANS;
 
   return (
     <div style={{ minHeight: "100vh", overflowX: "hidden" }}>

@@ -148,17 +148,21 @@ function SetupContent() {
         error: userError,
       } = await supabase.auth.getUser();
       if (userError || !user) return;
+      if (!createdShop) {
+        setRoomsError("Shop not found. Please restart setup.");
+        return;
+      }
 
       const { data: createdRooms, error } = await supabase
         .from("rooms")
-        .insert(rooms.map((name) => ({ shop_id: createdShop!.id, name })))
+        .insert(rooms.map((name) => ({ shop_id: createdShop.id, name })))
         .select();
       if (error) {
         setRoomsError(error.message);
         return;
       }
 
-      await seedLocalCache(createdShop!, createdRooms as Room[], []);
+      await seedLocalCache(createdShop, createdRooms as Room[], []);
 
       const { data: cats } = await supabase
         .from("categories")
@@ -178,10 +182,11 @@ function SetupContent() {
     setCatAdding(true);
     try {
       const supabase = createClient();
+      if (!createdShop) return;
       const { data, error } = await supabase
         .from("categories")
         .insert({
-          shop_id: createdShop!.id,
+          shop_id: createdShop.id,
           name: catName.trim(),
           color: catColor,
         })
@@ -232,7 +237,8 @@ function SetupContent() {
         .eq("id", user.id)
         .single();
 
-      const newShop: ShopWithRole = { ...createdShop!, role: "owner" };
+      if (!createdShop) return;
+      const newShop: ShopWithRole = { ...createdShop, role: "owner" };
       const updatedShops: ShopWithRole[] = [
         ...existingShops.filter((s) => s.id !== newShop.id),
         newShop,

@@ -39,7 +39,13 @@ export default function SignupSuccessScreen({
     setResendError("");
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.resend({ type: "signup", email });
+      const setupPath = plan ? `/setup?plan=${plan}` : "/setup";
+      const emailRedirectTo = `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(setupPath)}`;
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo },
+      });
       if (error) throw error;
       setResent(true);
       setCooldown(RESEND_COOLDOWN_S);

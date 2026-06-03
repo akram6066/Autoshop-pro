@@ -16,7 +16,7 @@ export function ProductLimitBanner({
 }: Props) {
   return (
     <>
-      {productAtLimit && (
+      {productAtLimit && productLimit && (
         <div
           className="mb-4 flex items-start gap-3 p-4 rounded-xl"
           style={{
@@ -37,8 +37,8 @@ export function ProductLimitBanner({
               className="text-sm font-semibold"
               style={{ color: "var(--color-danger-text)" }}
             >
-              Product limit reached ({productLimit!.current} /{" "}
-              {productLimit!.max})
+              Product limit reached ({productLimit.current} / {productLimit.max}
+              )
             </p>
             <p
               className="text-xs mt-0.5"
@@ -58,7 +58,7 @@ export function ProductLimitBanner({
         </div>
       )}
 
-      {productNearLimit && (
+      {productNearLimit && productLimit && (
         <div
           className="mb-4 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
           style={{
@@ -68,7 +68,7 @@ export function ProductLimitBanner({
           }}
         >
           <AlertTriangle size={13} style={{ flexShrink: 0 }} />
-          {productLimit!.current} of {productLimit!.max} products used —
+          {productLimit.current} of {productLimit.max} products used —
           approaching limit.{" "}
           <Link
             href="/billing"

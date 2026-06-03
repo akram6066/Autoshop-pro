@@ -27,7 +27,12 @@ export default function ConfirmEmailPanel({ email, onBack }: Props) {
     setResendError("");
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.resend({ type: "signup", email });
+      const emailRedirectTo = `${window.location.origin}/api/auth/callback?next=${encodeURIComponent("/setup")}`;
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo },
+      });
       if (error) throw error;
       setResent(true);
       setCooldown(RESEND_COOLDOWN_S);

@@ -1,20 +1,15 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { sanitizeError } from "@/lib/api/errors";
 import { logRequest } from "@/lib/api/logger";
 import { deleteStaffSchema } from "@/lib/validations/api";
 import { withAuth } from "@/lib/api/with-auth";
-
-const adminClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } },
-);
+import { adminDb } from "@/lib/admin/db";
 
 export const POST = withAuth(
   async (request: NextRequest, { user, supabase }) => {
     try {
+      const adminClient = adminDb();
       logRequest(request, user.id);
 
       const limited = await enforceRateLimit(

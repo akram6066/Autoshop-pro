@@ -1,4 +1,4 @@
-import { adminDb } from "@/lib/admin/db";
+import { createClient } from "@supabase/supabase-js";
 import type { PricingPlan } from "@/lib/pricing";
 
 export interface DbPlan {
@@ -54,13 +54,22 @@ const PLAN_STATIC: Record<
 };
 
 export async function fetchPlans(): Promise<DbPlan[]> {
-  const { data } = await adminDb()
-    .from("subscription_plans")
-    .select(
-      "id, name, display_name, price_kes, annual_discount_pct, trial_days, max_shops, max_products_per_shop, max_staff_per_shop, max_sales_per_month",
-    )
-    .order("price_kes");
-  return (data ?? []) as DbPlan[];
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) return [];
+    const client = createClient(url, key, { auth: { persistSession: false } });
+    const { data } = await client
+      .from("subscription_plans")
+      .select(
+        "id, name, display_name, price_kes, annual_discount_pct, trial_days, max_shops, max_products_per_shop, max_staff_per_shop, max_sales_per_month",
+      )
+      .eq("is_active", true)
+      .order("price_kes");
+    return (data ?? []) as DbPlan[];
+  } catch {
+    return [];
+  }
 }
 
 function isUnlimited(n: number): boolean {
@@ -125,6 +134,78 @@ export function dbPlanToLanding(plan: DbPlan): PricingPlan {
     ],
   };
 }
+
+export const FALLBACK_PLANS: PricingPlan[] = [
+  {
+    id: "trial",
+    name: "Free",
+    monthlyPrice: 0,
+    currency: "KES",
+    description: "Free forever. No credit card required.",
+    highlighted: false,
+    freeTrial: false,
+    annualDiscountPct: 0,
+    cta: "Get started free",
+    ctaHref: "/signup",
+    features: [
+      { label: "1 shop", included: true },
+      { label: "Up to 50 products/shop", included: true },
+      { label: "100 sales/month", included: true },
+      { label: "Offline POS", included: true },
+      { label: "2 staff accounts", included: true },
+      { label: "Basic reports", included: true },
+      { label: "Customer debt tracking", included: false },
+      { label: "Pay via M-Pesa", included: false },
+      { label: "Priority WhatsApp support", included: false },
+    ],
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    monthlyPrice: 1500,
+    currency: "KES",
+    description: "Everything you need to run and grow your shop.",
+    highlighted: true,
+    freeTrial: true,
+    annualDiscountPct: 20,
+    cta: "Get Pro",
+    ctaHref: "/signup?plan=pro",
+    features: [
+      { label: "Up to 3 shops", included: true },
+      { label: "Up to 500 products/shop", included: true },
+      { label: "Unlimited sales", included: true },
+      { label: "Offline POS", included: true },
+      { label: "10 staff accounts", included: true },
+      { label: "Full reports & analytics", included: true },
+      { label: "Customer debt tracking", included: true },
+      { label: "Pay via M-Pesa", included: true },
+      { label: "Priority WhatsApp support", included: false },
+    ],
+  },
+  {
+    id: "ultra_pro",
+    name: "Ultra Pro",
+    monthlyPrice: 3500,
+    currency: "KES",
+    description: "For multi-branch operations and growing shop chains.",
+    highlighted: false,
+    freeTrial: false,
+    annualDiscountPct: 20,
+    cta: "Get Ultra Pro",
+    ctaHref: "/signup?plan=ultra_pro",
+    features: [
+      { label: "Unlimited shops", included: true },
+      { label: "Unlimited products", included: true },
+      { label: "Unlimited sales", included: true },
+      { label: "Offline POS", included: true },
+      { label: "Unlimited staff accounts", included: true },
+      { label: "Full reports & analytics", included: true },
+      { label: "Customer debt tracking", included: true },
+      { label: "Pay via M-Pesa", included: true },
+      { label: "Priority WhatsApp support", included: true },
+    ],
+  },
+];
 
 export function dbPlanToBilling(plan: DbPlan): BillingPlan {
   const meta = PLAN_STATIC[plan.name];
