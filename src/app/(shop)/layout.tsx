@@ -23,6 +23,7 @@ interface MembershipRow {
     name: string;
     address: string | null;
     created_at: string;
+    plan: string;
   };
 }
 
@@ -34,6 +35,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
   const shopId = useAuthStore(selectShopId);
   const setAll = useAuthStore((s) => s.setAll);
   const setUser = useAuthStore((s) => s.setUser);
+  const setPlanName = useAuthStore((s) => s.setPlanName);
   const reset = useAuthStore((s) => s.reset);
 
   const initialised = useRef(false);
@@ -138,8 +140,14 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       shops,
     );
 
+    // shops.plan is kept in sync with subscriptions by migration 058
+    const planName =
+      (activeShop as (typeof activeShop & { plan?: string }) | null)?.plan ??
+      "trial";
+    setPlanName(planName);
+
     initialised.current = true;
-  }, [router, setAll]);
+  }, [router, setAll, setPlanName]);
 
   // Auth init + cross-tab sign-out listener — runs once, stable deps only
   useEffect(() => {

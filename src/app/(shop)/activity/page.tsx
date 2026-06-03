@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { useAuthStore, selectShopId, selectIsOwner } from "@/stores/authStore";
+import {
+  useAuthStore,
+  selectShopId,
+  selectIsOwner,
+  selectPlanName,
+} from "@/stores/authStore";
 import { fetchActivity, INVENTORY_TYPES } from "./_lib/fetchActivity";
 import type { EventType } from "./_lib/fetchActivity";
 import { ActivityFeed } from "./_components/ActivityFeed";
@@ -10,9 +16,15 @@ import { ActivityFilterTabs } from "./_components/ActivityFilterTabs";
 import type { FilterValue } from "./_components/ActivityFilterTabs";
 
 export default function ActivityPage() {
+  const router = useRouter();
   const shopId = useAuthStore(selectShopId);
   const isOwner = useAuthStore(selectIsOwner);
+  const planName = useAuthStore(selectPlanName);
   const [filter, setFilter] = useState<FilterValue>("all");
+
+  useEffect(() => {
+    if (planName === "trial") router.replace("/billing");
+  }, [planName, router]);
 
   const {
     data: events = [],
@@ -22,9 +34,11 @@ export default function ActivityPage() {
   } = useQuery({
     queryKey: ["activity", shopId],
     queryFn: () => fetchActivity(shopId!),
-    enabled: !!shopId && isOwner,
+    enabled: !!shopId && isOwner && planName !== "trial",
     staleTime: 1000 * 60,
   });
+
+  if (planName === null || planName === "trial") return null;
 
   const filtered =
     filter === "all"

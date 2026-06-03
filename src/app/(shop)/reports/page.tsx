@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useAuthStore, selectShopId } from "@/stores/authStore";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthStore, selectShopId, selectPlanName } from "@/stores/authStore";
 import { useSalesSummary } from "@/hooks/useSales";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { escapeCsvField } from "@/lib/sanitize";
@@ -23,13 +24,18 @@ function endOf(d: Date) {
 }
 
 export default function ReportsPage() {
+  const router = useRouter();
   const shopId = useAuthStore(selectShopId);
-
+  const planName = useAuthStore(selectPlanName);
   const [range, setRange] = useState<Range>("30d");
   const [customFrom, setCustomFrom] = useState(() =>
     toISO(new Date(Date.now() - 7 * 86400000)),
   );
   const [customTo, setCustomTo] = useState(() => toISO(new Date()));
+
+  useEffect(() => {
+    if (planName === "trial") router.replace("/billing");
+  }, [planName, router]);
 
   const { from, to } = useMemo(() => {
     const now = new Date();
@@ -65,6 +71,8 @@ export default function ReportsPage() {
     }),
     [summary],
   );
+
+  if (planName === null || planName === "trial") return null;
 
   function exportCSV() {
     const rows = [

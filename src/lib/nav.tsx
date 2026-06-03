@@ -4,6 +4,7 @@ export interface NavItem {
   href: string;
   label: string;
   ownerOnly: boolean;
+  paidOnly: boolean;
   icon: ReactNode;
 }
 
@@ -12,6 +13,7 @@ export const NAV: NavItem[] = [
     href: "/dashboard",
     label: "Dashboard",
     ownerOnly: false,
+    paidOnly: false,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
         <rect
@@ -57,6 +59,7 @@ export const NAV: NavItem[] = [
     href: "/pos",
     label: "POS",
     ownerOnly: false,
+    paidOnly: false,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
         <rect
@@ -81,6 +84,7 @@ export const NAV: NavItem[] = [
     href: "/inventory",
     label: "Inventory",
     ownerOnly: false,
+    paidOnly: false,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
         <path
@@ -106,6 +110,7 @@ export const NAV: NavItem[] = [
     href: "/finder",
     label: "Finder",
     ownerOnly: false,
+    paidOnly: false,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
         <circle
@@ -128,6 +133,7 @@ export const NAV: NavItem[] = [
     href: "/sales",
     label: "Sales",
     ownerOnly: false,
+    paidOnly: false,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
         <path
@@ -158,6 +164,7 @@ export const NAV: NavItem[] = [
     href: "/customers",
     label: "Customers",
     ownerOnly: false,
+    paidOnly: false,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
         <path
@@ -175,6 +182,7 @@ export const NAV: NavItem[] = [
     href: "/reports",
     label: "Reports",
     ownerOnly: true,
+    paidOnly: true,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
         <path
@@ -190,6 +198,7 @@ export const NAV: NavItem[] = [
     href: "/activity",
     label: "Activity",
     ownerOnly: true,
+    paidOnly: true,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
         <path
@@ -206,6 +215,7 @@ export const NAV: NavItem[] = [
     href: "/billing",
     label: "Billing",
     ownerOnly: true,
+    paidOnly: false,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
         <rect
@@ -236,6 +246,7 @@ export const NAV: NavItem[] = [
     href: "/settings",
     label: "Settings",
     ownerOnly: true,
+    paidOnly: false,
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
         <circle

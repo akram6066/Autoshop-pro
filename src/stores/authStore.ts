@@ -13,11 +13,14 @@ interface AuthState {
   shops: ShopWithRole[];
   role: UserRole | null;
   shopId: string | null;
+  // Subscription plan name — null while loading, 'trial' | 'pro' | 'ultra_pro' once fetched
+  planName: string | null;
 
   setUser: (user: User | null) => void;
   setProfile: (profile: Profile | null) => void;
   setShop: (shop: Shop | null) => void;
   setShops: (shops: ShopWithRole[]) => void;
+  setPlanName: (planName: string | null) => void;
   switchShop: (shop: ShopWithRole) => Promise<void>;
   setAll: (
     user: User | null,
@@ -35,6 +38,7 @@ const initialState = {
   shops: [],
   role: null,
   shopId: null,
+  planName: null,
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -60,6 +64,8 @@ export const useAuthStore = create<AuthState>()(
           set({ shop, shopId: shop?.id ?? null }, false, "setShop"),
 
         setShops: (shops) => set({ shops }, false, "setShops"),
+
+        setPlanName: (planName) => set({ planName }, false, "setPlanName"),
 
         // Switch active shop — calls Supabase RPC then updates local state
         switchShop: async (shopWithRole) => {
@@ -128,6 +134,9 @@ export const selectShop = (s: AuthState) => s.shop;
 export const selectShops = (s: AuthState) => s.shops;
 export const selectRole = (s: AuthState) => s.role;
 export const selectShopId = (s: AuthState) => s.shopId;
+export const selectPlanName = (s: AuthState) => s.planName;
+export const selectIsPaidPlan = (s: AuthState) =>
+  s.planName !== null && s.planName !== "trial";
 export const selectIsOwner = (s: AuthState) => s.role === "owner";
 export const selectIsStaff = (s: AuthState) => s.role === "staff";
 export const selectHasShop = (s: AuthState) => s.shopId !== null;

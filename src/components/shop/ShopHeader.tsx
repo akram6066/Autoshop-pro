@@ -8,7 +8,11 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { SyncBadge } from "./SyncBadge";
 import { ShopSwitcher } from "./ShopSwitcher";
 import { NAV } from "@/lib/nav";
-import { useAuthStore, selectProfile } from "@/stores/authStore";
+import {
+  useAuthStore,
+  selectProfile,
+  selectIsPaidPlan,
+} from "@/stores/authStore";
 
 interface ShopHeaderProps {
   role: string | null;
@@ -22,6 +26,7 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const profile = useAuthStore(selectProfile);
+  const isPaidPlan = useAuthStore(selectIsPaidPlan);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -33,7 +38,9 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const visibleNav = NAV.filter((n) => !n.ownerOnly || role === "owner");
+  const visibleNav = NAV.filter(
+    (n) => (!n.ownerOnly || role === "owner") && (!n.paidOnly || isPaidPlan),
+  );
 
   return (
     <header
