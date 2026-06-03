@@ -72,8 +72,9 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       supabase.from("profiles").select("*").eq("id", user.id).single<Profile>(),
       supabase
         .from("shop_members")
-        .select("shop_id, role, shops(*)")
-        .eq("user_id", user.id),
+        .select("shop_id, role, shops!inner(*)")
+        .eq("user_id", user.id)
+        .is("shops.deleted_at", null),
     ]);
 
     const profile = profileRes.data;

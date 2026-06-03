@@ -599,6 +599,10 @@ export interface Database {
         Args: Record<string, never>;
         Returns: number;
       };
+      owner_delete_shop: {
+        Args: { p_shop_id: string };
+        Returns: undefined;
+      };
       setup_owner_shop: {
         Args: {
           p_user_id: string;

@@ -126,6 +126,31 @@ export async function permanentlyDeleteShop(id: string) {
     details: { shopId: validId },
   });
 
+  // Reroute any member whose active profile.shop_id points here
+  // to another shop they own, so their account isn't stuck after deletion.
+  const { data: members } = await db
+    .from("shop_members")
+    .select("user_id")
+    .eq("shop_id", validId);
+
+  if (members?.length) {
+    for (const { user_id } of members) {
+      const { data: nextShop } = await db
+        .from("shop_members")
+        .select("shop_id")
+        .eq("user_id", user_id)
+        .neq("shop_id", validId)
+        .limit(1)
+        .single();
+
+      await db
+        .from("profiles")
+        .update({ shop_id: nextShop?.shop_id ?? null })
+        .eq("id", user_id)
+        .eq("shop_id", validId);
+    }
+  }
+
   await db.from("audit_logs").delete().eq("shop_id", validId);
   await db.from("shop_invites").delete().eq("shop_id", validId);
   await db.from("customer_payments").delete().eq("shop_id", validId);
