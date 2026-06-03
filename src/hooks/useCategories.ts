@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/client";
 import { categorySchema, parseOrThrow } from "@/lib/validations/domain";
 import type { CategoryItem } from "@/types/app";
 
+// Categories are owner_id-scoped (per user, not per shop) — migration 007.
+// The query key still uses shopId so it re-fetches when the active shop changes,
+// but the query itself has no shop filter.
 export const categoryKeys = {
   all: (shopId: string) => ["categories", shopId] as const,
 };
@@ -18,7 +21,6 @@ export function useCategories(shopId: string | null) {
       const { data, error } = await supabase
         .from("categories")
         .select("*")
-        .eq("shop_id", shopId!)
         .order("name");
       if (error) throw error;
       return data as CategoryItem[];
@@ -38,11 +40,7 @@ export function useCreateCategory(shopId: string | null) {
       const validated = parseOrThrow(categorySchema, { name, color });
       const { data, error } = await supabase
         .from("categories")
-        .insert({
-          shop_id: shopId,
-          name: validated.name,
-          color: validated.color,
-        })
+        .insert({ name: validated.name, color: validated.color })
         .select()
         .single();
       if (error) throw error;

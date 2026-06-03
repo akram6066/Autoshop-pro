@@ -40,7 +40,7 @@ export interface ShopWithRole extends Shop {
 
 export interface CategoryItem {
   id: string;
-  shop_id: string;
+  owner_id: string;
   name: string;
   color: string;
   created_at: string;

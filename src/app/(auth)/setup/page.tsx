@@ -128,6 +128,8 @@ function SetupContent() {
           created_at: new Date().toISOString(),
         },
       );
+      // RPC auto-creates "Main Store" — show it so the user knows it exists
+      setRooms(["Main Store"]);
       setStep("rooms");
     });
   }
@@ -137,10 +139,6 @@ function SetupContent() {
   async function handleCreateRooms(e: React.FormEvent) {
     e.preventDefault();
     setRoomsError("");
-    if (rooms.length === 0) {
-      setRoomsError("Create at least one room");
-      return;
-    }
     startTransition(async () => {
       const supabase = createClient();
       const {
@@ -153,16 +151,26 @@ function SetupContent() {
         return;
       }
 
-      const { data: createdRooms, error } = await supabase
-        .from("rooms")
-        .insert(rooms.map((name) => ({ shop_id: createdShop.id, name })))
-        .select();
-      if (error) {
-        setRoomsError(error.message);
-        return;
+      // "Main Store" is auto-created by the RPC — only insert extra rooms the user added
+      const extraRooms = rooms.filter((name) => name !== "Main Store");
+      if (extraRooms.length > 0) {
+        const { error } = await supabase
+          .from("rooms")
+          .insert(extraRooms.map((name) => ({ shop_id: createdShop.id, name })))
+          .select();
+        if (error) {
+          setRoomsError(error.message);
+          return;
+        }
       }
 
-      await seedLocalCache(createdShop, createdRooms as Room[], []);
+      // Fetch all rooms (including the auto-created Main Store) for the local cache
+      const { data: allRooms } = await supabase
+        .from("rooms")
+        .select("*")
+        .eq("shop_id", createdShop.id);
+
+      await seedLocalCache(createdShop, (allRooms as Room[]) ?? [], []);
 
       const { data: cats } = await supabase
         .from("categories")
@@ -182,11 +190,9 @@ function SetupContent() {
     setCatAdding(true);
     try {
       const supabase = createClient();
-      if (!createdShop) return;
       const { data, error } = await supabase
         .from("categories")
         .insert({
-          shop_id: createdShop.id,
           name: catName.trim(),
           color: catColor,
         })
