@@ -18,7 +18,10 @@ export default function InvitesPage() {
     try {
       await acceptInvite(inviteId);
       toast.success("You've joined the shop!");
-      router.replace("/dashboard");
+      // Full page navigation (not router.replace) so the (shop) layout's
+      // init() re-runs and refetches shop_members — otherwise the new shop
+      // stays invisible in the switcher until the user manually reloads.
+      window.location.assign("/dashboard");
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Could not accept invite",

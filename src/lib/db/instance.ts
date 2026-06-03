@@ -15,6 +15,32 @@ export function getDb(): AutoShopDatabase {
   return _db;
 }
 
+// ─── Clear on sign-out ────────────────────────────────────────────────────────
+
+/**
+ * Wipe all local data when the user signs out.
+ *
+ * Without this, a second user logging in on the same device inherits the first
+ * user's products, rooms, sales, and sync queue items from IndexedDB.
+ *
+ * The database connection stays open — we clear the tables but keep the
+ * schema so the next user's seed is a fresh write, not a migration.
+ */
+export async function clearLocalDb(): Promise<void> {
+  const db = getDb();
+  await Promise.all([
+    db.shops.clear(),
+    db.rooms.clear(),
+    db.products.clear(),
+    db.sales.clear(),
+    db.sale_items.clear(),
+    db.stock_movements.clear(),
+    db.sync_queue.clear(),
+    db.purchase_orders.clear(),
+    db.po_items.clear(),
+  ]);
+}
+
 // ─── TTL Config ───────────────────────────────────────────────────────────────
 
 const TTL_DAYS = 90;
@@ -53,10 +79,16 @@ export async function seedRooms(shopId: string, rooms: Room[]): Promise<void> {
 /**
  * Seed products for a shop into IndexedDB (bulk upsert).
  */
-export async function seedProducts(shopId: string, products: Product[]): Promise<void> {
+export async function seedProducts(
+  shopId: string,
+  products: Product[],
+): Promise<void> {
   const db = getDb();
   const remoteIds = new Set(products.map((p) => p.id));
-  const localProducts = await db.products.where("shop_id").equals(shopId).toArray();
+  const localProducts = await db.products
+    .where("shop_id")
+    .equals(shopId)
+    .toArray();
 
   const staleIds = localProducts
     .filter((p) => !remoteIds.has(p.id))
@@ -75,7 +107,7 @@ export async function seedProducts(shopId: string, products: Product[]): Promise
 export async function seedLocalCache(
   shop: Shop,
   rooms: Room[],
-  products: Product[]
+  products: Product[],
 ): Promise<void> {
   await seedShop(shop);
   await seedRooms(shop.id, rooms);

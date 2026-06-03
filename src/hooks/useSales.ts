@@ -258,7 +258,13 @@ export function useVoidSale() {
       if (error) throw error;
     },
     onSuccess: (_, { shopId }) => {
+      // Sales history list (paginated, sales/page.tsx)
       qc.invalidateQueries({ queryKey: ["sales-history", shopId] });
+      // Infinite list used by POS / useSales hook
+      qc.invalidateQueries({ queryKey: saleKeys.list(shopId) });
+      // Summary used by reports — voiding a sale changes revenue totals
+      qc.invalidateQueries({ queryKey: ["sales-summary", shopId] });
+      // Product stock — void_sale restores quantities
       qc.invalidateQueries({ queryKey: ["products", shopId] });
     },
   });

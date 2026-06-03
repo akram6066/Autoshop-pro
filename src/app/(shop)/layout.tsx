@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { RouteErrorBoundary } from "@/components/ErrorBoundary";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore, selectRole, selectShopId } from "@/stores/authStore";
-import { seedLocalCache } from "@/lib/db/instance";
+import { seedLocalCache, clearLocalDb } from "@/lib/db/instance";
 import { listenForCrossTabSync } from "@/lib/sync/queue";
 import { ShopHeader } from "@/components/shop/ShopHeader";
 import EmailConfirmBanner from "@/components/EmailConfirmBanner";
@@ -170,6 +170,9 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
         try {
           sessionStorage.removeItem("autoshop_pos_cart");
         } catch {}
+        // Clear IndexedDB so the next user on this device doesn't see the
+        // previous user's products, rooms, sales, or sync queue.
+        clearLocalDb().catch(console.error);
         if (signingOut.current) {
           signingOut.current = false;
           router.replace("/login");

@@ -134,8 +134,12 @@ export function useAcceptInvite() {
       p_invite_id: inviteId,
     });
     if (error) throw error;
+    // Stale the invite list so it disappears from the UI.
+    // Note: shop list refresh cannot happen via React Query — the shops array
+    // lives in Zustand (auth store) and is only updated by layout init().
+    // The caller (invites/page.tsx) must do window.location.href to force
+    // a full reload so init() re-fetches shop_members from Supabase.
     qc.invalidateQueries({ queryKey: ["shop-invites"] });
-    qc.invalidateQueries({ queryKey: ["shops"] }); // Refresh shop list
   };
 }
 
