@@ -42,27 +42,48 @@ function SetupContent() {
   const profile = useAuthStore((s) => s.profile);
   const existingShops = useAuthStore(selectShops);
 
-  // Redirect platform admins away from setup — they don't need a shop
+  // Gate checks: redirect admins, and redirect users who already own a shop
+  // back to the dashboard when they land on first-time setup by mistake.
   useEffect(() => {
-    async function checkAdmin() {
+    async function checkGates() {
       if (profile?.is_admin) {
         router.replace("/admin");
         return;
       }
+
       const supabase = createClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase
+
+      const { data: prof } = await supabase
         .from("profiles")
         .select("is_admin")
         .eq("id", user.id)
         .single<{ is_admin: boolean }>();
-      if (data?.is_admin) router.replace("/admin");
+      if (prof?.is_admin) {
+        router.replace("/admin");
+        return;
+      }
+
+      // If this is first-time setup (not adding a new shop) and the user
+      // already owns a shop, send them to the dashboard instead of letting
+      // them create a duplicate on the free plan.
+      if (!isAddingNew) {
+        const { count } = await supabase
+          .from("shop_members")
+          .select("shop_id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("role", "owner");
+        if ((count ?? 0) > 0) {
+          router.replace("/dashboard");
+          return;
+        }
+      }
     }
-    checkAdmin();
-  }, [profile, router]);
+    checkGates();
+  }, [profile, router, isAddingNew]);
 
   const [step, setStep] = useState<Step>("shop");
   const [isPending, startTransition] = useTransition();
@@ -105,30 +126,66 @@ function SetupContent() {
         setShopError("Not logged in");
         return;
       }
-      const { data: shopId, error } = await supabase.rpc("setup_owner_shop", {
-        p_user_id: user.id,
-        p_shop_name: shopName.trim(),
-        p_shop_address: shopAddress.trim() || null,
-        p_full_name: profile?.full_name ?? "",
-      });
-      if (error || !shopId) {
-        setShopError(error?.message ?? "Failed to create shop");
-        return;
-      }
-      const { data: shop } = await supabase
-        .from("shops")
-        .select("*")
-        .eq("id", shopId)
-        .single<Shop>();
-      setCreatedShop(
-        shop ?? {
+
+      let resolvedShop: Shop | null = null;
+
+      if (isAddingNew) {
+        // Second+ shop — plan limit is enforced inside this RPC
+        const { data: shopJson, error } = await supabase.rpc(
+          "create_additional_shop",
+          {
+            p_name: shopName.trim(),
+            p_address: shopAddress.trim() || null,
+          },
+        );
+        if (error) {
+          setShopError(
+            error.message === "shop_limit_reached"
+              ? "Your plan does not allow more shops. Upgrade to add another."
+              : (error.message ?? "Failed to create shop"),
+          );
+          return;
+        }
+        resolvedShop = shopJson as unknown as Shop;
+      } else {
+        // First-time setup — plan limit is enforced inside this RPC
+        const { data: shopId, error } = await supabase.rpc("setup_owner_shop", {
+          p_user_id: user.id,
+          p_shop_name: shopName.trim(),
+          p_shop_address: shopAddress.trim() || null,
+          p_full_name: profile?.full_name ?? "",
+        });
+        if (error) {
+          setShopError(
+            error.message === "shop_limit_reached"
+              ? "You already have a shop on this account. Go to your dashboard."
+              : (error.message ?? "Failed to create shop"),
+          );
+          return;
+        }
+        if (!shopId) {
+          setShopError("Failed to create shop");
+          return;
+        }
+        const { data: shop } = await supabase
+          .from("shops")
+          .select("*")
+          .eq("id", shopId)
+          .single<Shop>();
+        resolvedShop = shop ?? {
           id: shopId as string,
           name: shopName.trim(),
           address: shopAddress.trim() || null,
           created_at: new Date().toISOString(),
-        },
-      );
-      // RPC auto-creates "Main Store" — show it so the user knows it exists
+        };
+      }
+
+      if (!resolvedShop) {
+        setShopError("Failed to create shop");
+        return;
+      }
+      setCreatedShop(resolvedShop);
+      // RPC auto-creates "Main Store" — pre-populate so user sees it
       setRooms(["Main Store"]);
       setStep("rooms");
     });
