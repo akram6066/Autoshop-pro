@@ -32,9 +32,9 @@ export default async function BillingPage({
     .filter((p) => p.price_kes > 0 && p.name !== "free_forever")
     .map(dbPlanToBilling);
   const planKeys = new Set(paidPlans.map((p) => p.key));
-
-  // targetPlan/targetPlanKey kept for any URL-driven flows (e.g. ?plan=pro links)
-  const targetPlanKey =
+  // Validate planParam against available plans; falls back to first paid plan.
+  // Used by child components via planParam prop for URL-driven pre-selection.
+  const validatedPlanParam =
     planParam && planKeys.has(planParam)
       ? planParam
       : (paidPlans[0]?.key ?? "pro");
@@ -169,7 +169,12 @@ export default async function BillingPage({
             />
           </div>
 
-          <PlanSelector plans={paidPlans} isPro={isPro} sub={sub} />
+          <PlanSelector
+            plans={paidPlans}
+            isPro={isPro}
+            sub={sub}
+            initialPlan={validatedPlanParam}
+          />
         </div>
       )}
     </div>

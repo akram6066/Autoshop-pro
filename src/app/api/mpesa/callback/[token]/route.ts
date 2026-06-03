@@ -3,6 +3,20 @@ import { adminDb } from "@/lib/admin/db";
 import { activateProShops } from "@/lib/subscription";
 import { logEvent } from "@/lib/admin/logger";
 
+// Exponential backoff retry — guards against transient DB failures during
+// subscription activation after a successful payment.
+async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt === maxAttempts - 1) throw err;
+      await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+    }
+  }
+  throw new Error("unreachable");
+}
+
 // Daraja calls this URL after the customer confirms/declines payment on their phone.
 // The [token] path segment acts as a shared secret — requests with a wrong token
 // are rejected before any DB work, preventing replay attacks from third parties.
@@ -103,43 +117,47 @@ export async function POST(
       .single();
 
     try {
-      if (paymentData.subscription_id && chosenPlan) {
-        const { data: existingSub } = await db
-          .from("subscriptions")
-          .select("current_period_end")
-          .eq("id", paymentData.subscription_id)
-          .single();
+      // Wrap both subscription update and shop activation in retry logic.
+      // Payment is already marked completed — we must not lose this activation.
+      await withRetry(async () => {
+        if (paymentData.subscription_id && chosenPlan) {
+          const { data: existingSub } = await db
+            .from("subscriptions")
+            .select("current_period_end")
+            .eq("id", paymentData.subscription_id)
+            .single();
 
-        const base =
-          existingSub?.current_period_end &&
-          new Date(existingSub.current_period_end) > new Date()
-            ? new Date(existingSub.current_period_end)
-            : new Date();
-        base.setDate(base.getDate() + 30);
+          const base =
+            existingSub?.current_period_end &&
+            new Date(existingSub.current_period_end) > new Date()
+              ? new Date(existingSub.current_period_end)
+              : new Date();
+          base.setDate(base.getDate() + 30);
 
-        const { error: subErr } = await db
-          .from("subscriptions")
-          .update({
-            plan_id: chosenPlan.id,
-            status: "active",
-            current_period_end: base.toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", paymentData.subscription_id);
+          const { error: subErr } = await db
+            .from("subscriptions")
+            .update({
+              plan_id: chosenPlan.id,
+              status: "active",
+              current_period_end: base.toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", paymentData.subscription_id);
 
-        if (subErr) throw subErr;
-      }
+          if (subErr) throw subErr;
+        }
 
-      if (paymentData.user_id) {
-        await activateProShops(paymentData.user_id, planName);
-      }
+        if (paymentData.user_id) {
+          await activateProShops(paymentData.user_id, planName);
+        }
+      });
     } catch (activationErr) {
-      // Payment is marked completed but subscription activation failed.
-      // Log an admin alert so ops can reconcile manually.
+      // All 3 retry attempts failed. Payment is marked completed but subscription
+      // is not active. Log a critical admin alert for immediate manual reconciliation.
       await logEvent({
         category: "shop_management",
         level: "error",
-        message: `M-Pesa payment ${CheckoutRequestID} completed but subscription activation failed`,
+        message: `RECONCILE REQUIRED: M-Pesa payment ${CheckoutRequestID} completed but subscription activation failed after 3 attempts`,
         details: {
           checkoutRequestId: CheckoutRequestID,
           userId: paymentData.user_id,
@@ -149,7 +167,10 @@ export async function POST(
         },
       }).catch(console.error);
 
-      console.error("[mpesa/callback] activation failed:", activationErr);
+      console.error(
+        "[mpesa/callback] activation failed after retries:",
+        activationErr,
+      );
     }
 
     return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });

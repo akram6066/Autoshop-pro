@@ -4,6 +4,10 @@ interface LimitConfig {
   name: string;
   limit: number;
   windowSec: number;
+  /** When true: deny all requests if Redis is unavailable rather than falling back to in-memory.
+   *  Use for security-sensitive endpoints (payment initiation, account deletion) where
+   *  per-instance in-memory limits are trivially bypassed on multi-instance deployments. */
+  failSecure?: boolean;
 }
 
 interface LimitResult {
@@ -127,7 +131,18 @@ export async function rateLimit(
     return upstashResult;
   }
 
-  // Upstash unavailable — warn and degrade to per-instance memory store
+  // Redis is unavailable.
+  if (cfg.failSecure) {
+    // Fail closed: deny all requests rather than allow unlimited traffic on a
+    // single instance. Used for security-sensitive endpoints (payment initiation)
+    // where per-instance limits can be bypassed by distributing across Vercel instances.
+    console.error(
+      `[rate-limit] Upstash unavailable for "${cfg.name}:${identity}" and failSecure=true — denying request.`,
+    );
+    return { ok: false, remaining: 0, resetAt: Date.now() + 60_000 };
+  }
+
+  // Warn and degrade to per-instance memory store for non-critical endpoints.
   console.warn(
     `[rate-limit] Upstash unavailable for "${cfg.name}:${identity}" — using in-memory fallback. Limits are per-instance only.`,
   );

@@ -72,17 +72,26 @@ async function parseFile(
       .filter((r) => r.name || r.size);
   }
 
-  // Excel
-  const { read, utils } = await import("xlsx");
-  const buffer = await file.arrayBuffer();
-  const wb = read(buffer);
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const raw: Record<string, unknown>[] = utils.sheet_to_json(ws, {
-    defval: "",
-  });
+  // Excel — use read-excel-file (maintained, no known CVEs) instead of xlsx
+  // which has unpatched Prototype Pollution and ReDoS vulnerabilities (no fix available).
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error("File too large (max 10 MB)");
+  }
+  // Import the browser-specific build; readSheet returns Row[] (first sheet's rows)
+  const { readSheet } = await import("read-excel-file/browser");
+  const xlsxRows = await readSheet(file as Parameters<typeof readSheet>[0]);
+  if (xlsxRows.length < 2) return [];
+  const xlsxHeaders = xlsxRows[0].map((h: unknown) => String(h ?? ""));
+  const raw = xlsxRows
+    .slice(1)
+    .map((row: unknown[]) =>
+      Object.fromEntries(
+        xlsxHeaders.map((h: string, i: number) => [h, row[i] ?? ""]),
+      ),
+    );
 
   return raw
-    .map((row, i) => {
+    .map((row: Record<string, unknown>, i: number) => {
       const get = (key: string): string => {
         const match = Object.keys(row).find((k) => normalizeHeader(k) === key);
         return match ? String(row[match] ?? "").trim() : "";

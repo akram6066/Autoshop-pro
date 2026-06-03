@@ -20,12 +20,17 @@ export function PlanSelector({
   plans,
   isPro,
   sub,
+  initialPlan,
 }: {
   plans: BillingPlan[];
   isPro: boolean;
   sub: SubscriptionInfo;
+  /** Pre-selects a plan when navigating from ?plan=xxx links (e.g. dashboard upgrade CTAs). */
+  initialPlan?: string;
 }) {
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(
+    initialPlan ?? null,
+  );
   const selectedPlan = plans.find((p) => p.key === selectedKey) ?? null;
 
   return (

@@ -10,6 +10,8 @@ const PUBLIC_PATHS = [
   "/terms",
   "/contact",
   "/api/contact",
+  "/api/health", // External monitoring (UptimeRobot, Vercel health checks)
+  "/api/admin/run-downgrade", // Vercel Cron — authenticated via CRON_SECRET header, not session
 ];
 
 const SUSPICIOUS_PATHS = [

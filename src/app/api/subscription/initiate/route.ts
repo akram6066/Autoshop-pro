@@ -12,10 +12,12 @@ export async function POST(req: NextRequest) {
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // 5 STK push attempts per user per 15 minutes — prevents phone harassment
+  // 5 STK push attempts per user per 15 minutes — prevents phone harassment.
+  // failSecure: deny if Redis is down rather than falling back to per-instance memory,
+  // which is trivially bypassed by distributing requests across Vercel instances.
   const limited = await enforceRateLimit(
     req,
-    { name: "mpesa-initiate", limit: 5, windowSec: 900 },
+    { name: "mpesa-initiate", limit: 5, windowSec: 900, failSecure: true },
     user.id,
   );
   if (limited) return limited;

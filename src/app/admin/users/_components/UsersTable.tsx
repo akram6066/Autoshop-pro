@@ -2,7 +2,6 @@ import {
   AdminBadge,
   AdminEmptyRow,
   AdminInitial,
-  AdminTable,
   AdminTD,
 } from "@/app/admin/_components/AdminUI";
 import { DeleteUserButton } from "./DeleteUserButton";
