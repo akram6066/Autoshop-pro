@@ -33,6 +33,11 @@ const SESSION_BANNERS: Record<
     message: "Your session has expired. Please sign in again to continue.",
     variant: "warning",
   },
+  confirmation_failed: {
+    message:
+      "Your confirmation link has expired or was already used. Log in below — we'll prompt you to send a new one.",
+    variant: "warning",
+  },
 };
 
 export default function LoginForm() {

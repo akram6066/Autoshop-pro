@@ -10,12 +10,31 @@ const RESEND_COOLDOWN_S = 60;
 
 export default function EmailConfirmBanner() {
   const user = useAuthStore(selectUser);
+  const setUser = useAuthStore((s) => s.setUser);
   const mounted = useMounted();
   const [dismissed, setDismissed] = useState(false);
   const [resent, setResent] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendError, setResendError] = useState("");
   const [cooldown, setCooldown] = useState(0);
+
+  // When the user confirms their email (in this tab or another), Supabase fires
+  // USER_UPDATED with email_confirmed_at set. Update the store so the banner
+  // disappears immediately without requiring a full page reload.
+  useEffect(() => {
+    const supabase = createClient();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (
+        (event === "USER_UPDATED" || event === "SIGNED_IN") &&
+        session?.user?.email_confirmed_at
+      ) {
+        setUser(session.user);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [setUser]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
