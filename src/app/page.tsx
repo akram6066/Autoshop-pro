@@ -37,7 +37,10 @@ export default async function LandingPage() {
   const plans = mapped.length > 0 ? mapped : FALLBACK_PLANS;
 
   return (
-    <div style={{ minHeight: "100vh", overflowX: "hidden" }}>
+    <div
+      className="landing-light"
+      style={{ minHeight: "100vh", overflowX: "hidden" }}
+    >
       <LandingNav />
       <main>
         <HeroSection />
