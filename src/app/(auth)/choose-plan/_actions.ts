@@ -5,7 +5,23 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { normalizePhone } from "@/lib/mpesa";
 import { redirect } from "next/navigation";
 
+// Plans a user can self-select on the choose-plan page.
+// 'free_forever' is admin-only and must never be self-assignable.
+const SELF_SERVICE_PLANS = ["trial", "pro", "ultra_pro"] as const;
+type SelfServicePlan = (typeof SELF_SERVICE_PLANS)[number];
+
+function isSelfServicePlan(name: string): name is SelfServicePlan {
+  return (SELF_SERVICE_PLANS as readonly string[]).includes(name);
+}
+
 export async function choosePlan(planName: string, rawPhone?: string) {
+  // Reject any plan name that is not explicitly self-serviceable.
+  // This prevents a user from calling this action with e.g. "free_forever"
+  // or any future admin-only plan name.
+  if (!isSelfServicePlan(planName)) {
+    redirect("/choose-plan");
+  }
+
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
@@ -16,12 +32,12 @@ export async function choosePlan(planName: string, rawPhone?: string) {
 
   const { data: plan } = await db
     .from("subscription_plans")
-    .select("id")
+    .select("id, price_kes")
     .eq("name", planName)
     .eq("is_active", true)
     .single();
 
-  if (!plan) return;
+  if (!plan) redirect("/choose-plan");
 
   const isFree = planName === "trial";
 
@@ -80,7 +96,29 @@ export async function updateBillingPhone(rawPhone: string) {
 
   const phone = normalizePhone(rawPhone);
   if (!phone)
-    return { error: "Invalid Kenyan phone number. Use format 07XX XXX XXX." };
+    return {
+      error: "Invalid Kenyan phone number. Use format 07XX XXX XXX.",
+    };
+
+  // Only update billing phone for active paid-plan trials
+  const { data: sub } = await adminDb()
+    .from("subscriptions")
+    .select("status, subscription_plans!inner(price_kes)")
+    .eq("user_id", user.id)
+    .eq("status", "trial")
+    .single<{
+      status: string;
+      subscription_plans: { price_kes: number } | { price_kes: number }[];
+    }>();
+
+  if (!sub) return { error: "No active trial found." };
+
+  const plan = Array.isArray(sub.subscription_plans)
+    ? sub.subscription_plans[0]
+    : sub.subscription_plans;
+
+  if (!plan || plan.price_kes === 0)
+    return { error: "Billing setup is only available on paid-plan trials." };
 
   await adminDb()
     .from("subscriptions")

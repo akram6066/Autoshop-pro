@@ -40,7 +40,7 @@ export async function grantFreeAccess(userId: string, notes: string) {
   );
   if (error) throw new Error("Failed to grant access");
 
-  await activateProShops(validated.userId);
+  await activateProShops(validated.userId, "free_forever");
   await logAdminAction({
     action: "GRANT_FREE_ACCESS",
     targetUserId: validated.userId,

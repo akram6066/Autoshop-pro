@@ -161,7 +161,7 @@ export const FALLBACK_PLANS: PricingPlan[] = [
   {
     id: "pro",
     name: "Pro",
-    monthlyPrice: 1500,
+    monthlyPrice: 1000,
     currency: "KES",
     description: "Everything you need to run and grow your shop.",
     highlighted: true,
@@ -185,7 +185,7 @@ export const FALLBACK_PLANS: PricingPlan[] = [
   {
     id: "ultra_pro",
     name: "Ultra Pro",
-    monthlyPrice: 3500,
+    monthlyPrice: 2500,
     currency: "KES",
     description: "For multi-branch operations and growing shop chains.",
     highlighted: false,

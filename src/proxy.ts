@@ -1,6 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// Paths that bypass session-auth entirely.
+// Vercel Cron endpoints belong here: the cron runner sends CRON_SECRET in a
+// header, not a user session, so they cannot pass the auth check below.
+// Each route handler validates CRON_SECRET independently.
 const PUBLIC_PATHS = [
   "/login",
   "/signup",
@@ -11,7 +15,9 @@ const PUBLIC_PATHS = [
   "/contact",
   "/api/contact",
   "/api/health", // External monitoring (UptimeRobot, Vercel health checks)
-  "/api/admin/run-downgrade", // Vercel Cron — authenticated via CRON_SECRET header, not session
+  "/api/admin/run-downgrade", // Vercel Cron — CRON_SECRET auth
+  "/api/admin/trigger-trial-billing", // Vercel Cron — CRON_SECRET auth
+  "/api/admin/run-prune", // Vercel Cron — CRON_SECRET auth
 ];
 
 const SUSPICIOUS_PATHS = [

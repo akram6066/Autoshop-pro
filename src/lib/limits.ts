@@ -1,6 +1,6 @@
 const LIMITS = {
   free: {
-    products: 500,
+    products: 50, // matches check_product_limit DB trigger (migration 046/063)
     staff: 3,
     shops: 1,
     rooms: 5,

@@ -29,7 +29,7 @@ export const grantFreeAccessSchema = z.object({
 
 export const activatePlanSchema = z.object({
   userId: uuid,
-  planName: z.string().min(1).max(50),
+  planName: z.enum(["trial", "pro", "ultra_pro", "free_forever"]),
   months: z.number().int().min(1).max(60),
 });
 

@@ -65,10 +65,11 @@ export async function deleteUser(userId: string) {
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  const db = adminDb();
 
-  await db.from("profiles").delete().eq("id", validUserId);
-
+  // Delete the auth user FIRST. The profiles table has ON DELETE CASCADE
+  // from auth.users, so the profile row is automatically removed.
+  // Reversing this order (delete profile then auth user) would leave an
+  // orphaned auth user if the second step fails.
   const { error } = await createClient(url, key, {
     auth: { persistSession: false },
   }).auth.admin.deleteUser(validUserId);
