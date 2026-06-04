@@ -102,7 +102,7 @@ BEGIN
     PERFORM cron.schedule(
       'prune-old-data',
       '0 3 * * 0',
-      $$ SELECT public.prune_old_data() $$
+      $cron$ SELECT public.prune_old_data() $cron$
     );
   END IF;
 EXCEPTION WHEN OTHERS THEN
