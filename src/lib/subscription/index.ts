@@ -16,6 +16,8 @@ export interface SubscriptionInfo {
   trial_ends_at: string | null;
   current_period_end: string | null;
   is_admin_override: boolean;
+  billing_phone: string | null;
+  auto_bill_at_end: boolean;
   plan: Plan;
 }
 
@@ -27,6 +29,7 @@ export async function getSubscription(
     .select(
       `
       id, status, trial_ends_at, current_period_end, is_admin_override,
+      billing_phone, auto_bill_at_end,
       subscription_plans (
         name, display_name, price_kes,
         max_shops, max_products_per_shop, max_staff_per_shop, max_sales_per_month
@@ -43,26 +46,36 @@ export async function getSubscription(
     trial_ends_at: string | null;
     current_period_end: string | null;
     is_admin_override: boolean;
+    billing_phone: string | null;
+    auto_bill_at_end: boolean;
     subscription_plans: Plan | Plan[];
   };
   const row = data as unknown as Row;
+  const plan = Array.isArray(row.subscription_plans)
+    ? row.subscription_plans[0]
+    : row.subscription_plans;
   return {
     id: row.id,
     status: row.status,
     trial_ends_at: row.trial_ends_at,
     current_period_end: row.current_period_end,
     is_admin_override: row.is_admin_override,
-    plan: Array.isArray(row.subscription_plans)
-      ? row.subscription_plans[0]
-      : row.subscription_plans,
+    billing_phone: row.billing_phone,
+    auto_bill_at_end: row.auto_bill_at_end,
+    plan,
   };
 }
 
 export function isActive(sub: SubscriptionInfo): boolean {
   if (sub.is_admin_override) return true;
   if (sub.status === "free") return true;
-  // Trial is permanently free — never expires regardless of trial_ends_at
-  if (sub.status === "trial") return true;
+  if (sub.status === "trial") {
+    // Free-plan trial (price_kes = 0) is permanent — never expires
+    if (sub.plan.price_kes === 0) return true;
+    // Paid-plan trial: active until trial_ends_at (+ 24h grace handled in DB)
+    if (!sub.trial_ends_at) return true;
+    return new Date(sub.trial_ends_at) > new Date();
+  }
   if (sub.status === "active" && sub.current_period_end) {
     return new Date(sub.current_period_end) > new Date();
   }
@@ -70,14 +83,19 @@ export function isActive(sub: SubscriptionInfo): boolean {
 }
 
 export function daysLeft(sub: SubscriptionInfo): number {
-  // Free and trial plans have no countdown — return sentinel value
-  if (
-    sub.is_admin_override ||
-    sub.status === "free" ||
-    sub.status === "trial"
-  ) {
-    return 9999;
+  if (sub.is_admin_override || sub.status === "free") return 9999;
+  // Free-plan trial: no countdown
+  if (sub.status === "trial" && sub.plan.price_kes === 0) return 9999;
+  // Paid-plan trial: count down to trial_ends_at
+  if (sub.status === "trial" && sub.trial_ends_at) {
+    return Math.max(
+      0,
+      Math.ceil(
+        (new Date(sub.trial_ends_at).getTime() - Date.now()) / 86_400_000,
+      ),
+    );
   }
+  // Active paid plan: count down to current_period_end
   const end = sub.current_period_end;
   if (!end) return 0;
   return Math.max(

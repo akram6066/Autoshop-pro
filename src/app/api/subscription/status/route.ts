@@ -18,6 +18,9 @@ export async function GET() {
     isActive: isActive(sub),
     daysLeft: daysLeft(sub),
     isAdminOverride: sub.is_admin_override,
+    trialEndsAt: sub.trial_ends_at,
+    billingPhone: sub.billing_phone,
+    autoBillAtEnd: sub.auto_bill_at_end,
     plan: {
       name: sub.plan.name,
       displayName: sub.plan.display_name,

@@ -5,32 +5,14 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Section } from "./Section";
 import { SettingsUsageBar } from "./SettingsUsageBar";
+import { TrialBillingSection } from "./TrialBillingSection";
 import {
   LimitWarningBanner,
   type LimitItem,
 } from "@/components/shop/LimitWarningBanner";
+import type { SubInfo } from "./sub-types";
 
-// ─── Subscription types ────────────────────────────────────────────────────────
-
-export interface SubPlan {
-  name: string;
-  displayName: string;
-  priceKes: number;
-  maxShops: number;
-  maxProductsPerShop: number;
-  maxStaffPerShop: number;
-  maxSalesPerMonth: number;
-}
-
-export interface SubInfo {
-  status: string;
-  isActive: boolean;
-  daysLeft: number;
-  isAdminOverride: boolean;
-  plan: SubPlan;
-}
-
-// ─── Plan & Usage ─────────────────────────────────────────────────────────────
+export type { SubInfo, SubPlan } from "./sub-types";
 
 export function PlanUsageSection({
   sub,
@@ -78,17 +60,20 @@ export function PlanUsageSection({
     });
   }, [shopId]);
 
-  // Status badge config
+  const isPaidTrial = sub?.status === "trial" && (sub?.plan.priceKes ?? 0) > 0;
+
   const badgeCfg: Record<
     string,
     { label: string; bg: string; color: string; dot: string }
   > = {
-    trial: {
-      label: "Free",
-      bg: "#fef9c3",
-      color: "#a16207",
-      dot: "#d97706",
-    },
+    trial: isPaidTrial
+      ? {
+          label: `${sub?.plan.displayName ?? "Pro"} Trial`,
+          bg: "#dcfce7",
+          color: "#15803d",
+          dot: "#16a34a",
+        }
+      : { label: "Free", bg: "#fef9c3", color: "#a16207", dot: "#d97706" },
     active: {
       label: sub?.plan.displayName ?? "Pro",
       bg: sub?.plan.name === "ultra_pro" ? "#ede9fe" : "#dcfce7",
@@ -111,7 +96,10 @@ export function PlanUsageSection({
   };
 
   const isPro =
-    sub?.status === "active" || sub?.isAdminOverride || sub?.status === "free";
+    sub?.status === "active" ||
+    sub?.isAdminOverride ||
+    sub?.status === "free" ||
+    isPaidTrial;
   const badge = sub ? (badgeCfg[sub.status] ?? badgeCfg.expired) : null;
 
   return (
@@ -237,7 +225,6 @@ export function PlanUsageSection({
               max={sub.plan.maxSalesPerMonth}
             />
 
-            {/* Upgrade prompt when any limit is near/at full */}
             {(() => {
               const limitItems: LimitItem[] = [
                 {
@@ -256,10 +243,9 @@ export function PlanUsageSection({
                   max: sub.plan.maxSalesPerMonth,
                 },
               ];
-              const anyNear = limitItems.some((i) => {
-                if (i.max >= 999999) return false;
-                return i.current / i.max >= 0.8;
-              });
+              const anyNear = limitItems.some(
+                (i) => i.max < 999999 && i.current / i.max >= 0.8,
+              );
               if (!anyNear || isPro) return null;
               return (
                 <div style={{ marginTop: 16 }}>
@@ -271,6 +257,8 @@ export function PlanUsageSection({
               );
             })()}
           </div>
+
+          <TrialBillingSection sub={sub} />
         </>
       )}
     </Section>

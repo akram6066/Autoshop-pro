@@ -1,5 +1,8 @@
 import { adminDb } from "@/lib/admin/db";
-import { AdminPageHeader } from "@/app/admin/_components/AdminUI";
+import {
+  AdminPageHeader,
+  AdminPageWrapper,
+} from "@/app/admin/_components/AdminUI";
 import { TrialSettingsCard } from "./_components/TrialSettingsCard";
 
 export const metadata = { title: "Settings — Admin" };
@@ -19,7 +22,7 @@ export default async function AdminSettingsPage() {
   const updatedAt = data?.updated_at ?? null;
 
   return (
-    <div style={{ padding: "32px 36px", maxWidth: 720 }}>
+    <AdminPageWrapper maxWidth={720}>
       <AdminPageHeader
         title="Settings"
         description="Control app-wide behaviour for new shop signups."
@@ -29,6 +32,6 @@ export default async function AdminSettingsPage() {
         initialDays={days}
         updatedAt={updatedAt}
       />
-    </div>
+    </AdminPageWrapper>
   );
 }

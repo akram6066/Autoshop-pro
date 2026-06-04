@@ -9,7 +9,7 @@ interface Props {
   shopName: string;
   productCount: number;
   salesCount: number;
-  hasOtherShops: boolean;
+  otherShops: { id: string; name: string }[];
 }
 
 export function DeleteShopSection({
@@ -17,17 +17,15 @@ export function DeleteShopSection({
   shopName,
   productCount,
   salesCount,
-  hasOtherShops,
+  otherShops,
 }: Props) {
   const [showModal, setShowModal] = useState(false);
-  const [typed, setTyped] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const confirmed = typed.trim() === shopName.trim();
+  const hasOtherShops = otherShops.length > 0;
 
   async function handleDelete() {
-    if (!confirmed) return;
     setLoading(true);
     setError("");
 
@@ -42,8 +40,8 @@ export function DeleteShopSection({
       return;
     }
 
-    // Full reload so the layout re-initialises and picks up the next shop
-    // (or redirects to /setup if this was the user's only shop).
+    // Full reload — layout re-initialises, picks up the next active shop
+    // (or redirects to /setup if this was the last shop).
     window.location.href = "/dashboard";
   }
 
@@ -56,13 +54,12 @@ export function DeleteShopSection({
               className="text-sm mb-4"
               style={{ color: "var(--color-ink-secondary)" }}
             >
-              Permanently removes this shop from your account. Your other shops
-              are not affected. All products, sales, and stock history for{" "}
-              <strong>{shopName}</strong> will be deleted and cannot be
-              recovered.
+              Permanently removes <strong>{shopName}</strong> from your account.
+              Your other shop{otherShops.length > 1 ? "s" : ""} and all account
+              data remain completely untouched.
             </p>
 
-            {/* Stats pill */}
+            {/* Data counts */}
             <div
               style={{
                 display: "inline-flex",
@@ -97,7 +94,7 @@ export function DeleteShopSection({
                 className="btn btn-danger"
                 onClick={() => setShowModal(true)}
               >
-                Delete this shop
+                Delete {shopName}
               </button>
             </div>
           </>
@@ -107,87 +104,230 @@ export function DeleteShopSection({
               className="text-sm mb-4"
               style={{ color: "var(--color-ink-secondary)" }}
             >
-              This is your only shop. You cannot delete it without also deleting
-              your account.
+              This is your only shop. Deleting it will remove it from your
+              account — your profile and login are not affected.
             </p>
-            <a href="/settings/account" className="btn btn-secondary btn-sm">
-              Go to account settings
-            </a>
+            <div className="flex gap-3 flex-wrap">
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => setShowModal(true)}
+              >
+                Delete {shopName}
+              </button>
+              <a href="/settings/account" className="btn btn-secondary btn-sm">
+                Manage account →
+              </a>
+            </div>
           </>
         )}
       </Section>
 
-      {/* Confirmation modal */}
+      {/* ── Confirmation modal ── */}
       {showModal && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           style={{
-            backgroundColor: "rgba(0,0,0,0.45)",
+            backgroundColor: "rgba(0,0,0,0.5)",
             backdropFilter: "blur(4px)",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !loading) {
+              setShowModal(false);
+              setError("");
+            }
           }}
         >
           <div
-            className="rounded-xl w-full max-w-md p-6 animate-fade-in-up"
+            className="rounded-2xl w-full max-w-md animate-fade-in-up"
             style={{
               background: "var(--color-surface-0)",
               border: "1px solid var(--color-border)",
               boxShadow: "var(--shadow-raised)",
+              overflow: "hidden",
             }}
           >
-            <h3
-              className="text-lg font-semibold mb-1"
-              style={{ color: "var(--color-danger)" }}
-            >
-              Delete shop
-            </h3>
-            <p
-              className="text-sm mb-5"
-              style={{ color: "var(--color-ink-secondary)", lineHeight: 1.6 }}
-            >
-              This will permanently delete <strong>{shopName}</strong> and all
-              its data — {productCount.toLocaleString()} product
-              {productCount !== 1 ? "s" : ""} and {salesCount.toLocaleString()}{" "}
-              sale
-              {salesCount !== 1 ? "s" : ""}. This cannot be undone.
-            </p>
-
-            <label
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: "var(--color-ink-primary)" }}
-            >
-              Type <strong>{shopName}</strong> to confirm
-            </label>
-            <input
-              className="input w-full mb-4"
-              value={typed}
-              onChange={(e) => {
-                setTyped(e.target.value);
-                setError("");
+            {/* Header */}
+            <div
+              style={{
+                padding: "24px 24px 0",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 14,
               }}
-              placeholder={shopName}
-              autoFocus
-              disabled={loading}
-            />
-
-            {error && (
-              <p
-                className="text-sm mb-4 p-3 rounded-lg"
+            >
+              {/* Trash icon */}
+              <div
                 style={{
-                  background: "var(--color-danger-light)",
-                  color: "var(--color-danger)",
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: "#fee2e2",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
                 }}
               >
-                {error}
-              </p>
-            )}
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                  <path
+                    d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
+                    stroke="#dc2626"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
 
-            <div className="flex gap-3 justify-end">
+              <div>
+                <h3
+                  className="text-lg font-semibold"
+                  style={{ color: "var(--color-ink-primary)" }}
+                >
+                  Delete shop?
+                </h3>
+                <p
+                  className="text-sm mt-0.5"
+                  style={{ color: "var(--color-ink-tertiary)" }}
+                >
+                  This action cannot be undone
+                </p>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: "20px 24px" }}>
+              {/* Shop name callout */}
+              <div
+                style={{
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  borderRadius: 10,
+                  padding: "12px 16px",
+                  marginBottom: 16,
+                }}
+              >
+                <p className="text-sm" style={{ color: "#991b1b" }}>
+                  You are deleting:
+                </p>
+                <p
+                  className="font-bold mt-0.5"
+                  style={{ color: "#7f1d1d", fontSize: "1.0625rem" }}
+                >
+                  {shopName}
+                </p>
+                <p className="text-xs mt-1" style={{ color: "#b91c1c" }}>
+                  {productCount.toLocaleString()} product
+                  {productCount !== 1 ? "s" : ""} ·{" "}
+                  {salesCount.toLocaleString()} sale
+                  {salesCount !== 1 ? "s" : ""}
+                </p>
+              </div>
+
+              {/* Safe shops */}
+              {otherShops.length > 0 && (
+                <div
+                  style={{
+                    background: "#f0fdf4",
+                    border: "1px solid #bbf7d0",
+                    borderRadius: 10,
+                    padding: "12px 16px",
+                    marginBottom: 16,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      marginBottom: 6,
+                    }}
+                  >
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+                      <path
+                        d="M20 6L9 17l-5-5"
+                        stroke="#16a34a"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <p
+                      className="text-sm font-semibold"
+                      style={{ color: "#15803d" }}
+                    >
+                      These shops are NOT affected:
+                    </p>
+                  </div>
+                  <ul
+                    style={{
+                      listStyle: "none",
+                      padding: 0,
+                      margin: 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                    }}
+                  >
+                    {otherShops.map((s) => (
+                      <li
+                        key={s.id}
+                        className="text-sm font-medium"
+                        style={{ color: "#166534" }}
+                      >
+                        · {s.name}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* No other shops — account safe note */}
+              {otherShops.length === 0 && (
+                <div
+                  style={{
+                    background: "var(--color-surface-1)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: 10,
+                    padding: "12px 16px",
+                    marginBottom: 16,
+                    fontSize: "0.875rem",
+                    color: "var(--color-ink-secondary)",
+                  }}
+                >
+                  Your account and login will not be deleted. You can set up a
+                  new shop any time.
+                </div>
+              )}
+
+              {error && (
+                <div
+                  className="text-sm p-3 rounded-lg mb-4"
+                  style={{
+                    background: "var(--color-danger-light, #fee2e2)",
+                    color: "var(--color-danger)",
+                  }}
+                >
+                  {error}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div
+              style={{
+                padding: "0 24px 24px",
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+              }}
+            >
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => {
                   setShowModal(false);
-                  setTyped("");
                   setError("");
                 }}
                 disabled={loading}
@@ -197,10 +337,10 @@ export function DeleteShopSection({
               <button
                 type="button"
                 className="btn btn-danger"
-                disabled={!confirmed || loading}
+                disabled={loading}
                 onClick={handleDelete}
               >
-                {loading ? "Deleting…" : "Delete shop"}
+                {loading ? "Deleting…" : `Yes, delete "${shopName}"`}
               </button>
             </div>
           </div>

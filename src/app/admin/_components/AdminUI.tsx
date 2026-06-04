@@ -1,5 +1,25 @@
 import Link from "next/link";
 
+// ── AdminPageWrapper ─────────────────────────────────────────────────────────
+// Responsive outer container for every admin page.
+// px-4 py-5 on mobile → px-6 py-6 on sm → px-9 py-8 on lg
+export function AdminPageWrapper({
+  children,
+  maxWidth = 1100,
+}: {
+  children: React.ReactNode;
+  maxWidth?: number;
+}) {
+  return (
+    <div
+      className="px-4 py-5 sm:px-6 sm:py-6 lg:px-9 lg:py-8"
+      style={{ maxWidth }}
+    >
+      {children}
+    </div>
+  );
+}
+
 // ── AdminCard ────────────────────────────────────────────────────────────────
 export function AdminCard({
   children,
@@ -78,6 +98,7 @@ export function AdminBadge({
 }
 
 // ── AdminTable ───────────────────────────────────────────────────────────────
+// Horizontally scrollable on small screens so tables never break the layout.
 export function AdminTable({
   headers,
   children,
@@ -86,30 +107,35 @@ export function AdminTable({
   children: React.ReactNode;
 }) {
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-      <thead>
-        <tr style={{ background: "#f8fafc" }}>
-          {headers.map((h) => (
-            <th
-              key={h}
-              style={{
-                padding: "11px 16px",
-                textAlign: "left",
-                fontSize: "0.75rem",
-                fontWeight: 600,
-                color: "#64748b",
-                letterSpacing: "0.05em",
-                textTransform: "uppercase",
-                borderBottom: "1px solid #e2e8f0",
-              }}
-            >
-              {h}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>{children}</tbody>
-    </table>
+    <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+      <table
+        style={{ width: "100%", borderCollapse: "collapse", minWidth: 540 }}
+      >
+        <thead>
+          <tr style={{ background: "#f8fafc" }}>
+            {headers.map((h) => (
+              <th
+                key={h}
+                style={{
+                  padding: "11px 16px",
+                  textAlign: "left",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  color: "#64748b",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  borderBottom: "1px solid #e2e8f0",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>{children}</tbody>
+      </table>
+    </div>
   );
 }
 

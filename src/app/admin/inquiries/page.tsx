@@ -1,6 +1,7 @@
 import { adminDb } from "@/lib/admin/db";
 import {
   AdminPageHeader,
+  AdminPageWrapper,
   AdminPagination,
 } from "@/app/admin/_components/AdminUI";
 import { InquiryStatusFilter } from "./_components/InquiryStatusFilter";
@@ -37,7 +38,7 @@ export default async function AdminInquiriesPage({ searchParams }: PageProps) {
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE);
 
   return (
-    <div style={{ padding: "32px 36px", maxWidth: 1000 }}>
+    <AdminPageWrapper maxWidth={1000}>
       <AdminPageHeader
         title="Contact Inquiries"
         description={`${count ?? 0} message${count !== 1 ? "s" : ""} submitted via the contact form.`}
@@ -70,6 +71,6 @@ export default async function AdminInquiriesPage({ searchParams }: PageProps) {
           `?${status ? `status=${encodeURIComponent(status)}&` : ""}page=${p}`
         }
       />
-    </div>
+    </AdminPageWrapper>
   );
 }

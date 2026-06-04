@@ -3,7 +3,10 @@ import { LogsFilters } from "./_components/LogsFilters";
 import { LogsTable } from "./_components/LogsTable";
 import { ClearLogsButton, PruneLogsButton } from "./_components/LogActions";
 import { countOldLogs } from "./_actions";
-import { AdminPagination } from "@/app/admin/_components/AdminUI";
+import {
+  AdminPageWrapper,
+  AdminPagination,
+} from "@/app/admin/_components/AdminUI";
 
 interface PageProps {
   searchParams: Promise<{ category?: string; level?: string; page?: string }>;
@@ -73,7 +76,7 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div style={{ padding: "32px 36px", maxWidth: 1200 }}>
+    <AdminPageWrapper maxWidth={1200}>
       <div
         style={{
           display: "flex",
@@ -107,6 +110,6 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
         total={totalPages}
         hrefFn={(p) => filterHref({ page: String(p) })}
       />
-    </div>
+    </AdminPageWrapper>
   );
 }

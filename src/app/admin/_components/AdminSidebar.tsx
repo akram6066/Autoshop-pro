@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 const NAV = [
   {
@@ -186,6 +187,13 @@ interface Props {
 
 export function AdminSidebar({ adminName, onClose }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
 
   return (
     <aside
@@ -317,42 +325,18 @@ export function AdminSidebar({ adminName, onClose }: Props) {
         style={{
           padding: "12px 10px",
           borderTop: "1px solid rgba(255,255,255,0.07)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
         }}
       >
-        <Link
-          href="/dashboard"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "9px 12px",
-            borderRadius: 8,
-            textDecoration: "none",
-            fontSize: "0.8125rem",
-            color: "#64748b",
-            marginBottom: 8,
-            transition: "background 0.15s, color 0.15s",
-          }}
-        >
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-            <path
-              d="M19 12H5M12 5l-7 7 7 7"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Back to app
-        </Link>
-
-        <div style={{ padding: "8px 12px" }}>
+        {/* Admin name */}
+        <div style={{ padding: "8px 12px", marginBottom: 4 }}>
           <p
             style={{
               fontSize: "0.6875rem",
               color: "#475569",
-              margin: 0,
-              marginBottom: 2,
+              margin: "0 0 2px",
             }}
           >
             Signed in as
@@ -371,6 +355,73 @@ export function AdminSidebar({ adminName, onClose }: Props) {
             {adminName}
           </p>
         </div>
+
+        {/* Back to app */}
+        <Link
+          href="/dashboard"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "9px 12px",
+            borderRadius: 8,
+            textDecoration: "none",
+            fontSize: "0.8125rem",
+            color: "#64748b",
+            transition: "background 0.15s, color 0.15s",
+          }}
+        >
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+            <path
+              d="M19 12H5M12 5l-7 7 7 7"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          Back to app
+        </Link>
+
+        {/* Logout */}
+        <button
+          type="button"
+          onClick={handleLogout}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "9px 12px",
+            borderRadius: 8,
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            fontSize: "0.8125rem",
+            color: "#ef4444",
+            width: "100%",
+            textAlign: "left",
+            transition: "background 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background =
+              "rgba(239,68,68,0.12)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background =
+              "transparent";
+          }}
+        >
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+            <path
+              d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          Log out
+        </button>
       </div>
     </aside>
   );

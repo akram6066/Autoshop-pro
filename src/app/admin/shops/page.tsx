@@ -2,6 +2,7 @@ import { adminDb } from "@/lib/admin/db";
 import {
   AdminCard,
   AdminPageHeader,
+  AdminPageWrapper,
   AdminTable,
 } from "@/app/admin/_components/AdminUI";
 import { ShopTabs } from "./_components/ShopTabs";
@@ -118,7 +119,7 @@ export default async function AdminShopsPage({ searchParams }: PageProps) {
   ];
 
   return (
-    <div style={{ padding: "32px 36px", maxWidth: 1100 }}>
+    <AdminPageWrapper>
       <AdminPageHeader
         title="Shops"
         description="Manage all registered shops — edit details, delete, or restore from trash."
@@ -142,6 +143,6 @@ export default async function AdminShopsPage({ searchParams }: PageProps) {
           )}
         </AdminTable>
       </AdminCard>
-    </div>
+    </AdminPageWrapper>
   );
 }

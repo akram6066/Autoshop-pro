@@ -1,4 +1,5 @@
 import { adminDb } from "@/lib/admin/db";
+import { AdminPageWrapper } from "@/app/admin/_components/AdminUI";
 import { AdminStatGrid, type StatCard } from "./_components/AdminStatGrid";
 import { AdminRecentLogsCard } from "./_components/AdminRecentLogsCard";
 
@@ -207,7 +208,7 @@ export default async function AdminDashboard() {
   ];
 
   return (
-    <div style={{ padding: "32px 36px", maxWidth: 1100 }}>
+    <AdminPageWrapper>
       <h1
         style={{
           fontSize: "1.5rem",
@@ -225,6 +226,6 @@ export default async function AdminDashboard() {
 
       <AdminStatGrid cards={cards} />
       <AdminRecentLogsCard logs={stats.recentLogs} />
-    </div>
+    </AdminPageWrapper>
   );
 }

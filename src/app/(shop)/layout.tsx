@@ -10,6 +10,7 @@ import { listenForCrossTabSync } from "@/lib/sync/queue";
 import { ShopHeader } from "@/components/shop/ShopHeader";
 import EmailConfirmBanner from "@/components/EmailConfirmBanner";
 import { PendingInviteBanner } from "@/components/shop/PendingInviteBanner";
+import { TrialBanner } from "@/components/TrialBanner";
 import { fetchAllProducts } from "@/lib/supabase/fetchAllProducts";
 import type { Profile, Room, ShopWithRole } from "@/types/app";
 
@@ -215,6 +216,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
       style={{ background: "var(--color-surface-1)" }}
     >
       <ShopHeader role={role} shopId={shopId} onSignOut={handleSignOut} />
+      <TrialBanner />
       <PendingInviteBanner />
       <EmailConfirmBanner />
 

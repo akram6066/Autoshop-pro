@@ -1,5 +1,8 @@
 import { adminDb } from "@/lib/admin/db";
-import { AdminPageHeader } from "@/app/admin/_components/AdminUI";
+import {
+  AdminPageHeader,
+  AdminPageWrapper,
+} from "@/app/admin/_components/AdminUI";
 import { SubStatusBadges } from "./_components/SubStatusBadges";
 import {
   PlanConfigSection,
@@ -55,7 +58,7 @@ export default async function AdminSubscriptionsPage() {
     }));
 
   return (
-    <div style={{ padding: "32px 36px", maxWidth: 1100 }}>
+    <AdminPageWrapper>
       <AdminPageHeader
         title="Subscriptions"
         description="Manage user plans, grant free access, and configure pricing."
@@ -68,6 +71,6 @@ export default async function AdminSubscriptionsPage() {
         emailMap={emailMap}
         paidPlans={paidPlans}
       />
-    </div>
+    </AdminPageWrapper>
   );
 }

@@ -3,6 +3,10 @@
     {
       "path": "/api/admin/run-downgrade",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/admin/trigger-trial-billing",
+      "schedule": "0 6 * * *"
     }
   ]
 }

@@ -1,6 +1,10 @@
 import { adminDb } from "@/lib/admin/db";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { AdminCard, AdminPagination } from "@/app/admin/_components/AdminUI";
+import {
+  AdminCard,
+  AdminPageWrapper,
+  AdminPagination,
+} from "@/app/admin/_components/AdminUI";
 import { UserSearchForm } from "./_components/UserSearchForm";
 import { UsersTable, type MergedUser } from "./_components/UsersTable";
 import { CreateAdminUserButton } from "./_components/CreateAdminUserButton";
@@ -73,7 +77,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
   const users = merged.slice((pageNum - 1) * PAGE_SIZE, pageNum * PAGE_SIZE);
 
   return (
-    <div style={{ padding: "32px 36px", maxWidth: 1100 }}>
+    <AdminPageWrapper>
       <div
         style={{
           display: "flex",
@@ -109,6 +113,6 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
         total={totalPages}
         hrefFn={(p) => `?q=${encodeURIComponent(q)}&page=${p}`}
       />
-    </div>
+    </AdminPageWrapper>
   );
 }
