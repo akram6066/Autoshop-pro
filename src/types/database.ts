@@ -628,6 +628,21 @@ export interface Database {
         Args: { p_payment: Json };
         Returns: string;
       };
+      get_product_analytics: {
+        Args: {
+          p_shop_id: string;
+          p_from: string;
+          p_to: string;
+          p_limit?: number;
+        };
+        Returns: {
+          product_id: string;
+          product_name: string;
+          category: string;
+          units_sold: number;
+          revenue: number;
+        }[];
+      };
       get_low_stock_products: {
         Args: { p_shop_id: string };
         Returns: {

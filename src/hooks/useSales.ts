@@ -90,6 +90,43 @@ export function useSalesSummary(
   });
 }
 
+// ─── Product Analytics ───────────────────────────────────────────────────────
+
+export interface ProductAnalyticsRow {
+  product_id: string;
+  product_name: string;
+  category: string;
+  units_sold: number;
+  revenue: number;
+}
+
+export function useProductAnalytics(
+  shopId: string | null,
+  from: string,
+  to: string,
+  limit = 10,
+) {
+  const supabase = createClient();
+
+  return useQuery({
+    queryKey: shopId
+      ? (["product-analytics", shopId, from, to, limit] as const)
+      : ["product-analytics-disabled"],
+    queryFn: async (): Promise<ProductAnalyticsRow[]> => {
+      const { data, error } = await supabase.rpc("get_product_analytics", {
+        p_shop_id: shopId!,
+        p_from: from,
+        p_to: to,
+        p_limit: limit,
+      });
+      if (error) throw error;
+      return (data ?? []) as ProductAnalyticsRow[];
+    },
+    enabled: !!shopId,
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
 // ─── Record Sale Mutation ─────────────────────────────────────────────────────
 
 interface RecordSaleInput {

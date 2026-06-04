@@ -8,6 +8,9 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { escapeCsvField } from "@/lib/sanitize";
 import { BarChart } from "./_components/BarChart";
 import { DateRangeFilter, type Range } from "./_components/DateRangeFilter";
+import { ProductAnalytics } from "./_components/ProductAnalytics";
+
+type Tab = "sales" | "products";
 
 function toISO(d: Date) {
   return d.toISOString().split("T")[0];
@@ -27,6 +30,7 @@ export default function ReportsPage() {
   const router = useRouter();
   const shopId = useAuthStore(selectShopId);
   const planName = useAuthStore(selectPlanName);
+  const [tab, setTab] = useState<Tab>("sales");
   const [range, setRange] = useState<Range>("30d");
   const [customFrom, setCustomFrom] = useState(() =>
     toISO(new Date(Date.now() - 7 * 86400000)),
@@ -105,7 +109,8 @@ export default function ReportsPage() {
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-8">
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between mb-6">
         <div>
           <h1
             className="text-2xl font-semibold mb-1"
@@ -114,26 +119,69 @@ export default function ReportsPage() {
             Reports
           </h1>
           <p className="text-sm" style={{ color: "var(--color-ink-tertiary)" }}>
-            Sales performance over time
+            {tab === "sales"
+              ? "Sales performance over time"
+              : "Top products and category breakdown"}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={exportCSV}
-          className="btn btn-secondary btn-sm"
-          disabled={summary.length === 0}
-        >
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
-            <path
-              d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Export CSV
-        </button>
+        {tab === "sales" && (
+          <button
+            type="button"
+            onClick={exportCSV}
+            className="btn btn-secondary btn-sm"
+            disabled={summary.length === 0}
+          >
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+              <path
+                d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Export CSV
+          </button>
+        )}
+      </div>
+
+      {/* ── Tabs ───────────────────────────────────────────────────────── */}
+      <div
+        style={{
+          display: "flex",
+          gap: 4,
+          marginBottom: 20,
+          background: "var(--color-surface-1)",
+          border: "1px solid var(--color-border)",
+          borderRadius: 10,
+          padding: 4,
+          width: "fit-content",
+        }}
+      >
+        {(["sales", "products"] as Tab[]).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            style={{
+              padding: "6px 16px",
+              borderRadius: 7,
+              border: "none",
+              cursor: "pointer",
+              fontSize: "0.875rem",
+              fontWeight: 500,
+              transition: "all 0.15s",
+              background: tab === t ? "var(--color-surface-0)" : "transparent",
+              color:
+                tab === t
+                  ? "var(--color-ink-primary)"
+                  : "var(--color-ink-tertiary)",
+              boxShadow: tab === t ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+            }}
+          >
+            {t === "sales" ? "Sales" : "Products"}
+          </button>
+        ))}
       </div>
 
       <DateRangeFilter
@@ -145,6 +193,7 @@ export default function ReportsPage() {
         onToChange={setCustomTo}
       />
 
+      {/* ── KPI cards (always visible) ─────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger">
         {kpis.map((kpi) => (
           <div key={kpi.label} className="card p-4 animate-fade-in-up">
@@ -164,81 +213,91 @@ export default function ReportsPage() {
         ))}
       </div>
 
-      <div
-        className="card p-5 mb-8 animate-fade-in-up"
-        style={{ animationDelay: "200ms" }}
-      >
-        <h2
-          className="font-medium text-sm mb-4"
-          style={{ color: "var(--color-ink-secondary)" }}
-        >
-          Daily revenue
-        </h2>
-        {isLoading ? (
+      {/* ── Sales tab ──────────────────────────────────────────────────── */}
+      {tab === "sales" && (
+        <>
           <div
-            className="h-40 rounded-lg animate-pulse-soft"
-            style={{ background: "var(--color-surface-2)" }}
-          />
-        ) : isError ? (
-          <div className="h-40 flex items-center justify-center">
-            <p className="text-sm" style={{ color: "var(--color-danger)" }}>
-              Could not load sales data. Please try again.
-            </p>
-          </div>
-        ) : summary.length === 0 ? (
-          <div className="h-40 flex items-center justify-center">
-            <p
-              className="text-sm"
-              style={{ color: "var(--color-ink-tertiary)" }}
+            className="card p-5 mb-8 animate-fade-in-up"
+            style={{ animationDelay: "200ms" }}
+          >
+            <h2
+              className="font-medium text-sm mb-4"
+              style={{ color: "var(--color-ink-secondary)" }}
             >
-              No sales data for this period
-            </p>
+              Daily revenue
+            </h2>
+            {isLoading ? (
+              <div
+                className="h-40 rounded-lg animate-pulse-soft"
+                style={{ background: "var(--color-surface-2)" }}
+              />
+            ) : isError ? (
+              <div className="h-40 flex items-center justify-center">
+                <p className="text-sm" style={{ color: "var(--color-danger)" }}>
+                  Could not load sales data. Please try again.
+                </p>
+              </div>
+            ) : summary.length === 0 ? (
+              <div className="h-40 flex items-center justify-center">
+                <p
+                  className="text-sm"
+                  style={{ color: "var(--color-ink-tertiary)" }}
+                >
+                  No sales data for this period
+                </p>
+              </div>
+            ) : (
+              <BarChart data={summary} />
+            )}
           </div>
-        ) : (
-          <BarChart data={summary} />
-        )}
-      </div>
 
-      {!isLoading && summary.length > 0 && (
-        <div
-          className="card animate-fade-in-up"
-          style={{ animationDelay: "300ms" }}
-        >
-          <table className="table-auto-shop">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th style={{ textAlign: "right" }}>Orders</th>
-                <th style={{ textAlign: "right" }}>Revenue</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...summary].reverse().map((row) => (
-                <tr key={row.date}>
-                  <td
-                    style={{
-                      color: "var(--color-ink-secondary)",
-                      fontSize: 13,
-                    }}
-                  >
-                    {formatDate(row.date)}
-                  </td>
-                  <td
-                    style={{
-                      textAlign: "right",
-                      color: "var(--color-ink-tertiary)",
-                    }}
-                  >
-                    {row.order_count}
-                  </td>
-                  <td style={{ textAlign: "right", fontWeight: 500 }}>
-                    {formatCurrency(row.total_revenue)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          {!isLoading && summary.length > 0 && (
+            <div
+              className="card animate-fade-in-up"
+              style={{ animationDelay: "300ms" }}
+            >
+              <table className="table-auto-shop">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th style={{ textAlign: "right" }}>Orders</th>
+                    <th style={{ textAlign: "right" }}>Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...summary].reverse().map((row) => (
+                    <tr key={row.date}>
+                      <td
+                        style={{
+                          color: "var(--color-ink-secondary)",
+                          fontSize: 13,
+                        }}
+                      >
+                        {formatDate(row.date)}
+                      </td>
+                      <td
+                        style={{
+                          textAlign: "right",
+                          color: "var(--color-ink-tertiary)",
+                        }}
+                      >
+                        {row.order_count}
+                      </td>
+                      <td style={{ textAlign: "right", fontWeight: 500 }}>
+                        {formatCurrency(row.total_revenue)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Products tab ───────────────────────────────────────────────── */}
+      {tab === "products" && shopId && (
+        <ProductAnalytics shopId={shopId} from={from} to={to} />
       )}
     </div>
   );
