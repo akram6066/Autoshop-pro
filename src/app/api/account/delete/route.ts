@@ -22,7 +22,7 @@ export const DELETE = withAuth(async (request: NextRequest, { user }) => {
 
     const limited = await enforceRateLimit(
       request,
-      { name: "account-delete", limit: 3, windowSec: 3600 },
+      { name: "account-delete", limit: 3, windowSec: 3600, failSecure: true },
       user.id,
     );
     if (limited) return limited;
@@ -43,6 +43,39 @@ export const DELETE = withAuth(async (request: NextRequest, { user }) => {
       serviceKey,
       { auth: { autoRefreshToken: false, persistSession: false } },
     );
+
+    // Soft-delete every shop this user owns before removing their auth record.
+    // Without this, cascade-deleting shop_members leaves shops ownerless.
+    const { data: ownedMemberships } = await admin
+      .from("shop_members")
+      .select("shop_id")
+      .eq("user_id", user.id)
+      .eq("role", "owner");
+
+    if (ownedMemberships && ownedMemberships.length > 0) {
+      const shopIds = ownedMemberships.map(
+        (m: { shop_id: string }) => m.shop_id,
+      );
+      const { error: shopDeleteError } = await admin
+        .from("shops")
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: user.id,
+        })
+        .in("id", shopIds)
+        .is("deleted_at", null);
+
+      if (shopDeleteError) {
+        console.error(
+          "[account/delete] shop soft-delete failed:",
+          shopDeleteError,
+        );
+        return NextResponse.json(
+          { error: "Failed to clean up your shops. Please try again." },
+          { status: 500 },
+        );
+      }
+    }
 
     const { error } = await admin.auth.admin.deleteUser(user.id);
     if (error) {

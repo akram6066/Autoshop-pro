@@ -126,6 +126,11 @@ const PLAN_ACCENT: Record<
     bg: "var(--color-success-light)",
     label: "Free (Admin)",
   },
+  cancelled: {
+    color: "var(--color-ink-secondary)",
+    bg: "var(--color-surface-2)",
+    label: "Cancelled",
+  },
   expired: {
     color: "var(--color-danger)",
     bg: "var(--color-danger-light)",
@@ -146,7 +151,9 @@ export function BillingStatusCard({
     ? "expired"
     : sub.is_admin_override
       ? "free_forever"
-      : sub.plan.name;
+      : sub.status === "cancelled"
+        ? "cancelled"
+        : sub.plan.name;
   const accent = PLAN_ACCENT[planKey] ?? PLAN_ACCENT.trial;
 
   const isOnTrial =
@@ -306,7 +313,13 @@ export function BillingStatusCard({
       </p>
 
       {/* Usage grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+          gap: 10,
+        }}
+      >
         <MetricCard
           label="Shops"
           current={usage.shops.current}

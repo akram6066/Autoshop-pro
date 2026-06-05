@@ -115,132 +115,136 @@ export default function AccountPage() {
 
   return (
     <>
-      {/* ── Profile ─────────────────────────────────────────────────────── */}
-      <Section title="Profile">
-        <form onSubmit={handleProfileSave} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1.5">
-              Full name
-            </label>
-            <input
-              className="input"
-              value={fullName}
-              onChange={(e) => {
-                setFullName(e.target.value);
-                setProfileMsg(null);
-              }}
-              placeholder="Your full name"
-              maxLength={100}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1.5">Email</label>
-            <input
-              className="input"
-              value={user?.email ?? ""}
-              disabled
-              style={{ opacity: 0.55, cursor: "not-allowed" }}
-            />
-            <p
-              className="text-xs mt-1.5"
-              style={{ color: "var(--color-ink-tertiary)" }}
-            >
-              Email address cannot be changed.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              className="btn btn-primary btn-sm"
-              disabled={profileSaving || !fullName.trim()}
-            >
-              {profileSaving ? "Saving…" : "Save changes"}
-            </button>
-            {profileMsg && (
-              <span
+      {/* ── Profile + Security side-by-side on large screens ──────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* ── Profile ─────────────────────────────────────────────────────── */}
+        <Section title="Profile">
+          <form onSubmit={handleProfileSave} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1.5">
+                Full name
+              </label>
+              <input
+                className="input"
+                value={fullName}
+                onChange={(e) => {
+                  setFullName(e.target.value);
+                  setProfileMsg(null);
+                }}
+                placeholder="Your full name"
+                maxLength={100}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Email</label>
+              <input
+                className="input"
+                value={user?.email ?? ""}
+                disabled
+                style={{ opacity: 0.55, cursor: "not-allowed" }}
+              />
+              <p
+                className="text-xs mt-1.5"
+                style={{ color: "var(--color-ink-tertiary)" }}
+              >
+                Email address cannot be changed.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="submit"
+                className="btn btn-primary btn-sm"
+                disabled={profileSaving || !fullName.trim()}
+              >
+                {profileSaving ? "Saving…" : "Save changes"}
+              </button>
+              {profileMsg && (
+                <span
+                  className="text-sm"
+                  style={{
+                    color: profileMsg.ok
+                      ? "var(--color-success)"
+                      : "var(--color-danger)",
+                  }}
+                >
+                  {profileMsg.text}
+                </span>
+              )}
+            </div>
+          </form>
+        </Section>
+
+        {/* ── Security ────────────────────────────────────────────────────── */}
+        <Section title="Security">
+          <p
+            className="text-sm mb-4"
+            style={{ color: "var(--color-ink-tertiary)" }}
+          >
+            Change your login password. Choose something strong with at least 8
+            characters.
+          </p>
+          <form onSubmit={handlePasswordChange} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1.5">
+                New password
+              </label>
+              <input
+                className="input"
+                type="password"
+                placeholder="Min. 8 characters"
+                value={newPassword}
+                onChange={(e) => {
+                  setNewPassword(e.target.value);
+                  setPasswordMsg(null);
+                }}
+                minLength={8}
+                autoComplete="new-password"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">
+                Confirm new password
+              </label>
+              <input
+                className="input"
+                type="password"
+                placeholder="Repeat the new password"
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  setPasswordMsg(null);
+                }}
+                autoComplete="new-password"
+              />
+            </div>
+
+            {passwordMsg && (
+              <p
                 className="text-sm"
                 style={{
-                  color: profileMsg.ok
+                  color: passwordMsg.ok
                     ? "var(--color-success)"
                     : "var(--color-danger)",
                 }}
               >
-                {profileMsg.text}
-              </span>
+                {passwordMsg.text}
+              </p>
             )}
-          </div>
-        </form>
-      </Section>
 
-      {/* ── Security ────────────────────────────────────────────────────── */}
-      <Section title="Security">
-        <p
-          className="text-sm mb-4"
-          style={{ color: "var(--color-ink-tertiary)" }}
-        >
-          Change your login password. Choose something strong with at least 8
-          characters.
-        </p>
-        <form onSubmit={handlePasswordChange} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1.5">
-              New password
-            </label>
-            <input
-              className="input"
-              type="password"
-              placeholder="Min. 8 characters"
-              value={newPassword}
-              onChange={(e) => {
-                setNewPassword(e.target.value);
-                setPasswordMsg(null);
-              }}
-              minLength={8}
-              autoComplete="new-password"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1.5">
-              Confirm new password
-            </label>
-            <input
-              className="input"
-              type="password"
-              placeholder="Repeat the new password"
-              value={confirmPassword}
-              onChange={(e) => {
-                setConfirmPassword(e.target.value);
-                setPasswordMsg(null);
-              }}
-              autoComplete="new-password"
-            />
-          </div>
-
-          {passwordMsg && (
-            <p
-              className="text-sm"
-              style={{
-                color: passwordMsg.ok
-                  ? "var(--color-success)"
-                  : "var(--color-danger)",
-              }}
+            <button
+              type="submit"
+              className="btn btn-primary btn-sm"
+              disabled={passwordSaving || !newPassword || !confirmPassword}
             >
-              {passwordMsg.text}
-            </p>
-          )}
+              {passwordSaving ? "Updating…" : "Update password"}
+            </button>
+          </form>
+        </Section>
+      </div>
+      {/* end 2-col grid */}
 
-          <button
-            type="submit"
-            className="btn btn-primary btn-sm"
-            disabled={passwordSaving || !newPassword || !confirmPassword}
-          >
-            {passwordSaving ? "Updating…" : "Update password"}
-          </button>
-        </form>
-      </Section>
-
-      {/* ── Danger zone ─────────────────────────────────────────────────── */}
+      {/* ── Danger zone — full width ─────────────────────────────────── */}
       <Section title="Danger zone" danger>
         <p
           className="text-sm mb-4"

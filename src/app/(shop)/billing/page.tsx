@@ -102,9 +102,9 @@ export default async function BillingPage({
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full">
       {/* Page header */}
-      <div style={{ marginBottom: 32 }}>
+      <div style={{ marginBottom: 28 }}>
         <h1
           style={{
             fontSize: "1.625rem",
@@ -123,60 +123,78 @@ export default async function BillingPage({
         </p>
       </div>
 
-      {/* Current plan + usage */}
-      <BillingStatusCard sub={sub} usage={usage} />
+      {/* Two-column layout on large screens */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr",
+          gap: 24,
+        }}
+        className="billing-grid"
+      >
+        {/* Left: current status */}
+        <div>
+          <BillingStatusCard sub={sub} usage={usage} />
+          {sub.is_admin_override && <AdminOverrideBanner />}
+        </div>
 
-      {/* Admin override — no payment needed */}
-      {sub.is_admin_override && <AdminOverrideBanner />}
-
-      {/* Upgrade section — only when payment is allowed */}
-      {canPay && (
-        <div style={{ marginTop: 8 }}>
-          {/* Section heading */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              marginBottom: 16,
-            }}
-          >
+        {/* Right: plan selector */}
+        {canPay && (
+          <div>
             <div
               style={{
-                flex: 1,
-                height: 1,
-                background: "var(--color-border-subtle)",
-              }}
-            />
-            <p
-              style={{
-                fontSize: "0.75rem",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: "var(--color-ink-ghost)",
-                whiteSpace: "nowrap",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 16,
               }}
             >
-              {isPro ? "Renew or change plan" : "Choose a plan"}
-            </p>
-            <div
-              style={{
-                flex: 1,
-                height: 1,
-                background: "var(--color-border-subtle)",
-              }}
+              <div
+                style={{
+                  flex: 1,
+                  height: 1,
+                  background: "var(--color-border-subtle)",
+                }}
+              />
+              <p
+                style={{
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: "var(--color-ink-ghost)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {isPro ? "Renew or change plan" : "Choose a plan"}
+              </p>
+              <div
+                style={{
+                  flex: 1,
+                  height: 1,
+                  background: "var(--color-border-subtle)",
+                }}
+              />
+            </div>
+
+            <PlanSelector
+              plans={paidPlans}
+              isPro={isPro}
+              sub={sub}
+              initialPlan={validatedPlanParam}
             />
           </div>
+        )}
+      </div>
 
-          <PlanSelector
-            plans={paidPlans}
-            isPro={isPro}
-            sub={sub}
-            initialPlan={validatedPlanParam}
-          />
-        </div>
-      )}
+      <style>{`
+        @media (min-width: 1024px) {
+          .billing-grid {
+            grid-template-columns: 1fr 1fr;
+            align-items: start;
+          }
+        }
+      `}</style>
     </div>
   );
 }

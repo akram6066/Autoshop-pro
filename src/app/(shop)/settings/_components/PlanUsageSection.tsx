@@ -204,26 +204,28 @@ export function PlanUsageSection({
             >
               Usage — active shop
             </p>
-            <SettingsUsageBar
-              label="Shops owned"
-              current={ownedShopCount}
-              max={sub.plan.maxShops}
-            />
-            <SettingsUsageBar
-              label="Products"
-              current={products ?? 0}
-              max={sub.plan.maxProductsPerShop}
-            />
-            <SettingsUsageBar
-              label="Staff members"
-              current={staff ?? 0}
-              max={sub.plan.maxStaffPerShop}
-            />
-            <SettingsUsageBar
-              label="Sales this month"
-              current={sales ?? 0}
-              max={sub.plan.maxSalesPerMonth}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-8">
+              <SettingsUsageBar
+                label="Shops owned"
+                current={ownedShopCount}
+                max={sub.plan.maxShops}
+              />
+              <SettingsUsageBar
+                label="Products"
+                current={products ?? 0}
+                max={sub.plan.maxProductsPerShop}
+              />
+              <SettingsUsageBar
+                label="Staff members"
+                current={staff ?? 0}
+                max={sub.plan.maxStaffPerShop}
+              />
+              <SettingsUsageBar
+                label="Sales this month"
+                current={sales ?? 0}
+                max={sub.plan.maxSalesPerMonth}
+              />
+            </div>
 
             {(() => {
               const limitItems: LimitItem[] = [

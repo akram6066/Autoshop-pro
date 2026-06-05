@@ -309,10 +309,9 @@ export function SettingsSidebar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const activeItem = ALL_ITEMS.find((item) => pathname === item.href);
-  const avatarLetter =
-    profile?.full_name?.charAt(0)?.toUpperCase() ??
-    user?.email?.charAt(0)?.toUpperCase() ??
-    "?";
+  // Use || (not ??) so empty-string full_name falls through to email fallback
+  const displayName = profile?.full_name?.trim() || user?.email || "";
+  const avatarLetter = displayName.charAt(0).toUpperCase() || "?";
 
   // Body scroll lock when drawer open
   useEffect(() => {
@@ -404,7 +403,7 @@ export function SettingsSidebar() {
                 className="text-sm font-semibold truncate"
                 style={{ color: "var(--color-ink-primary)" }}
               >
-                {profile?.full_name ?? "Settings"}
+                {displayName || "Settings"}
               </p>
               <p
                 className="text-xs truncate"
@@ -482,7 +481,7 @@ export function SettingsSidebar() {
                 className="text-sm font-semibold truncate"
                 style={{ color: "var(--color-ink-primary)" }}
               >
-                {profile?.full_name ?? "—"}
+                {displayName || "—"}
               </p>
               <p
                 className="text-xs truncate mt-0.5"

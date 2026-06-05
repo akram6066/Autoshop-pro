@@ -96,40 +96,42 @@ export function MyShopsSection({ sub }: { sub: SubInfo | null }) {
         </div>
       ) : (
         <div>
-          {ownerShops.map((s) => (
-            <div
-              key={s.id}
-              className="flex items-center justify-between py-3"
-              style={{ borderBottom: "1px solid var(--color-border-subtle)" }}
-            >
-              <div>
-                <p
-                  className="text-sm font-medium"
-                  style={{ color: "var(--color-ink-primary)" }}
-                >
-                  {s.name}
-                </p>
-                {s.address && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8">
+            {ownerShops.map((s) => (
+              <div
+                key={s.id}
+                className="flex items-center justify-between py-3"
+                style={{ borderBottom: "1px solid var(--color-border-subtle)" }}
+              >
+                <div>
                   <p
-                    className="text-xs mt-0.5"
-                    style={{ color: "var(--color-ink-tertiary)" }}
+                    className="text-sm font-medium"
+                    style={{ color: "var(--color-ink-primary)" }}
                   >
-                    {s.address}
+                    {s.name}
                   </p>
+                  {s.address && (
+                    <p
+                      className="text-xs mt-0.5"
+                      style={{ color: "var(--color-ink-tertiary)" }}
+                    >
+                      {s.address}
+                    </p>
+                  )}
+                </div>
+                {s.id === shop?.id ? (
+                  <span className="badge badge-info">Active</span>
+                ) : (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => switchShopFn(s)}
+                  >
+                    Switch
+                  </button>
                 )}
               </div>
-              {s.id === shop?.id ? (
-                <span className="badge badge-info">Active</span>
-              ) : (
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => switchShopFn(s)}
-                >
-                  Switch
-                </button>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 

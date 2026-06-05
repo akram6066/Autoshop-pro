@@ -25,7 +25,7 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
 
       {/* Content — lg:pl-72 (288px) reserves space for the fixed sidebar */}
       <div className="lg:pl-72">
-        <main className="w-full max-w-2xl">{children}</main>
+        <main className="w-full">{children}</main>
       </div>
     </OwnerGuard>
   );

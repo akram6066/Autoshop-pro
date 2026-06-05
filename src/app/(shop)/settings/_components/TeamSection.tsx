@@ -1,7 +1,12 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { useAuthStore, selectShopId } from "@/stores/authStore";
+import {
+  useAuthStore,
+  selectShopId,
+  selectUser,
+  selectProfile,
+} from "@/stores/authStore";
 import {
   useTeam,
   useAddStaff,
@@ -18,6 +23,8 @@ import { friendlyError } from "@/lib/api/errors";
 
 export function TeamSection({ maxStaff }: { maxStaff: number }) {
   const shopId = useAuthStore(selectShopId);
+  const currentUser = useAuthStore(selectUser);
+  const currentProfile = useAuthStore(selectProfile);
   const {
     data: teamMembers = [],
     isError: teamError,
@@ -134,45 +141,72 @@ export function TeamSection({ maxStaff }: { maxStaff: number }) {
           />
         </div>
       ) : (
-        <div className="mb-5">
-          {teamMembers.map((member) => (
-            <div
-              key={member.user_id}
-              className="flex items-center justify-between py-3"
-              style={{ borderBottom: "1px solid var(--color-border-subtle)" }}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium"
-                  style={{
-                    background: "var(--color-brand-100)",
-                    color: "var(--color-brand-700)",
-                  }}
-                >
-                  {member.full_name?.charAt(0)?.toUpperCase() || "?"}
-                </div>
-                <div>
-                  <p className="text-sm font-medium">
-                    {member.full_name || "—"}
-                  </p>
-                  <span
-                    className={`badge ${member.role === "owner" ? "badge-info" : "badge-neutral"} mt-0.5`}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 mb-5">
+          {teamMembers.map((member) => {
+            const isCurrentUser = member.user_id === currentUser?.id;
+            // Owner row: full_name from RPC may be empty — fall back to store profile
+            // then email so the row never shows "?" or "—"
+            const resolvedName =
+              member.full_name?.trim() ||
+              (isCurrentUser
+                ? currentProfile?.full_name?.trim() || currentUser?.email
+                : null) ||
+              "Unknown";
+            const avatarLetter = resolvedName.charAt(0).toUpperCase();
+
+            return (
+              <div
+                key={member.user_id}
+                className="flex items-center justify-between py-3"
+                style={{ borderBottom: "1px solid var(--color-border-subtle)" }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0"
+                    style={{
+                      background:
+                        member.role === "owner"
+                          ? "var(--color-brand-100)"
+                          : "var(--color-surface-2)",
+                      color:
+                        member.role === "owner"
+                          ? "var(--color-brand-700)"
+                          : "var(--color-ink-secondary)",
+                    }}
                   >
-                    {member.role}
-                  </span>
+                    {avatarLetter}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {resolvedName}
+                      {isCurrentUser && (
+                        <span
+                          className="ml-1.5 text-xs font-normal"
+                          style={{ color: "var(--color-ink-tertiary)" }}
+                        >
+                          (you)
+                        </span>
+                      )}
+                    </p>
+                    <span
+                      className={`badge ${member.role === "owner" ? "badge-info" : "badge-neutral"} mt-0.5`}
+                    >
+                      {member.role}
+                    </span>
+                  </div>
                 </div>
+                {member.role !== "owner" && (
+                  <button
+                    type="button"
+                    onClick={() => setManagingMember(member)}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    Manage
+                  </button>
+                )}
               </div>
-              {member.role !== "owner" && (
-                <button
-                  type="button"
-                  onClick={() => setManagingMember(member)}
-                  className="btn btn-secondary btn-sm"
-                >
-                  Manage
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -183,7 +217,7 @@ export function TeamSection({ maxStaff }: { maxStaff: number }) {
           setManagingMember(null);
           setShowDeleteConfirm(false);
         }}
-        title={`Manage ${managingMember?.full_name}`}
+        title={`Manage ${managingMember?.full_name?.trim() || "staff member"}`}
       >
         {managingMember && (
           <div className="space-y-6">
@@ -357,59 +391,61 @@ export function TeamSection({ maxStaff }: { maxStaff: number }) {
               </div>
             )}
             <p className="text-sm font-medium mb-3">Create staff account</p>
-            <form onSubmit={handleAdd} className="space-y-3">
-              <div>
-                <label
-                  className="block text-xs font-medium mb-1"
-                  style={{ color: "var(--color-ink-secondary)" }}
-                >
-                  Full name
-                </label>
-                <input
-                  className="input"
-                  type="text"
-                  placeholder="e.g. John Kamau"
-                  value={staffName}
-                  onChange={(e) => setStaffName(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label
-                  className="block text-xs font-medium mb-1"
-                  style={{ color: "var(--color-ink-secondary)" }}
-                >
-                  Email
-                </label>
-                <input
-                  className="input"
-                  type="email"
-                  placeholder="staff@email.com"
-                  value={staffEmail}
-                  onChange={(e) => setStaffEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label
-                  className="block text-xs font-medium mb-1"
-                  style={{ color: "var(--color-ink-secondary)" }}
-                >
-                  Password
-                </label>
-                <input
-                  className="input"
-                  type="password"
-                  placeholder="Min. 8 characters"
-                  value={staffPassword}
-                  onChange={(e) => setStaffPassword(e.target.value)}
-                  minLength={8}
-                  required
-                />
+            <form onSubmit={handleAdd}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                <div>
+                  <label
+                    className="block text-xs font-medium mb-1"
+                    style={{ color: "var(--color-ink-secondary)" }}
+                  >
+                    Full name
+                  </label>
+                  <input
+                    className="input"
+                    type="text"
+                    placeholder="e.g. John Kamau"
+                    value={staffName}
+                    onChange={(e) => setStaffName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label
+                    className="block text-xs font-medium mb-1"
+                    style={{ color: "var(--color-ink-secondary)" }}
+                  >
+                    Email
+                  </label>
+                  <input
+                    className="input"
+                    type="email"
+                    placeholder="staff@email.com"
+                    value={staffEmail}
+                    onChange={(e) => setStaffEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label
+                    className="block text-xs font-medium mb-1"
+                    style={{ color: "var(--color-ink-secondary)" }}
+                  >
+                    Password
+                  </label>
+                  <input
+                    className="input"
+                    type="password"
+                    placeholder="Min. 8 characters"
+                    value={staffPassword}
+                    onChange={(e) => setStaffPassword(e.target.value)}
+                    minLength={8}
+                    required
+                  />
+                </div>
               </div>
               <button
                 type="submit"
-                className="btn btn-primary w-full"
+                className="btn btn-primary"
                 disabled={
                   !staffEmail.trim() ||
                   staffPassword.length < 8 ||

@@ -84,7 +84,7 @@ export function CategoriesSection() {
         identification.
       </p>
       {categories.length > 0 && (
-        <div className="mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-6 mb-4">
           {categories.map((cat) => (
             <div
               key={cat.id}

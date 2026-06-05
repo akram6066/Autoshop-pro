@@ -1,20 +1,315 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { BillingPlan } from "@/lib/plans";
 import type { SubscriptionInfo } from "@/lib/subscription";
+import { isActive, daysLeft } from "@/lib/subscription";
 import { SubscribeForm } from "./SubscribeForm";
 
-const PLAN_CONFIG: Record<string, { accent: string; accentBg: string }> = {
+// ── Colours per plan ──────────────────────────────────────────────────────────
+
+const PLAN_CONFIG: Record<
+  string,
+  {
+    accent: string;
+    accentBg: string;
+    accentBorder: string;
+    gradient: string;
+  }
+> = {
   pro: {
     accent: "var(--color-badge-blue-text)",
     accentBg: "var(--color-badge-blue-bg)",
+    accentBorder: "var(--color-badge-blue-text)",
+    gradient: "linear-gradient(135deg, #1d4ed8 0%, #3b6ef5 100%)",
   },
   ultra_pro: {
     accent: "var(--color-badge-purple-text)",
     accentBg: "var(--color-badge-purple-bg)",
+    accentBorder: "var(--color-badge-purple-text)",
+    gradient: "linear-gradient(135deg, #3b6ef5 0%, #6d28d9 100%)",
   },
 };
+
+// ── Check icon ────────────────────────────────────────────────────────────────
+
+function Check() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      fill="none"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      style={{ flexShrink: 0, color: "var(--color-success)" }}
+    >
+      <path
+        d="M20 6L9 17l-5-5"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+// ── Features panel (shown when a plan is selected) ────────────────────────────
+
+function FeaturesPanel({ plan }: { plan: BillingPlan }) {
+  const cfg = PLAN_CONFIG[plan.key] ?? PLAN_CONFIG.pro;
+  return (
+    <div
+      style={{
+        borderRadius: 12,
+        background: cfg.accentBg,
+        border: `1px solid ${cfg.accentBorder}22`,
+        padding: "18px 20px",
+        marginBottom: 12,
+      }}
+    >
+      <p
+        style={{
+          fontSize: "0.6875rem",
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "0.1em",
+          color: cfg.accent,
+          marginBottom: 12,
+        }}
+      >
+        What&apos;s included in {plan.displayName}
+      </p>
+      <ul
+        style={{
+          listStyle: "none",
+          padding: 0,
+          margin: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 9,
+        }}
+      >
+        {plan.features.map((f) => (
+          <li key={f} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <Check />
+            <span
+              style={{
+                fontSize: "0.875rem",
+                color: "var(--color-ink-secondary)",
+              }}
+            >
+              {f}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ── Cancel section ────────────────────────────────────────────────────────────
+
+function CancelSection({ sub }: { sub: SubscriptionInfo }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  const endDate = sub.current_period_end
+    ? new Date(sub.current_period_end).toLocaleDateString("en-KE", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
+
+  if (done) {
+    return (
+      <div
+        style={{
+          padding: "16px 18px",
+          borderRadius: 10,
+          background: "var(--color-surface-1)",
+          border: "1px solid var(--color-border-subtle)",
+          textAlign: "center",
+        }}
+      >
+        <p
+          style={{
+            fontSize: "0.875rem",
+            color: "var(--color-ink-secondary)",
+            fontWeight: 500,
+          }}
+        >
+          Subscription cancelled.
+        </p>
+        {endDate && (
+          <p
+            style={{
+              fontSize: "0.8125rem",
+              color: "var(--color-ink-tertiary)",
+              marginTop: 4,
+            }}
+          >
+            You have full access until <strong>{endDate}</strong>.
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          style={{ marginTop: 12 }}
+          onClick={() => router.refresh()}
+        >
+          Refresh page
+        </button>
+      </div>
+    );
+  }
+
+  async function handleCancel() {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/subscription/cancel", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Failed to cancel.");
+        return;
+      }
+      setDone(true);
+      setOpen(false);
+    } catch {
+      setError("Network error. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div
+      style={{
+        marginTop: 24,
+        paddingTop: 20,
+        borderTop: "1px solid var(--color-border-subtle)",
+      }}
+    >
+      <p
+        style={{
+          fontSize: "0.8125rem",
+          fontWeight: 600,
+          color: "var(--color-ink-secondary)",
+          marginBottom: 4,
+        }}
+      >
+        Manage subscription
+      </p>
+      {endDate && (
+        <p
+          style={{
+            fontSize: "0.8125rem",
+            color: "var(--color-ink-tertiary)",
+            marginBottom: 10,
+          }}
+        >
+          Your plan renews or ends on <strong>{endDate}</strong>.
+        </p>
+      )}
+
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          style={{
+            background: "none",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            fontSize: "0.8125rem",
+            color: "var(--color-danger)",
+            textDecoration: "underline",
+            textUnderlineOffset: 2,
+          }}
+        >
+          Cancel subscription
+        </button>
+      ) : (
+        <div
+          style={{
+            padding: "16px 18px",
+            borderRadius: 10,
+            background: "var(--color-danger-light)",
+            border: "1px solid var(--color-danger)",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "0.875rem",
+              color: "var(--color-ink-primary)",
+              fontWeight: 600,
+              marginBottom: 6,
+            }}
+          >
+            Cancel your subscription?
+          </p>
+          <p
+            style={{
+              fontSize: "0.8125rem",
+              color: "var(--color-ink-secondary)",
+              marginBottom: 14,
+              lineHeight: 1.55,
+            }}
+          >
+            You keep full access until {endDate ?? "your plan ends"}. After that
+            your account switches to the free tier automatically. This cannot be
+            undone.
+          </p>
+          {error && (
+            <p
+              style={{
+                fontSize: "0.8125rem",
+                color: "var(--color-danger)",
+                marginBottom: 10,
+              }}
+            >
+              {error}
+            </p>
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={loading}
+              className="btn btn-sm"
+              style={{
+                background: "var(--color-danger)",
+                color: "#fff",
+                opacity: loading ? 0.7 : 1,
+              }}
+            >
+              {loading ? "Cancelling…" : "Yes, cancel"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                setError("");
+              }}
+              disabled={loading}
+              className="btn btn-secondary btn-sm"
+            >
+              Keep subscription
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── PlanSelector ──────────────────────────────────────────────────────────────
 
 export function PlanSelector({
   plans,
@@ -25,7 +320,6 @@ export function PlanSelector({
   plans: BillingPlan[];
   isPro: boolean;
   sub: SubscriptionInfo;
-  /** Pre-selects a plan when navigating from ?plan=xxx links (e.g. dashboard upgrade CTAs). */
   initialPlan?: string;
 }) {
   const [selectedKey, setSelectedKey] = useState<string | null>(
@@ -33,26 +327,36 @@ export function PlanSelector({
   );
   const selectedPlan = plans.find((p) => p.key === selectedKey) ?? null;
 
+  const active = isActive(sub);
+  const days = daysLeft(sub);
+  const canCancel =
+    active &&
+    !sub.is_admin_override &&
+    (sub.status === "active" || sub.status === "trial") &&
+    sub.plan.price_kes > 0;
+
   return (
     <div>
-      {/* Plan cards */}
+      {/* ── Plan radio cards ── */}
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           gap: 10,
-          marginBottom: 16,
+          marginBottom: 14,
         }}
       >
         {plans.map((plan) => {
           const selected = plan.key === selectedKey;
           const cfg = PLAN_CONFIG[plan.key] ?? PLAN_CONFIG.pro;
+          const isCurrent = sub.plan.name === plan.key && active;
 
           return (
             <button
               key={plan.key}
               type="button"
               onClick={() => setSelectedKey(selected ? null : plan.key)}
+              aria-pressed={selected}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -103,6 +407,20 @@ export function PlanSelector({
                   >
                     {plan.displayName}
                   </span>
+                  {isCurrent && (
+                    <span
+                      style={{
+                        fontSize: "0.6875rem",
+                        fontWeight: 700,
+                        padding: "2px 7px",
+                        borderRadius: 999,
+                        background: cfg.accentBg,
+                        color: cfg.accent,
+                      }}
+                    >
+                      Current
+                    </span>
+                  )}
                   {plan.badge && (
                     <span
                       style={{
@@ -112,7 +430,6 @@ export function PlanSelector({
                         borderRadius: 999,
                         background: "var(--color-success-light)",
                         color: "var(--color-success)",
-                        letterSpacing: "0.03em",
                       }}
                     >
                       {plan.badge}
@@ -158,7 +475,7 @@ export function PlanSelector({
         })}
       </div>
 
-      {/* Hint when nothing selected */}
+      {/* ── No plan selected hint ── */}
       {!selectedPlan && (
         <p
           style={{
@@ -168,185 +485,195 @@ export function PlanSelector({
             padding: "8px 0 4px",
           }}
         >
-          Select a plan above to continue.
+          Select a plan above to see features and pay.
         </p>
       )}
 
-      {/* Payment form — only shown after selecting a plan */}
+      {/* ── Features + payment panel ── */}
       {selectedPlan && (
-        <div className="card" style={{ padding: "24px 28px", marginTop: 4 }}>
-          {/* Heading */}
-          <div style={{ marginBottom: 20 }}>
-            <h3
-              style={{
-                fontSize: "0.9375rem",
-                fontWeight: 700,
-                color: "var(--color-ink-primary)",
-                marginBottom: 4,
-              }}
-            >
-              {isPro ? "Renew subscription" : "Activate plan"}
-            </h3>
-            <p
-              style={{
-                fontSize: "0.875rem",
-                color: "var(--color-ink-tertiary)",
-              }}
-            >
-              {isPro
-                ? `Renewing extends your ${selectedPlan.displayName} access by 30 days.`
-                : `Get full ${selectedPlan.displayName} access instantly after payment.`}
-            </p>
-          </div>
+        <div>
+          {/* Features panel */}
+          <FeaturesPanel plan={selectedPlan} />
 
-          {/* Active subscription notice */}
-          {isPro && sub.current_period_end && (
+          {/* Payment card */}
+          <div className="card" style={{ padding: "24px 24px 20px" }}>
+            {/* Heading */}
+            <div style={{ marginBottom: 16 }}>
+              <h3
+                style={{
+                  fontSize: "0.9375rem",
+                  fontWeight: 700,
+                  color: "var(--color-ink-primary)",
+                  marginBottom: 4,
+                }}
+              >
+                {isPro ? "Renew subscription" : "Activate plan"}
+              </h3>
+              <p
+                style={{
+                  fontSize: "0.875rem",
+                  color: "var(--color-ink-tertiary)",
+                }}
+              >
+                {isPro
+                  ? `Renewing extends your ${selectedPlan.displayName} access by 30 days.`
+                  : `Get full ${selectedPlan.displayName} access instantly after payment.`}
+              </p>
+            </div>
+
+            {/* Active notice */}
+            {isPro && sub.current_period_end && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "11px 14px",
+                  borderRadius: 8,
+                  background: "var(--color-success-light)",
+                  border: "1px solid var(--color-success)",
+                  marginBottom: 16,
+                  fontSize: "0.875rem",
+                  color: "var(--color-success)",
+                }}
+              >
+                <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
+                  <path
+                    d="M22 11.08V12a10 10 0 11-5.93-9.14"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M22 4L12 14.01l-3-3"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span>
+                  Active until{" "}
+                  <strong>
+                    {new Date(sub.current_period_end).toLocaleDateString(
+                      "en-KE",
+                      {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      },
+                    )}
+                  </strong>
+                  {days < 9999 && ` — ${days} day${days !== 1 ? "s" : ""} left`}
+                </span>
+              </div>
+            )}
+
+            <div
+              style={{
+                height: 1,
+                background: "var(--color-border-subtle)",
+                marginBottom: 16,
+              }}
+            />
+
+            {/* Price summary */}
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
-                padding: "11px 14px",
-                borderRadius: 8,
-                background: "var(--color-success-light)",
-                border: "1px solid var(--color-success)",
-                marginBottom: 20,
-                fontSize: "0.875rem",
-                color: "var(--color-success)",
+                justifyContent: "space-between",
+                marginBottom: 16,
               }}
             >
-              <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
-                <path
-                  d="M22 11.08V12a10 10 0 11-5.93-9.14"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M22 4L12 14.01l-3-3"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <span>
-                Active until{" "}
-                <strong>
-                  {new Date(sub.current_period_end).toLocaleDateString(
-                    "en-KE",
-                    {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    },
-                  )}
-                </strong>
-              </span>
-            </div>
-          )}
-
-          <div
-            style={{
-              height: 1,
-              background: "var(--color-border-subtle)",
-              marginBottom: 20,
-            }}
-          />
-
-          {/* Price summary */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 20,
-            }}
-          >
-            <div>
-              <p
-                style={{
-                  fontSize: "0.8125rem",
-                  color: "var(--color-ink-tertiary)",
-                  marginBottom: 2,
-                }}
-              >
-                Total due today
-              </p>
-              <p
-                style={{
-                  fontSize: "1.5rem",
-                  fontWeight: 800,
-                  color: "var(--color-ink-primary)",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                KES {selectedPlan.priceKes.toLocaleString()}
-                <span
+              <div>
+                <p
                   style={{
-                    fontSize: "0.875rem",
-                    fontWeight: 400,
-                    color: "var(--color-ink-ghost)",
-                    marginLeft: 4,
+                    fontSize: "0.8125rem",
+                    color: "var(--color-ink-tertiary)",
+                    marginBottom: 2,
                   }}
                 >
-                  /month
-                </span>
-              </p>
-            </div>
-            <div
-              style={{
-                padding: "6px 14px",
-                borderRadius: 8,
-                background: "var(--color-surface-2)",
-                fontSize: "0.8125rem",
-                fontWeight: 600,
-                color: "var(--color-ink-secondary)",
-              }}
-            >
-              {selectedPlan.displayName}
-            </div>
-          </div>
-
-          {/* M-Pesa form */}
-          <SubscribeForm
-            priceKes={selectedPlan.priceKes}
-            planName={selectedKey ?? "pro"}
-          />
-
-          {/* Trust line */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              marginTop: 16,
-              paddingTop: 16,
-              borderTop: "1px solid var(--color-border-subtle)",
-              flexWrap: "wrap",
-            }}
-          >
-            {[
-              { icon: "🔒", text: "Secure M-Pesa payment" },
-              { icon: "⚡", text: "Instant activation" },
-              { icon: "↩", text: "Cancel anytime" },
-            ].map(({ icon, text }) => (
-              <span
-                key={text}
+                  Total due today
+                </p>
+                <p
+                  style={{
+                    fontSize: "1.5rem",
+                    fontWeight: 800,
+                    color: "var(--color-ink-primary)",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  KES {selectedPlan.priceKes.toLocaleString()}
+                  <span
+                    style={{
+                      fontSize: "0.875rem",
+                      fontWeight: 400,
+                      color: "var(--color-ink-ghost)",
+                      marginLeft: 4,
+                    }}
+                  >
+                    /month
+                  </span>
+                </p>
+              </div>
+              <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  fontSize: "0.75rem",
-                  color: "var(--color-ink-tertiary)",
+                  padding: "6px 14px",
+                  borderRadius: 8,
+                  background: "var(--color-surface-2)",
+                  fontSize: "0.8125rem",
+                  fontWeight: 600,
+                  color: "var(--color-ink-secondary)",
                 }}
               >
-                <span>{icon}</span>
-                {text}
-              </span>
-            ))}
+                {selectedPlan.displayName}
+              </div>
+            </div>
+
+            {/* M-Pesa form */}
+            <SubscribeForm
+              priceKes={selectedPlan.priceKes}
+              planName={selectedKey ?? "pro"}
+            />
+
+            {/* Trust line */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 16,
+                marginTop: 16,
+                paddingTop: 16,
+                borderTop: "1px solid var(--color-border-subtle)",
+                flexWrap: "wrap",
+              }}
+            >
+              {[
+                { icon: "🔒", text: "Secure M-Pesa" },
+                { icon: "⚡", text: "Instant activation" },
+                { icon: "↩", text: "Cancel anytime" },
+              ].map(({ icon, text }) => (
+                <span
+                  key={text}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    fontSize: "0.75rem",
+                    color: "var(--color-ink-tertiary)",
+                  }}
+                >
+                  <span>{icon}</span>
+                  {text}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       )}
+
+      {/* ── Cancel section ── */}
+      {canCancel && <CancelSection sub={sub} />}
     </div>
   );
 }

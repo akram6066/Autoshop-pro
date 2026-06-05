@@ -106,6 +106,29 @@ export default function NewProductPage() {
   async function handleImport(rows: ImportRow[]) {
     if (!shopId || !effectiveRoomId) return;
     setImporting(true);
+
+    // Auto-create any categories from the sheet that don't exist in this shop yet.
+    const existingNames = categories.map((c) => c.name.toLowerCase());
+    const newCatNames = [
+      ...new Set(
+        rows
+          .map((r) => r.category.trim())
+          .filter((c) => c && !existingNames.includes(c.toLowerCase())),
+      ),
+    ];
+    if (newCatNames.length > 0) {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from("categories") as any).upsert(
+        newCatNames.map((name) => ({
+          shop_id: shopId,
+          name,
+          color: "#6194f8",
+        })),
+        { onConflict: "shop_id,name", ignoreDuplicates: true },
+      );
+    }
+
     let saved = 0;
     for (const row of rows) {
       const finalSku = row.sku.trim() || generateSku(row.name, row.size);
@@ -260,7 +283,7 @@ export default function NewProductPage() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="w-full">
       <button
         type="button"
         onClick={() => router.back()}
@@ -329,7 +352,7 @@ export default function NewProductPage() {
       />
 
       {tab === "import" && (
-        <div className="card p-6 animate-scale-in">
+        <div className="card p-4 sm:p-6 animate-scale-in">
           {importing ? (
             <div style={{ textAlign: "center", padding: "40px 0" }}>
               <p
@@ -342,6 +365,7 @@ export default function NewProductPage() {
           ) : (
             <ImportSheet
               defaultCategory={effectiveCategory}
+              existingCategories={categories.map((c) => c.name)}
               onImport={handleImport}
               onCancel={() => setTab("single")}
             />
@@ -370,7 +394,7 @@ export default function NewProductPage() {
             </div>
 
             {/* Category + Room */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1.5">
                   Category
@@ -438,7 +462,7 @@ export default function NewProductPage() {
                   className="text-xs"
                   style={{ color: "var(--color-ink-tertiary)" }}
                 >
-                  One brand, different sizes each with their own qty & price
+                  One brand, different sizes each with their own qty &amp; price
                 </p>
               </div>
               <button
@@ -460,7 +484,7 @@ export default function NewProductPage() {
               </button>
             </div>
 
-            {/* ── Variant rows or Simple fields ── */}
+            {/* Variant rows or Simple fields */}
             {useVariants ? (
               <VariantTable
                 variants={variants}

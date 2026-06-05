@@ -76,7 +76,10 @@ export function isActive(sub: SubscriptionInfo): boolean {
     if (!sub.trial_ends_at) return true;
     return new Date(sub.trial_ends_at) > new Date();
   }
-  if (sub.status === "active" && sub.current_period_end) {
+  if (
+    (sub.status === "active" || sub.status === "cancelled") &&
+    sub.current_period_end
+  ) {
     return new Date(sub.current_period_end) > new Date();
   }
   return false;

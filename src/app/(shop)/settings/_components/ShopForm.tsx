@@ -53,26 +53,28 @@ export function ShopForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium mb-1.5">Shop name</label>
-        <input
-          className="input"
-          value={shopName}
-          onChange={(e) => setShopName(e.target.value)}
-          maxLength={200}
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-1.5">Address</label>
-        <input
-          className="input"
-          value={shopAddress}
-          onChange={(e) => setShopAddress(e.target.value)}
-          placeholder="Optional"
-          maxLength={500}
-        />
+    <form onSubmit={handleSubmit}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label className="block text-sm font-medium mb-1.5">Shop name</label>
+          <input
+            className="input"
+            value={shopName}
+            onChange={(e) => setShopName(e.target.value)}
+            maxLength={200}
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1.5">Address</label>
+          <input
+            className="input"
+            value={shopAddress}
+            onChange={(e) => setShopAddress(e.target.value)}
+            placeholder="Optional"
+            maxLength={500}
+          />
+        </div>
       </div>
       <div className="flex items-center gap-3">
         <button
