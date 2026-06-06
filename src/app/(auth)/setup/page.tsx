@@ -344,7 +344,16 @@ function SetupContent() {
           alt="AutoShop Pro"
           width={260}
           height={60}
-          className="h-10 w-auto mx-auto mb-6 dark:brightness-0 dark:invert"
+          className="h-10 w-auto mx-auto mb-6 dark:hidden"
+          priority
+          loading="eager"
+        />
+        <Image
+          src="/logo-dark.svg"
+          alt="AutoShop Pro"
+          width={260}
+          height={60}
+          className="h-10 w-auto mx-auto mb-6 hidden dark:block"
           priority
           loading="eager"
         />
