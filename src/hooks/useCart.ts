@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { captureException } from "@/lib/monitoring/sentry";
 import type { Product, ProductVariant, CartItem } from "@/types/app";
 
 const STORAGE_KEY = "autoshop_pos_cart";
@@ -26,8 +27,9 @@ function saveToStorage(items: CartItem[]): void {
     } else {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     }
-  } catch {
-    // sessionStorage unavailable (private browsing quota) — degrade silently
+  } catch (err) {
+    // QuotaExceededError on private browsing — cart becomes ephemeral but app stays functional.
+    captureException(err, { context: "useCart sessionStorage write" });
   }
 }
 

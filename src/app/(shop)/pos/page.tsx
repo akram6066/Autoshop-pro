@@ -3,7 +3,7 @@
 import { useReducer, useMemo, useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
-import { useAuthStore, selectShopId } from "@/stores/authStore";
+import { useAuthStore, selectShopId, selectUser } from "@/stores/authStore";
 import { useProducts } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
 import { useRecordSale } from "@/hooks/useSales";
@@ -13,6 +13,7 @@ import { useShopVariants } from "@/hooks/useVariants";
 import { useSubscription } from "@/hooks/useSubscription";
 import { LimitWarningBanner } from "@/components/shop/LimitWarningBanner";
 import { createClient } from "@/lib/supabase/client";
+import { captureException } from "@/lib/monitoring/sentry";
 import type { ReceiptData } from "@/components/pos/SaleReceipt";
 import type { Customer, PaymentMethod, ProductVariant } from "@/types/app";
 import { ProductGrid } from "./_components/ProductGrid";
@@ -138,7 +139,7 @@ function checkoutReducer(
 
 export default function POSPage() {
   const shopId = useAuthStore(selectShopId);
-  const user = useAuthStore((s) => s.user);
+  const user = useAuthStore(selectUser);
   const { sub } = useSubscription();
   const { data: products = [], isLoading } = useProducts(shopId);
 
@@ -157,7 +158,17 @@ export default function POSPage() {
       .select("id", { count: "exact", head: true })
       .eq("shop_id", shopId)
       .gte("created_at", monthStart)
-      .then(({ count }) => setMonthlySales(count ?? 0));
+      .then(({ count, error }) => {
+        if (error) {
+          captureException(error, {
+            context: "POS monthly sales count",
+            shopId,
+          });
+          setMonthlySales(0);
+        } else {
+          setMonthlySales(count ?? 0);
+        }
+      });
   }, [shopId]);
   const { data: categories = [] } = useCategories(shopId);
   const { data: customers = [] } = useCustomers(shopId);

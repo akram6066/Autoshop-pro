@@ -1,5 +1,10 @@
 {
   "permissions": {
-    "allow": ["Bash(Remove-Item *)", "Bash(npm run *)", "Bash(git commit *)"]
+    "allow": [
+      "Bash(Remove-Item *)",
+      "Bash(npm run *)",
+      "Bash(git commit *)",
+      "Bash(git add *)"
+    ]
   }
 }

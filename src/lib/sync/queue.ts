@@ -42,6 +42,13 @@ function getChannel(): BroadcastChannel | null {
   return _broadcastChannel;
 }
 
+export function closeChannel(): void {
+  if (_broadcastChannel) {
+    _broadcastChannel.close();
+    _broadcastChannel = null;
+  }
+}
+
 // ─── Enqueue ──────────────────────────────────────────────────────────────────
 
 /**

@@ -125,5 +125,3 @@ export class AutoShopDatabase extends Dexie {
     });
   }
 }
-
-export const db = new AutoShopDatabase();

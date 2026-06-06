@@ -2,7 +2,12 @@
 
 import { useCallback, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useAuthStore, selectUser, selectProfile } from "@/stores/authStore";
+import {
+  useAuthStore,
+  selectUser,
+  selectProfile,
+  selectShops,
+} from "@/stores/authStore";
 import { Section } from "../_components/Section";
 import { friendlyError } from "@/lib/api/errors";
 
@@ -10,7 +15,11 @@ export default function AccountPage() {
   const supabase = createClient();
   const user = useAuthStore(selectUser);
   const profile = useAuthStore(selectProfile);
+  const shops = useAuthStore(selectShops);
   const setProfile = useAuthStore((s) => s.setProfile);
+
+  // Shops this user owns (could be multiple)
+  const ownedShops = shops.filter((s) => s.role === "owner");
 
   // ── Profile ───────────────────────────────────────────────────────────────
   const [fullName, setFullName] = useState(profile?.full_name ?? "");
@@ -246,11 +255,45 @@ export default function AccountPage() {
 
       {/* ── Danger zone — full width ─────────────────────────────────── */}
       <Section title="Danger zone" danger>
+        {/* Guide user to per-shop deletion when they own shops */}
+        {ownedShops.length > 0 && (
+          <div
+            className="text-sm mb-4 p-3 rounded-lg"
+            style={{
+              background: "var(--color-surface-1)",
+              border: "1px solid var(--color-border)",
+              color: "var(--color-ink-secondary)",
+            }}
+          >
+            Want to remove just one shop?{" "}
+            <a
+              href="/settings/shop"
+              className="font-medium underline"
+              style={{ color: "var(--color-brand-600)" }}
+            >
+              Go to Shop Settings → Danger zone
+            </a>{" "}
+            to delete a single shop without touching your account or other
+            shops.
+          </div>
+        )}
+
         <p
           className="text-sm mb-4"
           style={{ color: "var(--color-ink-secondary)" }}
         >
-          Permanently deletes your account, profile, and all associated data.
+          Permanently deletes your account, profile, and login.
+          {ownedShops.length > 0 && (
+            <>
+              {" "}
+              This also permanently deletes{" "}
+              <strong style={{ color: "var(--color-danger)" }}>
+                all {ownedShops.length} shop
+                {ownedShops.length !== 1 ? "s" : ""} you own
+              </strong>
+              , including all their products, sales, and data.
+            </>
+          )}{" "}
           This cannot be undone.
         </p>
         <button
@@ -285,12 +328,48 @@ export default function AccountPage() {
             >
               Delete Account
             </h3>
+
+            {/* Shops that will be wiped */}
+            {ownedShops.length > 0 && (
+              <div
+                className="mb-4 p-3 rounded-lg text-sm"
+                style={{
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  color: "#991b1b",
+                }}
+              >
+                <p className="font-semibold mb-1">
+                  The following shop{ownedShops.length !== 1 ? "s" : ""} will
+                  also be permanently deleted:
+                </p>
+                <ul
+                  style={{
+                    listStyle: "none",
+                    padding: 0,
+                    margin: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                  }}
+                >
+                  {ownedShops.map((s) => (
+                    <li key={s.id} className="font-medium">
+                      · {s.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <p
               className="text-sm mb-6"
               style={{ color: "var(--color-ink-secondary)" }}
             >
-              This will permanently delete your account and all your data. This
-              cannot be undone. Are you absolutely sure?
+              {ownedShops.length > 0
+                ? "Your account, all shops listed above, and every piece of data inside them will be gone forever."
+                : "This will permanently delete your account and all your data."}{" "}
+              Are you absolutely sure?
             </p>
             {deleteMsg && (
               <p

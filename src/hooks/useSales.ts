@@ -31,8 +31,6 @@ export const saleKeys = {
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
 export function useSales(shopId: string | null, pageSize = 50) {
-  const supabase = createClient();
-
   return useInfiniteQuery({
     queryKey: shopId ? saleKeys.list(shopId) : ["sales-disabled"],
     queryFn: async ({
@@ -40,6 +38,7 @@ export function useSales(shopId: string | null, pageSize = 50) {
     }: {
       pageParam: string | null;
     }): Promise<Sale[]> => {
+      const supabase = createClient();
       let query = supabase
         .from("sales")
         .select("*")
@@ -70,13 +69,12 @@ export function useSalesSummary(
   from: string,
   to: string,
 ) {
-  const supabase = createClient();
-
   return useQuery({
     queryKey: shopId
       ? saleKeys.summary(shopId, from, to)
       : ["sales-summary-disabled"],
     queryFn: async (): Promise<SalesSummaryRow[]> => {
+      const supabase = createClient();
       const { data, error } = await supabase.rpc("get_sales_summary", {
         p_shop_id: shopId!,
         p_from: from,
@@ -106,13 +104,12 @@ export function useProductAnalytics(
   to: string,
   limit = 10,
 ) {
-  const supabase = createClient();
-
   return useQuery({
     queryKey: shopId
       ? (["product-analytics", shopId, from, to, limit] as const)
       : ["product-analytics-disabled"],
     queryFn: async (): Promise<ProductAnalyticsRow[]> => {
+      const supabase = createClient();
       const { data, error } = await supabase.rpc("get_product_analytics", {
         p_shop_id: shopId!,
         p_from: from,
@@ -142,7 +139,6 @@ interface RecordSaleInput {
 
 export function useRecordSale() {
   const qc = useQueryClient();
-  const supabase = createClient();
 
   return useMutation({
     mutationFn: async ({
@@ -197,6 +193,7 @@ export function useRecordSale() {
       }));
 
       // Attempt to call record_sale RPC (atomic: sale + items + movements)
+      const supabase = createClient();
       const { error } = await supabase.rpc("record_sale", {
         p_sale: salePayload,
         p_items: itemsPayload,
@@ -278,7 +275,6 @@ export function useRecordSale() {
 
 export function useVoidSale() {
   const qc = useQueryClient();
-  const supabase = createClient();
 
   return useMutation({
     mutationFn: async ({
@@ -288,6 +284,7 @@ export function useVoidSale() {
       saleId: string;
       shopId: string;
     }) => {
+      const supabase = createClient();
       const { error } = await supabase.rpc("void_sale", {
         p_sale_id: saleId,
         p_shop_id: shopId,

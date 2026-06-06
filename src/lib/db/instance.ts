@@ -32,6 +32,7 @@ export async function clearLocalDb(): Promise<void> {
     db.shops.clear(),
     db.rooms.clear(),
     db.products.clear(),
+    db.product_variants.clear(),
     db.sales.clear(),
     db.sale_items.clear(),
     db.stock_movements.clear(),
@@ -124,6 +125,7 @@ export async function pruneOldData(): Promise<void> {
   const db = getDb();
   const cutoff = new Date(Date.now() - TTL_MS).toISOString();
 
+  // Delete old transactional rows first.
   await Promise.all([
     db.sales.where("created_at").below(cutoff).delete(),
     db.stock_movements
@@ -137,6 +139,28 @@ export async function pruneOldData(): Promise<void> {
       .and((q) => q.created_at < cutoff)
       .delete(),
   ]);
+
+  // Prune sale_items whose parent sale was just deleted (no FK in Dexie).
+  const remainingSaleIds = new Set(
+    (await db.sales.toCollection().primaryKeys()) as string[],
+  );
+  const orphanSaleItemIds = (await db.sale_items.toArray())
+    .filter((si) => !remainingSaleIds.has(si.sale_id))
+    .map((si) => si.id);
+  if (orphanSaleItemIds.length > 0) {
+    await db.sale_items.bulkDelete(orphanSaleItemIds);
+  }
+
+  // Prune po_items whose parent purchase order was just deleted.
+  const remainingPoIds = new Set(
+    (await db.purchase_orders.toCollection().primaryKeys()) as string[],
+  );
+  const orphanPoItemIds = (await db.po_items.toArray())
+    .filter((pi) => !remainingPoIds.has(pi.po_id))
+    .map((pi) => pi.id);
+  if (orphanPoItemIds.length > 0) {
+    await db.po_items.bulkDelete(orphanPoItemIds);
+  }
 }
 
 // ─── Getters ──────────────────────────────────────────────────────────────────
