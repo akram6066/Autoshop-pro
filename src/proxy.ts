@@ -1,173 +1,73 @@
+import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
 
-// Paths that bypass session-auth entirely.
-// Vercel Cron endpoints belong here: the cron runner sends CRON_SECRET in a
-// header, not a user session, so they cannot pass the auth check below.
-// Each route handler validates CRON_SECRET independently.
-const PUBLIC_PATHS = [
-  "/login",
-  "/signup",
-  "/api/auth/callback",
-  "/offline",
-  "/privacy",
-  "/terms",
-  "/contact",
-  "/api/contact",
-  "/api/health", // External monitoring (UptimeRobot, Vercel health checks)
-  "/api/admin/run-downgrade", // Vercel Cron — CRON_SECRET auth
-  "/api/admin/trigger-trial-billing", // Vercel Cron — CRON_SECRET auth
-  "/api/admin/run-prune", // Vercel Cron — CRON_SECRET auth
+// Routes inside the (shop) group that require an authenticated session.
+// Listed explicitly so new public routes don't accidentally get locked out.
+const SHOP_PREFIXES = [
+  "/dashboard",
+  "/pos",
+  "/inventory",
+  "/finder",
+  "/reports",
+  "/settings",
+  "/activity",
+  "/customers",
+  "/sales",
+  "/profile",
+  "/billing",
+  "/overview",
+  "/invites",
 ];
 
-const SUSPICIOUS_PATHS = [
-  "/.env",
-  "/wp-admin",
-  "/.git",
-  "/admin/config",
-  "/config.php",
-  "/xmlrpc.php",
-];
+function isShopRoute(pathname: string): boolean {
+  return SHOP_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
 
-export async function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
-  // 1. Skip Next.js internals, static assets, and public paths
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/monitoring") || // Sentry tunnel — must not auth-check
-    pathname.startsWith("/api/mpesa/callback") || // Daraja hits this directly
-    pathname.includes(".") ||
-    PUBLIC_PATHS.some((p) => pathname.startsWith(p))
-  ) {
-    return NextResponse.next();
+  // Fast-path: skip non-shop routes immediately.
+  if (!isShopRoute(pathname)) return NextResponse.next();
+
+  // Build a mutable response so Supabase can refresh the session cookie.
+  const response = NextResponse.next({ request });
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    // Env vars missing — fail open so the client-side redirect can still run.
+    console.error("[proxy] Supabase env vars not set");
+    return response;
   }
 
-  // 2. Detect suspicious paths
-  if (SUSPICIOUS_PATHS.some((path) => pathname.startsWith(path))) {
-    const ip =
-      request.headers.get("x-forwarded-for") ||
-      request.headers.get("x-real-ip") ||
-      "unknown";
-    console.warn(`[SUSPICIOUS_PATH] ${pathname} from ${ip}`);
-    return new NextResponse("Not Found", { status: 404 });
-  }
-
-  // 3. Security Headers & CSP
-  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
-  const cspHeader = `
-    default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${
-      process.env.NODE_ENV === "development" ? "'unsafe-eval'" : ""
-    };
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data: https://*.supabase.co;
-    font-src 'self';
-    object-src 'none';
-    base-uri 'self';
-    form-action 'self';
-    frame-ancestors 'none';
-    connect-src 'self' https://*.supabase.co https://*.sentry.io;
-    upgrade-insecure-requests;
-  `
-    .replace(/\s{2,}/g, " ")
-    .trim();
-
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-nonce", nonce);
-  requestHeaders.set("Content-Security-Policy", cspHeader);
-
-  // Apply all security headers to a response object.
-  // Called both on initial creation and whenever Supabase rotates session
-  // cookies (which requires recreating the NextResponse).
-  function applySecurityHeaders(res: NextResponse): NextResponse {
-    res.headers.set("Content-Security-Policy", cspHeader);
-    res.headers.set("X-DNS-Prefetch-Control", "on");
-    res.headers.set(
-      "Strict-Transport-Security",
-      "max-age=63072000; includeSubDomains; preload",
-    );
-    res.headers.set("X-Frame-Options", "DENY");
-    res.headers.set("X-Content-Type-Options", "nosniff");
-    res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-    res.headers.set(
-      "Permissions-Policy",
-      "camera=(), microphone=(), geolocation=(), interest-cohort=()",
-    );
-    return res;
-  }
-
-  let response = applySecurityHeaders(
-    NextResponse.next({ request: { headers: requestHeaders } }),
-  );
-
-  // 4. Auth & Routing
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          // Token refresh rotates cookies — must recreate response and
-          // re-apply ALL security headers (not just CSP) so none are dropped.
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
-          );
-          response = applySecurityHeaders(
-            NextResponse.next({ request: { headers: requestHeaders } }),
-          );
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options),
-          );
-        },
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        // Write to both the mutated request and the response so the session
+        // cookie refresh propagates to the browser.
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value),
+        );
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options),
+        );
       },
     },
-  );
+  });
 
-  // getUser() validates the JWT with Supabase's server — it has no built-in timeout.
-  // On a slow or unreachable connection it hangs forever, freezing all navigation.
-  // We race it against 5 s; on timeout we fall back to getSession() which reads
-  // the cookie locally (no network) so the user can keep working.
-  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] =
-    null;
-  try {
-    const result = await Promise.race([
-      supabase.auth.getUser(),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("auth_timeout")), 5000),
-      ),
-    ]);
-    user = result.data.user;
-  } catch {
-    const { data: sessionData } = await supabase.auth.getSession();
-    user = sessionData.session?.user ?? null;
-  }
+  // getUser() validates the JWT against the Supabase auth server on every
+  // request — never trusts the client-side session object alone.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // Redirect unauthenticated users away from app routes
   if (!user) {
-    if (pathname === "/" || pathname === "/offline") return response;
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  // Guard /admin routes — check is_admin on the profile
-  if (pathname.startsWith("/admin")) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("is_admin")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile?.is_admin) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-  }
-
-  // Root redirect for authenticated users
-  if (pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const loginUrl = new URL("/login", request.url);
+    return NextResponse.redirect(loginUrl);
   }
 
   return response;
@@ -175,6 +75,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|icons|.*\\.png$|.*\\.svg$).*)",
+    // Run on all paths except static files, _next internals, and the offline page.
+    "/((?!_next/static|_next/image|favicon\\.ico|offline|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
