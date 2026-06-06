@@ -84,6 +84,11 @@ function getLanIPs(): string[] {
 }
 
 const nextConfig: NextConfig = {
+  // Produces a self-contained Node.js bundle in .next/standalone/
+  // Works on any host: Docker, Railway, Fly.io, VPS, etc.
+  // Vercel also supports this output mode without any extra config.
+  output: "standalone",
+
   reactStrictMode: true,
 
   poweredByHeader: false,
@@ -152,7 +157,7 @@ export default withSentryConfig(nextConfig, {
   tunnelRoute: isDev ? undefined : "/monitoring",
 
   webpack: {
-    automaticVercelMonitors: true,
+    automaticVercelMonitors: false,
 
     treeshake: {
       removeDebugLogging: true,
