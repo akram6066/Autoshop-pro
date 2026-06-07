@@ -14,7 +14,11 @@ function isSelfServicePlan(name: string): name is SelfServicePlan {
   return (SELF_SERVICE_PLANS as readonly string[]).includes(name);
 }
 
-export async function choosePlan(planName: string, rawPhone?: string) {
+export async function choosePlan(
+  planName: string,
+  rawPhone?: string,
+  billingCycle: "monthly" | "annual" = "monthly",
+) {
   // Reject any plan name that is not explicitly self-serviceable.
   // This prevents a user from calling this action with e.g. "free_forever"
   // or any future admin-only plan name.
@@ -41,6 +45,7 @@ export async function choosePlan(planName: string, rawPhone?: string) {
 
   const isFree = planName === "trial";
 
+  let trialEnabled = true;
   let trialDays = 30;
   if (!isFree) {
     const { data: setting } = await db
@@ -48,25 +53,29 @@ export async function choosePlan(planName: string, rawPhone?: string) {
       .select("value")
       .eq("key", "trial")
       .single<{ value: { enabled: boolean; days: number } }>();
+    trialEnabled = setting?.value?.enabled ?? true;
     trialDays = setting?.value?.days ?? 30;
   }
 
-  const trialEndsAt = isFree
-    ? null
-    : new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString();
+  const useTrial = !isFree && trialEnabled;
+  const trialEndsAt = useTrial
+    ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString()
+    : null;
+  const status = isFree ? "trial" : trialEnabled ? "trial" : "expired";
 
   // Normalize and validate the billing phone (254XXXXXXXXX format)
-  const billingPhone = !isFree && rawPhone ? normalizePhone(rawPhone) : null;
+  const billingPhone = useTrial && rawPhone ? normalizePhone(rawPhone) : null;
   const autoBillAtEnd = billingPhone !== null;
 
   await db
     .from("subscriptions")
     .update({
       plan_id: plan.id,
-      status: "trial",
+      status,
       trial_ends_at: trialEndsAt,
       billing_phone: billingPhone,
       auto_bill_at_end: autoBillAtEnd,
+      billing_cycle: billingCycle,
     })
     .eq("user_id", user.id);
 

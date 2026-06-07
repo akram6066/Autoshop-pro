@@ -38,7 +38,7 @@ export default function ReportsPage() {
   const [customTo, setCustomTo] = useState(() => toISO(new Date()));
 
   useEffect(() => {
-    if (planName === "trial") router.replace("/billing");
+    if (planName === "trial" || planName === "free") router.replace("/billing");
   }, [planName, router]);
 
   const { from, to } = useMemo(() => {
@@ -76,7 +76,8 @@ export default function ReportsPage() {
     [summary],
   );
 
-  if (planName === null || planName === "trial") return null;
+  if (planName === null || planName === "trial" || planName === "free")
+    return null;
 
   function exportCSV() {
     const rows = [

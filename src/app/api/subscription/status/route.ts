@@ -21,10 +21,12 @@ export async function GET() {
     trialEndsAt: sub.trial_ends_at,
     billingPhone: sub.billing_phone,
     autoBillAtEnd: sub.auto_bill_at_end,
+    billingCycle: sub.billing_cycle,
     plan: {
       name: sub.plan.name,
       displayName: sub.plan.display_name,
       priceKes: sub.plan.price_kes,
+      annualDiscountPct: sub.plan.annual_discount_pct,
       maxShops: sub.plan.max_shops,
       maxProductsPerShop: sub.plan.max_products_per_shop,
       maxStaffPerShop: sub.plan.max_staff_per_shop,

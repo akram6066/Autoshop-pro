@@ -240,4 +240,5 @@ export async function updatePlan(planId: string, fd: FormData) {
 
   if (error) throw new Error("Failed to update plan");
   revalidatePath("/admin/subscriptions");
+  revalidatePath("/");
 }

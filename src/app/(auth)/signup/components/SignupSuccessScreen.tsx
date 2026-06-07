@@ -8,6 +8,7 @@ interface Props {
   email: string;
   smtpFailed?: boolean;
   plan?: string | null;
+  interval?: string | null;
 }
 
 const RESEND_COOLDOWN_S = 60;
@@ -22,6 +23,7 @@ export default function SignupSuccessScreen({
   email,
   smtpFailed,
   plan,
+  interval,
 }: Props) {
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
@@ -39,7 +41,11 @@ export default function SignupSuccessScreen({
     setResendError("");
     try {
       const supabase = createClient();
-      const setupPath = plan ? `/setup?plan=${plan}` : "/setup";
+      const query = [];
+      if (plan) query.push(`plan=${plan}`);
+      if (interval) query.push(`interval=${interval}`);
+      const queryString = query.length > 0 ? `?${query.join("&")}` : "";
+      const setupPath = `/setup${queryString}`;
       const emailRedirectTo = `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(setupPath)}`;
       const { error } = await supabase.auth.resend({
         type: "signup",
@@ -56,7 +62,9 @@ export default function SignupSuccessScreen({
     }
   }
 
-  const loginHref = plan ? `/login?plan=${plan}` : "/login";
+  const loginHref = plan
+    ? `/login?plan=${plan}${interval ? `&interval=${interval}` : ""}`
+    : "/login";
 
   return (
     <div

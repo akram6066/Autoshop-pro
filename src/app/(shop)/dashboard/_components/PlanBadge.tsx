@@ -1,4 +1,4 @@
-import type { SubscriptionInfo } from "@/lib/subscription";
+import type { SubInfo } from "@/app/(shop)/settings/_components/sub-types";
 
 const PLAN_STYLE: Record<
   string,
@@ -31,24 +31,23 @@ const PLAN_STYLE: Record<
 };
 
 interface Props {
-  sub: SubscriptionInfo;
+  sub: SubInfo;
 }
 
 export function PlanBadge({ sub }: Props) {
   const planName = sub.plan.name;
   const style = PLAN_STYLE[planName] ?? PLAN_STYLE.trial;
 
-  const isTrialing = sub.status === "trial" && !sub.is_admin_override;
-  const isFreeForever = sub.is_admin_override || planName === "free_forever";
+  const isTrialing = sub.status === "trial" && !sub.isAdminOverride;
+  const isFreeForever = sub.isAdminOverride || planName === "free_forever";
 
   const now = new Date();
   const daysLeft =
-    isTrialing && sub.trial_ends_at && planName !== "trial"
+    isTrialing && sub.trialEndsAt && planName !== "trial"
       ? Math.max(
           0,
           Math.ceil(
-            (new Date(sub.trial_ends_at).getTime() - now.getTime()) /
-              86_400_000,
+            (new Date(sub.trialEndsAt).getTime() - now.getTime()) / 86_400_000,
           ),
         )
       : null;

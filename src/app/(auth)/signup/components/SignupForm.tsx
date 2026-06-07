@@ -42,6 +42,7 @@ export default function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const planParam = searchParams.get("plan");
+  const intervalParam = searchParams.get("interval");
   const setAll = useAuthStore((s) => s.setAll);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -125,7 +126,11 @@ export default function SignupForm() {
         // DNS/network failure on MX check — allow through, never block on infra errors
       }
 
-      const setupPath = planParam ? `/setup?plan=${planParam}` : "/setup";
+      const query = [];
+      if (planParam) query.push(`plan=${planParam}`);
+      if (intervalParam) query.push(`interval=${intervalParam}`);
+      const queryString = query.length > 0 ? `?${query.join("&")}` : "";
+      const setupPath = `/setup${queryString}`;
       const emailRedirectTo = `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(setupPath)}`;
 
       const supabase = createClient();
@@ -193,6 +198,7 @@ export default function SignupForm() {
         email={email}
         smtpFailed={smtpFailed}
         plan={planParam}
+        interval={intervalParam}
       />
     );
 
@@ -220,7 +226,7 @@ export default function SignupForm() {
             width={260}
             height={60}
             className="h-9 w-auto mx-auto dark:hidden"
-            style={{ width: "auto" }}
+            style={{ width: "auto", height: "auto" }}
             priority
             loading="eager"
           />
@@ -230,7 +236,7 @@ export default function SignupForm() {
             width={260}
             height={60}
             className="h-9 w-auto mx-auto hidden dark:block"
-            style={{ width: "auto" }}
+            style={{ width: "auto", height: "auto" }}
             priority
             loading="eager"
           />
@@ -534,7 +540,11 @@ export default function SignupForm() {
           >
             Already have an account?{" "}
             <Link
-              href={planParam ? `/login?plan=${planParam}` : "/login"}
+              href={
+                planParam
+                  ? `/login?plan=${planParam}${intervalParam ? `&interval=${intervalParam}` : ""}`
+                  : "/login"
+              }
               style={{
                 color: "var(--color-brand-600)",
                 fontWeight: 600,

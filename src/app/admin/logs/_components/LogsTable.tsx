@@ -102,11 +102,21 @@ export function LogsTable({ logs, userNames, shopNames }: Props) {
           boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
         }}
       >
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "#f8fafc" }}>
-              {["Time", "Category", "Level", "Message", "User", "Path", ""].map(
-                (h) => (
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <table
+            style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}
+          >
+            <thead>
+              <tr style={{ background: "#f8fafc" }}>
+                {[
+                  "Time",
+                  "Category",
+                  "Level",
+                  "Message",
+                  "User",
+                  "Path",
+                  "",
+                ].map((h) => (
                   <th
                     key={h}
                     style={{
@@ -122,188 +132,188 @@ export function LogsTable({ logs, userNames, shopNames }: Props) {
                   >
                     {h}
                   </th>
-                ),
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {logs.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={7}
-                  style={{
-                    padding: "40px 16px",
-                    textAlign: "center",
-                    fontSize: "0.875rem",
-                    color: "#94a3b8",
-                  }}
-                >
-                  No logs match the current filters.
-                </td>
+                ))}
               </tr>
-            ) : (
-              logs.map((log) => {
-                const cat =
-                  CATEGORY_META[log.category as keyof typeof CATEGORY_META] ??
-                  CATEGORY_META.other;
-                const lvl =
-                  LEVEL_META[log.level as keyof typeof LEVEL_META] ??
-                  LEVEL_META.error;
-                const userName = log.user_id
-                  ? (userNames.get(log.user_id) ?? null)
-                  : null;
-                const shopName = log.shop_id
-                  ? (shopNames.get(log.shop_id) ?? null)
-                  : null;
-
-                return (
-                  <tr
-                    key={log.id}
-                    onClick={() => setSelected(log)}
+            </thead>
+            <tbody>
+              {logs.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={7}
                     style={{
-                      borderBottom: "1px solid #f8fafc",
-                      cursor: "pointer",
-                      transition: "background 0.1s",
+                      padding: "40px 16px",
+                      textAlign: "center",
+                      fontSize: "0.875rem",
+                      color: "#94a3b8",
                     }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = "#f8fafc")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "transparent")
-                    }
                   >
-                    <td
+                    No logs match the current filters.
+                  </td>
+                </tr>
+              ) : (
+                logs.map((log) => {
+                  const cat =
+                    CATEGORY_META[log.category as keyof typeof CATEGORY_META] ??
+                    CATEGORY_META.other;
+                  const lvl =
+                    LEVEL_META[log.level as keyof typeof LEVEL_META] ??
+                    LEVEL_META.error;
+                  const userName = log.user_id
+                    ? (userNames.get(log.user_id) ?? null)
+                    : null;
+                  const shopName = log.shop_id
+                    ? (shopNames.get(log.shop_id) ?? null)
+                    : null;
+
+                  return (
+                    <tr
+                      key={log.id}
+                      onClick={() => setSelected(log)}
                       style={{
-                        padding: "11px 14px",
-                        fontSize: "0.8125rem",
-                        color: "#64748b",
-                        whiteSpace: "nowrap",
+                        borderBottom: "1px solid #f8fafc",
+                        cursor: "pointer",
+                        transition: "background 0.1s",
                       }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "#f8fafc")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "transparent")
+                      }
                     >
-                      {new Date(log.created_at).toLocaleString()}
-                    </td>
-                    <td style={{ padding: "11px 14px" }}>
-                      <span
+                      <td
                         style={{
-                          fontSize: "0.75rem",
-                          fontWeight: 700,
-                          padding: "3px 9px",
-                          borderRadius: 999,
-                          background: cat.bg,
-                          color: cat.color,
-                          border: `1px solid ${cat.border}`,
+                          padding: "11px 14px",
+                          fontSize: "0.8125rem",
+                          color: "#64748b",
+                          whiteSpace: "nowrap",
                         }}
                       >
-                        {cat.label}
-                      </span>
-                    </td>
-                    <td style={{ padding: "11px 14px" }}>
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          fontWeight: 600,
-                          padding: "3px 9px",
-                          borderRadius: 999,
-                          background: lvl.bg,
-                          color: lvl.color,
-                        }}
-                      >
-                        {lvl.label}
-                      </span>
-                    </td>
-                    <td style={{ padding: "11px 14px", maxWidth: 320 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                        }}
-                      >
-                        <p
-                          style={{
-                            fontSize: "0.8125rem",
-                            color: "#334155",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            margin: 0,
-                            flex: 1,
-                          }}
-                        >
-                          {log.message}
-                        </p>
-                        <InlineCopy text={log.message} />
-                      </div>
-                      {log.details && (
-                        <p
+                        {new Date(log.created_at).toLocaleString()}
+                      </td>
+                      <td style={{ padding: "11px 14px" }}>
+                        <span
                           style={{
                             fontSize: "0.75rem",
-                            color: "#94a3b8",
-                            margin: "3px 0 0",
-                            fontStyle: "italic",
+                            fontWeight: 700,
+                            padding: "3px 9px",
+                            borderRadius: 999,
+                            background: cat.bg,
+                            color: cat.color,
+                            border: `1px solid ${cat.border}`,
                           }}
                         >
-                          has details · click to view
-                        </p>
-                      )}
-                    </td>
-                    <td style={{ padding: "11px 14px", maxWidth: 160 }}>
-                      {log.user_id ? (
-                        <div>
+                          {cat.label}
+                        </span>
+                      </td>
+                      <td style={{ padding: "11px 14px" }}>
+                        <span
+                          style={{
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            padding: "3px 9px",
+                            borderRadius: 999,
+                            background: lvl.bg,
+                            color: lvl.color,
+                          }}
+                        >
+                          {lvl.label}
+                        </span>
+                      </td>
+                      <td style={{ padding: "11px 14px", maxWidth: 320 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
                           <p
                             style={{
                               fontSize: "0.8125rem",
                               color: "#334155",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
                               margin: 0,
+                              flex: 1,
                             }}
                           >
-                            {userName ?? "Unknown"}
+                            {log.message}
                           </p>
-                          {shopName && (
+                          <InlineCopy text={log.message} />
+                        </div>
+                        {log.details && (
+                          <p
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "#94a3b8",
+                              margin: "3px 0 0",
+                              fontStyle: "italic",
+                            }}
+                          >
+                            has details · click to view
+                          </p>
+                        )}
+                      </td>
+                      <td style={{ padding: "11px 14px", maxWidth: 160 }}>
+                        {log.user_id ? (
+                          <div>
                             <p
                               style={{
-                                fontSize: "0.75rem",
-                                color: "#94a3b8",
+                                fontSize: "0.8125rem",
+                                color: "#334155",
                                 margin: 0,
                               }}
                             >
-                              {shopName}
+                              {userName ?? "Unknown"}
                             </p>
-                          )}
-                        </div>
-                      ) : (
-                        <span
-                          style={{ color: "#94a3b8", fontSize: "0.8125rem" }}
-                        >
-                          —
-                        </span>
-                      )}
-                    </td>
-                    <td
-                      style={{
-                        padding: "11px 14px",
-                        fontSize: "0.8125rem",
-                        color: "#94a3b8",
-                        maxWidth: 160,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {log.path ?? "—"}
-                    </td>
-                    <td
-                      style={{ padding: "11px 14px" }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <DeleteLogButton id={log.id} />
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                            {shopName && (
+                              <p
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#94a3b8",
+                                  margin: 0,
+                                }}
+                              >
+                                {shopName}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <span
+                            style={{ color: "#94a3b8", fontSize: "0.8125rem" }}
+                          >
+                            —
+                          </span>
+                        )}
+                      </td>
+                      <td
+                        style={{
+                          padding: "11px 14px",
+                          fontSize: "0.8125rem",
+                          color: "#94a3b8",
+                          maxWidth: 160,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {log.path ?? "—"}
+                      </td>
+                      <td
+                        style={{ padding: "11px 14px" }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <DeleteLogButton id={log.id} />
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {selected && (

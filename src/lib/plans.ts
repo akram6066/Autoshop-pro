@@ -21,6 +21,7 @@ export interface BillingPlan {
   description: string;
   features: string[];
   badge?: string;
+  annualDiscountPct: number;
 }
 
 const PLAN_STATIC: Record<
@@ -216,6 +217,7 @@ export function dbPlanToBilling(plan: DbPlan): BillingPlan {
     priceKes: plan.price_kes,
     description: meta?.description ?? plan.display_name,
     badge: meta?.badge,
+    annualDiscountPct: plan.annual_discount_pct,
     features: [
       shopsLabel(plan.max_shops),
       productsLabel(plan.max_products_per_shop),

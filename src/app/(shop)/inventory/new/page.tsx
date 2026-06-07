@@ -38,8 +38,10 @@ export default function NewProductPage() {
     useCreateProduct();
   const { mutateAsync: createVariants, isPending: isCreatingVariants } =
     useCreateVariants(shopId);
-  const { data: categories = [] } = useCategories(shopId);
-  const { data: rooms = [] } = useRooms(shopId);
+  const categoriesRes = useCategories(shopId);
+  const roomsRes = useRooms(shopId);
+  const categories = categoriesRes.data ?? [];
+  const rooms = roomsRes.data ?? [];
 
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"single" | "import">("single");

@@ -32,6 +32,8 @@ export async function POST(req: NextRequest) {
 
   // Validate requested plan (only pro or ultra_pro accepted)
   const requestedPlan: string = body.plan === "ultra_pro" ? "ultra_pro" : "pro";
+  const billingCycle: string =
+    body.billingCycle === "annual" ? "annual" : "monthly";
 
   const db = adminDb();
 
@@ -51,12 +53,19 @@ export async function POST(req: NextRequest) {
   // Fetch the target plan price from DB (source of truth — never trust client)
   const { data: plan } = await db
     .from("subscription_plans")
-    .select("price_kes, display_name, name")
+    .select("price_kes, annual_discount_pct, display_name, name")
     .eq("name", requestedPlan)
     .single();
 
   if (!plan?.price_kes)
     return NextResponse.json({ error: "Plan not found" }, { status: 400 });
+
+  const isAnnual = billingCycle === "annual";
+  const amountKes = isAnnual
+    ? Math.round(
+        plan.price_kes * (1 - (plan.annual_discount_pct ?? 20) / 100) * 12,
+      )
+    : plan.price_kes;
 
   // ── Insert the pending payment record BEFORE initiating the STK push. ───────
   // If the insert fails we abort immediately — no charge, no orphaned payment.
@@ -68,10 +77,11 @@ export async function POST(req: NextRequest) {
     user_id: user.id,
     subscription_id: sub.id,
     checkout_request_id: checkoutRequestId,
-    amount_kes: plan.price_kes,
+    amount_kes: amountKes,
     phone_number: phone,
     status: "pending",
     target_plan_name: requestedPlan,
+    billing_cycle: billingCycle,
   });
 
   if (insertError) {
@@ -90,9 +100,9 @@ export async function POST(req: NextRequest) {
   try {
     result = await initiateStkPush({
       phone,
-      amountKes: plan.price_kes,
+      amountKes: amountKes,
       accountRef: "AutoShopPro",
-      description: `${plan.display_name} - monthly`,
+      description: `${plan.display_name} - ${isAnnual ? "annual" : "monthly"}`,
     });
   } catch (err: unknown) {
     // STK push failed — update the pre-inserted record to 'failed' so it

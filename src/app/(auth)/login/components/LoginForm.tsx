@@ -178,7 +178,7 @@ export default function LoginForm() {
             width={260}
             height={60}
             className="h-9 w-auto mx-auto dark:hidden"
-            style={{ width: "auto" }}
+            style={{ width: "auto", height: "auto" }}
             priority
             loading="eager"
           />
@@ -188,7 +188,7 @@ export default function LoginForm() {
             width={260}
             height={60}
             className="h-9 w-auto mx-auto hidden dark:block"
-            style={{ width: "auto" }}
+            style={{ width: "auto", height: "auto" }}
             priority
             loading="eager"
           />

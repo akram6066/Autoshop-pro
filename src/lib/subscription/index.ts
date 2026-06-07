@@ -4,6 +4,7 @@ export interface Plan {
   name: string;
   display_name: string;
   price_kes: number;
+  annual_discount_pct: number;
   max_shops: number;
   max_products_per_shop: number;
   max_staff_per_shop: number;
@@ -18,6 +19,7 @@ export interface SubscriptionInfo {
   is_admin_override: boolean;
   billing_phone: string | null;
   auto_bill_at_end: boolean;
+  billing_cycle: "monthly" | "annual";
   plan: Plan;
 }
 
@@ -29,9 +31,9 @@ export async function getSubscription(
     .select(
       `
       id, status, trial_ends_at, current_period_end, is_admin_override,
-      billing_phone, auto_bill_at_end,
+      billing_phone, auto_bill_at_end, billing_cycle,
       subscription_plans (
-        name, display_name, price_kes,
+        name, display_name, price_kes, annual_discount_pct,
         max_shops, max_products_per_shop, max_staff_per_shop, max_sales_per_month
       )
     `,
@@ -48,6 +50,7 @@ export async function getSubscription(
     is_admin_override: boolean;
     billing_phone: string | null;
     auto_bill_at_end: boolean;
+    billing_cycle: "monthly" | "annual";
     subscription_plans: Plan | Plan[];
   };
   const row = data as unknown as Row;
@@ -62,6 +65,7 @@ export async function getSubscription(
     is_admin_override: row.is_admin_override,
     billing_phone: row.billing_phone,
     auto_bill_at_end: row.auto_bill_at_end,
+    billing_cycle: row.billing_cycle ?? "monthly",
     plan,
   };
 }

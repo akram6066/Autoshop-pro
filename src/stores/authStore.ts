@@ -136,7 +136,7 @@ export const selectRole = (s: AuthState) => s.role;
 export const selectShopId = (s: AuthState) => s.shopId;
 export const selectPlanName = (s: AuthState) => s.planName;
 export const selectIsPaidPlan = (s: AuthState) =>
-  s.planName !== null && s.planName !== "trial";
+  s.planName !== null && s.planName !== "trial" && s.planName !== "free";
 export const selectIsOwner = (s: AuthState) => s.role === "owner";
 export const selectIsStaff = (s: AuthState) => s.role === "staff";
 export const selectHasShop = (s: AuthState) => s.shopId !== null;

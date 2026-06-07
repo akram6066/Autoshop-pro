@@ -5,7 +5,7 @@ import { z } from "zod";
 const schema = z.object({
   name: z.string().min(1).max(200).trim(),
   email: z.string().email().max(254).trim().toLowerCase(),
-  subject: z.string().min(1).max(200).trim(),
+  subject: z.string().max(200).trim().default("Contact Inquiry"),
   message: z.string().min(10).max(5000).trim(),
 });
 

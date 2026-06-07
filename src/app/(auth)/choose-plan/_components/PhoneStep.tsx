@@ -15,12 +15,14 @@ export function PhoneStep({
   plan,
   trialDays,
   isPending,
+  billingCycle,
   onBack,
   onSubmit,
 }: {
   plan: Plan;
   trialDays: number;
   isPending: boolean;
+  billingCycle: "monthly" | "annual";
   onBack: () => void;
   onSubmit: (phone: string | undefined) => void;
 }) {
@@ -28,7 +30,15 @@ export function PhoneStep({
   const [error, setError] = useState("");
 
   const planLabel = plan.name === "ultra_pro" ? "Ultra Pro" : plan.display_name;
-  const priceKes = plan.price_kes.toLocaleString();
+  const isAnnual = billingCycle === "annual";
+  const discount = plan.annual_discount_pct ?? 20;
+  const displayPrice =
+    isAnnual && plan.price_kes > 0
+      ? Math.round(plan.price_kes * (1 - discount / 100))
+      : plan.price_kes;
+  const totalAmount = isAnnual ? displayPrice * 12 : displayPrice;
+  const periodLabel = isAnnual ? "year" : "mo";
+  const priceKes = displayPrice.toLocaleString();
 
   function handleStart() {
     setError("");
@@ -119,7 +129,11 @@ export function PhoneStep({
           lineHeight: 1.5,
         }}
       >
-        Try everything free for {trialDays} days. After that, KES {priceKes}/mo
+        Try everything free for {trialDays} days. After that, KES {priceKes}/
+        {periodLabel}
+        {isAnnual
+          ? ` (total KES ${totalAmount.toLocaleString()} billed annually)`
+          : ""}{" "}
         — we&apos;ll send an M-Pesa prompt to your phone so you confirm before
         any charge.
       </p>

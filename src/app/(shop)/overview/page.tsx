@@ -20,7 +20,12 @@ export default function OverviewPage() {
   const shop = useAuthStore(selectShop);
   const switchShop = useAuthStore((s) => s.switchShop);
 
-  const plan = shop?.plan === "pro" ? "pro" : "free";
+  const plan =
+    shop?.plan === "pro" ||
+    shop?.plan === "ultra_pro" ||
+    shop?.plan === "free_forever"
+      ? "pro"
+      : "free";
   const atShopLimit = plan === "free" && shops.length >= 1;
 
   const [kpisMap, setKpisMap] = useState<Record<string, ShopKPIs>>({});

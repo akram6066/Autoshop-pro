@@ -6,7 +6,12 @@ import { PlanCards } from "./_components/PlanCards";
 
 export const metadata = { title: "Choose your plan — AutoShop Pro" };
 
-export default async function ChoosePlanPage() {
+export default async function ChoosePlanPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ plan?: string; interval?: string }>;
+}) {
+  const { plan: planParam, interval: intervalParam } = await searchParams;
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
@@ -18,7 +23,7 @@ export default async function ChoosePlanPage() {
     db
       .from("subscription_plans")
       .select(
-        "name, display_name, price_kes, max_shops, max_products_per_shop, max_staff_per_shop, max_sales_per_month",
+        "name, display_name, price_kes, annual_discount_pct, max_shops, max_products_per_shop, max_staff_per_shop, max_sales_per_month",
       )
       .eq("is_active", true)
       .in("name", ["trial", "pro", "ultra_pro"])
@@ -52,7 +57,7 @@ export default async function ChoosePlanPage() {
           width={200}
           height={46}
           className="h-8 w-auto dark:hidden"
-          style={{ width: "auto" }}
+          style={{ width: "auto", height: "auto" }}
           priority
         />
         <Image
@@ -61,7 +66,7 @@ export default async function ChoosePlanPage() {
           width={200}
           height={46}
           className="h-8 w-auto hidden dark:block"
-          style={{ width: "auto" }}
+          style={{ width: "auto", height: "auto" }}
           priority
         />
       </div>
@@ -70,6 +75,8 @@ export default async function ChoosePlanPage() {
         plans={plans ?? []}
         trialEnabled={trialEnabled}
         trialDays={trialDays}
+        initialPlan={planParam}
+        initialInterval={intervalParam}
       />
     </div>
   );

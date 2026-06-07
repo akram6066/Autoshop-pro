@@ -111,7 +111,7 @@ export default function UpdatePasswordPage() {
             width={260}
             height={60}
             className="h-9 w-auto mx-auto dark:brightness-0 dark:invert"
-            style={{ width: "auto" }}
+            style={{ width: "auto", height: "auto" }}
             priority
             loading="eager"
           />

@@ -163,7 +163,7 @@ function FooterSection() {
                 alt="AutoShop Pro"
                 width={120}
                 height={32}
-                style={{ marginBottom: 16, width: "auto" }}
+                style={{ marginBottom: 16, width: "auto", height: "auto" }}
                 className="h-8 w-auto"
               />
               <p

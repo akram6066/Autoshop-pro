@@ -23,7 +23,7 @@ export default function ActivityPage() {
   const [filter, setFilter] = useState<FilterValue>("all");
 
   useEffect(() => {
-    if (planName === "trial") router.replace("/billing");
+    if (planName === "trial" || planName === "free") router.replace("/billing");
   }, [planName, router]);
 
   const {
@@ -34,11 +34,12 @@ export default function ActivityPage() {
   } = useQuery({
     queryKey: ["activity", shopId],
     queryFn: () => fetchActivity(shopId!),
-    enabled: !!shopId && isOwner && planName !== "trial",
+    enabled: !!shopId && isOwner && planName !== "trial" && planName !== "free",
     staleTime: 1000 * 60,
   });
 
-  if (planName === null || planName === "trial") return null;
+  if (planName === null || planName === "trial" || planName === "free")
+    return null;
 
   const filtered =
     filter === "all"

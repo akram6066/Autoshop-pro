@@ -96,7 +96,7 @@ export async function POST(
       })
       .eq("checkout_request_id", CheckoutRequestID)
       .eq("status", "pending")
-      .select("subscription_id, user_id, target_plan_name")
+      .select("subscription_id, user_id, target_plan_name, billing_cycle")
       .single();
 
     if (!payment) return NextResponse.json({ ResultCode: 0 });
@@ -106,6 +106,7 @@ export async function POST(
       subscription_id: string | null;
       user_id: string | null;
       target_plan_name: string | null;
+      billing_cycle: "monthly" | "annual" | null;
     };
     const planName =
       paymentData.target_plan_name === "ultra_pro" ? "ultra_pro" : "pro";
@@ -127,12 +128,15 @@ export async function POST(
             .eq("id", paymentData.subscription_id)
             .single();
 
+          const isAnnual = paymentData.billing_cycle === "annual";
+          const daysToAdd = isAnnual ? 365 : 30;
+
           const base =
             existingSub?.current_period_end &&
             new Date(existingSub.current_period_end) > new Date()
               ? new Date(existingSub.current_period_end)
               : new Date();
-          base.setDate(base.getDate() + 30);
+          base.setDate(base.getDate() + daysToAdd);
 
           const { error: subErr } = await db
             .from("subscriptions")
@@ -140,6 +144,7 @@ export async function POST(
               plan_id: chosenPlan.id,
               status: "active",
               current_period_end: base.toISOString(),
+              billing_cycle: paymentData.billing_cycle ?? "monthly",
               updated_at: new Date().toISOString(),
             })
             .eq("id", paymentData.subscription_id);

@@ -30,15 +30,22 @@ export function PlanCard({
   plan,
   meta,
   isPending,
+  isAnnual = false,
   onChoose,
 }: {
   plan: Plan;
   meta: PlanMeta;
   isPending: boolean;
+  isAnnual?: boolean;
   onChoose: (name: string) => void;
 }) {
   const isHighlight = meta.highlight;
   const isFree = plan.name === "trial";
+  const discount = plan.annual_discount_pct ?? 20;
+  const displayPrice =
+    isAnnual && plan.price_kes > 0
+      ? Math.round(plan.price_kes * (1 - discount / 100))
+      : plan.price_kes;
 
   const features = [
     fmt(plan.max_shops, "shop" + (plan.max_shops === 1 ? "" : "s")),
@@ -133,7 +140,7 @@ export function PlanCard({
                   lineHeight: 1,
                 }}
               >
-                KES {plan.price_kes.toLocaleString()}
+                KES {displayPrice.toLocaleString()}
               </span>
               <span
                 style={{
@@ -146,6 +153,21 @@ export function PlanCard({
             </>
           )}
         </div>
+
+        {isAnnual && plan.price_kes > 0 && (
+          <p
+            style={{
+              fontSize: "0.75rem",
+              color: "var(--color-ink-ghost)",
+              marginTop: 4,
+            }}
+          >
+            <span style={{ textDecoration: "line-through" }}>
+              KES {plan.price_kes.toLocaleString()}
+            </span>{" "}
+            billed annually
+          </p>
+        )}
 
         <p
           style={{

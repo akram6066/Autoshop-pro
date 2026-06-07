@@ -326,6 +326,11 @@ export function PlanSelector({
     initialPlan ?? null,
   );
   const selectedPlan = plans.find((p) => p.key === selectedKey) ?? null;
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">(
+    (sub.billing_cycle === "annual" ? "annual" : "monthly") as
+      | "monthly"
+      | "annual",
+  );
 
   const active = isActive(sub);
   const days = daysLeft(sub);
@@ -337,6 +342,93 @@ export function PlanSelector({
 
   return (
     <div>
+      {/* ── Annual / Monthly toggle ── */}
+      <div
+        style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}
+      >
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "4px",
+            borderRadius: 999,
+            background: "var(--color-surface-1)",
+            border: "1.5px solid var(--color-border)",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setBillingCycle("monthly")}
+            style={{
+              padding: "6px 14px",
+              borderRadius: 999,
+              border: "none",
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: "0.8125rem",
+              transition: "all 0.15s",
+              background:
+                billingCycle === "monthly"
+                  ? "var(--color-surface-0)"
+                  : "transparent",
+              color:
+                billingCycle === "monthly"
+                  ? "var(--color-ink-primary)"
+                  : "var(--color-ink-tertiary)",
+              boxShadow:
+                billingCycle === "monthly"
+                  ? "0 1px 3px rgba(0,0,0,0.08)"
+                  : "none",
+            }}
+          >
+            Monthly
+          </button>
+          <button
+            type="button"
+            onClick={() => setBillingCycle("annual")}
+            style={{
+              padding: "6px 14px",
+              borderRadius: 999,
+              border: "none",
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: "0.8125rem",
+              transition: "all 0.15s",
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              background:
+                billingCycle === "annual"
+                  ? "var(--color-surface-0)"
+                  : "transparent",
+              color:
+                billingCycle === "annual"
+                  ? "var(--color-ink-primary)"
+                  : "var(--color-ink-tertiary)",
+              boxShadow:
+                billingCycle === "annual"
+                  ? "0 1px 3px rgba(0,0,0,0.08)"
+                  : "none",
+            }}
+          >
+            Annual
+            <span
+              style={{
+                fontSize: "0.625rem",
+                fontWeight: 700,
+                padding: "1px 5px",
+                borderRadius: 999,
+                background: "var(--color-success-light)",
+                color: "var(--color-success)",
+              }}
+            >
+              Save 20%
+            </span>
+          </button>
+        </div>
+      </div>
+
       {/* ── Plan radio cards ── */}
       <div
         style={{
@@ -350,6 +442,11 @@ export function PlanSelector({
           const selected = plan.key === selectedKey;
           const cfg = PLAN_CONFIG[plan.key] ?? PLAN_CONFIG.pro;
           const isCurrent = sub.plan.name === plan.key && active;
+          const isAnnual = billingCycle === "annual";
+          const discount = plan.annualDiscountPct ?? 20;
+          const displayPrice = isAnnual
+            ? Math.round(plan.priceKes * (1 - discount / 100))
+            : plan.priceKes;
 
           return (
             <button
@@ -458,7 +555,7 @@ export function PlanSelector({
                     lineHeight: 1,
                   }}
                 >
-                  KES {plan.priceKes.toLocaleString()}
+                  KES {displayPrice.toLocaleString()}
                 </p>
                 <p
                   style={{
@@ -467,8 +564,20 @@ export function PlanSelector({
                     marginTop: 2,
                   }}
                 >
-                  /month
+                  /mo
                 </p>
+                {isAnnual && (
+                  <p
+                    style={{
+                      fontSize: "0.6875rem",
+                      color: "var(--color-ink-ghost)",
+                      marginTop: 2,
+                      textDecoration: "line-through",
+                    }}
+                  >
+                    KES {plan.priceKes.toLocaleString()}
+                  </p>
+                )}
               </div>
             </button>
           );
@@ -603,7 +712,20 @@ export function PlanSelector({
                     letterSpacing: "-0.02em",
                   }}
                 >
-                  KES {selectedPlan.priceKes.toLocaleString()}
+                  {(() => {
+                    const discount = selectedPlan.annualDiscountPct ?? 20;
+                    const displayPrice =
+                      billingCycle === "annual"
+                        ? Math.round(
+                            selectedPlan.priceKes * (1 - discount / 100),
+                          )
+                        : selectedPlan.priceKes;
+                    const totalDue =
+                      billingCycle === "annual"
+                        ? displayPrice * 12
+                        : displayPrice;
+                    return `KES ${totalDue.toLocaleString()}`;
+                  })()}
                   <span
                     style={{
                       fontSize: "0.875rem",
@@ -612,7 +734,7 @@ export function PlanSelector({
                       marginLeft: 4,
                     }}
                   >
-                    /month
+                    {billingCycle === "annual" ? "/year" : "/month"}
                   </span>
                 </p>
               </div>
@@ -632,8 +754,18 @@ export function PlanSelector({
 
             {/* M-Pesa form */}
             <SubscribeForm
-              priceKes={selectedPlan.priceKes}
+              priceKes={(() => {
+                const discount = selectedPlan.annualDiscountPct ?? 20;
+                const displayPrice =
+                  billingCycle === "annual"
+                    ? Math.round(selectedPlan.priceKes * (1 - discount / 100))
+                    : selectedPlan.priceKes;
+                return billingCycle === "annual"
+                  ? displayPrice * 12
+                  : displayPrice;
+              })()}
               planName={selectedKey ?? "pro"}
+              billingCycle={billingCycle}
             />
 
             {/* Trust line */}

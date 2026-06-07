@@ -2,6 +2,8 @@
 
 import { useEffect, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { flushQueue } from "@/lib/sync/queue";
+import { useAuthStore } from "@/stores/authStore";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -81,6 +83,25 @@ export function Providers({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener("online", handleOnline);
       document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, []);
+
+  // Listen for background sync requests from the Service Worker
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === "SYNC_REQUESTED") {
+        const shopId = useAuthStore.getState().shopId;
+        if (shopId) {
+          flushQueue(shopId).catch(console.warn);
+        }
+      }
+    };
+
+    navigator.serviceWorker.addEventListener("message", handleMessage);
+    return () => {
+      navigator.serviceWorker.removeEventListener("message", handleMessage);
     };
   }, []);
 

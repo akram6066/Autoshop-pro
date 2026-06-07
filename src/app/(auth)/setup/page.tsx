@@ -37,6 +37,8 @@ function SetupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAddingNew = searchParams.get("new") === "1";
+  const planParam = searchParams.get("plan");
+  const intervalParam = searchParams.get("interval");
 
   const setAll = useAuthStore((s) => s.setAll);
   const profile = useAuthStore((s) => s.profile);
@@ -310,7 +312,15 @@ function SetupContent() {
       setStep("done");
 
       setTimeout(() => {
-        router.push(isAddingNew ? "/overview" : "/choose-plan");
+        if (isAddingNew) {
+          router.push("/overview");
+        } else {
+          const query = [];
+          if (planParam) query.push(`plan=${planParam}`);
+          if (intervalParam) query.push(`interval=${intervalParam}`);
+          const queryString = query.length > 0 ? `?${query.join("&")}` : "";
+          router.push(`/choose-plan${queryString}`);
+        }
       }, 1200);
     });
   }
@@ -345,6 +355,7 @@ function SetupContent() {
           width={260}
           height={60}
           className="h-10 w-auto mx-auto mb-6 dark:hidden"
+          style={{ width: "auto", height: "auto" }}
           priority
           loading="eager"
         />
@@ -354,6 +365,7 @@ function SetupContent() {
           width={260}
           height={60}
           className="h-10 w-auto mx-auto mb-6 hidden dark:block"
+          style={{ width: "auto", height: "auto" }}
           priority
           loading="eager"
         />

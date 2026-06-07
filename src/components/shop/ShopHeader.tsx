@@ -12,6 +12,7 @@ import {
   useAuthStore,
   selectProfile,
   selectIsPaidPlan,
+  selectPlanName,
 } from "@/stores/authStore";
 
 interface ShopHeaderProps {
@@ -27,6 +28,18 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const profile = useAuthStore(selectProfile);
   const isPaidPlan = useAuthStore(selectIsPaidPlan);
+  const planName = useAuthStore(selectPlanName);
+
+  // Dynamically configure support channel based on user plan
+  let supportHref = "/contact";
+  let supportLabel = "Help & Support";
+  if (planName === "ultra_pro") {
+    supportHref = `https://wa.me/254799964428?text=Hi!%20I%20need%20priority%20support%20for%20my%20Ultra%20Pro%20shop%20(Shop%20ID:%20${shopId ?? ""})`;
+    supportLabel = "Priority WhatsApp Support";
+  } else if (planName === "pro") {
+    supportHref = `https://wa.me/254799964428?text=Hi!%20I%20need%20support%20for%20my%20Pro%20shop%20(Shop%20ID:%20${shopId ?? ""})`;
+    supportLabel = "WhatsApp Support";
+  }
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -62,7 +75,7 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
             width={260}
             height={60}
             className="h-8 w-auto dark:hidden"
-            style={{ width: "auto" }}
+            style={{ width: "auto", height: "auto" }}
             priority
             loading="eager"
           />
@@ -72,7 +85,7 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
             width={260}
             height={60}
             className="hidden h-8 w-auto dark:block"
-            style={{ width: "auto" }}
+            style={{ width: "auto", height: "auto" }}
             fetchPriority="high"
           />
         </Link>
@@ -174,6 +187,27 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
                 >
                   Profile Settings
                 </Link>
+                {supportHref.startsWith("http") ? (
+                  <a
+                    href={supportHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="block px-4 py-2 text-sm transition-colors font-medium"
+                    style={{ color: "var(--color-brand-600)" }}
+                  >
+                    {supportLabel}
+                  </a>
+                ) : (
+                  <Link
+                    href={supportHref}
+                    onClick={() => setUserMenuOpen(false)}
+                    className="block px-4 py-2 text-sm transition-colors"
+                    style={{ color: "var(--color-ink-secondary)" }}
+                  >
+                    {supportLabel}
+                  </Link>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -281,6 +315,45 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
               </svg>
               Profile Settings
             </Link>
+            {supportHref.startsWith("http") ? (
+              <a
+                href={supportHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMobileOpen(false)}
+                className="w-full mt-3 btn btn-ghost btn-sm justify-start gap-3"
+                style={{ color: "var(--color-brand-600)", fontWeight: 500 }}
+              >
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                  <path
+                    d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12c0 1.821.487 3.53 1.338 5L2 22l5-1.338C8.47 21.513 10.179 22 12 22z"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                {supportLabel}
+              </a>
+            ) : (
+              <Link
+                href={supportHref}
+                onClick={() => setMobileOpen(false)}
+                className="w-full mt-3 btn btn-ghost btn-sm justify-start gap-3"
+                style={{ color: "var(--color-ink-primary)" }}
+              >
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                  <path
+                    d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12c0 1.821.487 3.53 1.338 5L2 22l5-1.338C8.47 21.513 10.179 22 12 22z"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                {supportLabel}
+              </Link>
+            )}
             <button
               type="button"
               onClick={onSignOut}

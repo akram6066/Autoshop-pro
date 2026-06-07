@@ -2,6 +2,7 @@ export interface Plan {
   name: string;
   display_name: string;
   price_kes: number;
+  annual_discount_pct?: number;
   max_shops: number;
   max_products_per_shop: number;
   max_staff_per_shop: number;

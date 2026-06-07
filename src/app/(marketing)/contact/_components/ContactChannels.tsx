@@ -105,9 +105,9 @@ const FaqIcon = () => (
   </svg>
 );
 
-export function ContactChannels() {
+export function ContactChannels({ className }: { className?: string }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-16">
+    <div className={className ?? "grid grid-cols-1 sm:grid-cols-3 gap-5 mb-16"}>
       <Channel
         label="WhatsApp"
         value="+254 799 964 428"

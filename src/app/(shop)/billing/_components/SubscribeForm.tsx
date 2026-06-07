@@ -15,9 +15,11 @@ type Stage =
 export function SubscribeForm({
   priceKes,
   planName,
+  billingCycle = "monthly",
 }: {
   priceKes: number;
   planName?: string;
+  billingCycle?: "monthly" | "annual";
 }) {
   const [phone, setPhone] = useState("");
   const [stage, setStage] = useState<Stage>("idle");
@@ -35,7 +37,7 @@ export function SubscribeForm({
       const res = await fetch("/api/subscription/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, plan: planName ?? "pro" }),
+        body: JSON.stringify({ phone, plan: planName ?? "pro", billingCycle }),
       });
       const data = await res.json();
 

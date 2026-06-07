@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
     .from("subscriptions")
     .select(
       `
-      id, user_id, billing_phone,
-      subscription_plans ( name, display_name, price_kes )
+      id, user_id, billing_phone, billing_cycle,
+      subscription_plans ( name, display_name, price_kes, annual_discount_pct )
     `,
     )
     .eq("status", "trial")
@@ -58,15 +58,33 @@ export async function POST(req: NextRequest) {
     id: string;
     user_id: string;
     billing_phone: string;
+    billing_cycle: "monthly" | "annual";
     subscription_plans:
-      | { name: string; display_name: string; price_kes: number }
-      | { name: string; display_name: string; price_kes: number }[];
+      | {
+          name: string;
+          display_name: string;
+          price_kes: number;
+          annual_discount_pct: number;
+        }
+      | {
+          name: string;
+          display_name: string;
+          price_kes: number;
+          annual_discount_pct: number;
+        }[];
   }>) {
     const plan = Array.isArray(row.subscription_plans)
       ? row.subscription_plans[0]
       : row.subscription_plans;
 
     if (!plan || plan.price_kes <= 0) continue;
+
+    const isAnnual = row.billing_cycle === "annual";
+    const amountKes = isAnnual
+      ? Math.round(
+          plan.price_kes * (1 - (plan.annual_discount_pct ?? 20) / 100) * 12,
+        )
+      : plan.price_kes;
 
     try {
       // Mark billing initiated before the STK push to prevent double-firing
@@ -78,9 +96,9 @@ export async function POST(req: NextRequest) {
 
       const result = await initiateStkPush({
         phone: row.billing_phone,
-        amountKes: plan.price_kes,
+        amountKes: amountKes,
         accountRef: "AutoShopPro",
-        description: `${plan.display_name} - monthly subscription`,
+        description: `${plan.display_name} - ${isAnnual ? "annual" : "monthly"} subscription`,
       });
 
       if (result.responseCode === "0") {
@@ -90,10 +108,11 @@ export async function POST(req: NextRequest) {
           subscription_id: row.id,
           checkout_request_id: result.checkoutRequestId,
           merchant_request_id: result.merchantRequestId,
-          amount_kes: plan.price_kes,
+          amount_kes: amountKes,
           phone_number: row.billing_phone,
           status: "pending",
           target_plan_name: plan.name,
+          billing_cycle: row.billing_cycle ?? "monthly",
         });
         initiated++;
       } else {
