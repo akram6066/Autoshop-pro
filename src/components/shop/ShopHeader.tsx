@@ -74,7 +74,7 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
             alt="AutoShop Pro"
             width={260}
             height={60}
-            className="h-8 w-auto dark:hidden"
+            className="h-8 w-auto logo-light"
             style={{ width: "auto", height: "auto" }}
             priority
             loading="eager"
@@ -84,7 +84,7 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
             alt="AutoShop Pro"
             width={260}
             height={60}
-            className="hidden h-8 w-auto dark:block"
+            className="h-8 w-auto logo-dark"
             style={{ width: "auto", height: "auto" }}
             fetchPriority="high"
           />

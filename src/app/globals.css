@@ -5,6 +5,20 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Logo theme toggle utilities */
+.logo-light {
+  display: block;
+}
+.logo-dark {
+  display: none;
+}
+.dark .logo-light {
+  display: none !important;
+}
+.dark .logo-dark {
+  display: block !important;
+}
+
 *,
 *::before,
 *::after {
