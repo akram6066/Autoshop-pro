@@ -18,7 +18,7 @@ export function TrialBanner() {
 
   const planLabel =
     sub.plan.name === "ultra_pro"
-      ? "Ultra Pro"
+      ? "Big Companies"
       : (sub.plan.displayName ?? "Pro");
   const priceKes = sub.plan.priceKes.toLocaleString();
   const isUrgent = sub.daysLeft <= 3;

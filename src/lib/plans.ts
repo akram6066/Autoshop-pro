@@ -49,7 +49,7 @@ const PLAN_STATIC: Record<
   },
   ultra_pro: {
     description: "For multi-branch operations and growing shop chains.",
-    cta: "Get Ultra Pro",
+    cta: "Get Big Companies",
     ctaHref: "/signup?plan=ultra_pro",
   },
 };
@@ -185,14 +185,14 @@ export const FALLBACK_PLANS: PricingPlan[] = [
   },
   {
     id: "ultra_pro",
-    name: "Ultra Pro",
+    name: "Big Companies",
     monthlyPrice: 2500,
     currency: "KES",
     description: "For multi-branch operations and growing shop chains.",
     highlighted: false,
     freeTrial: false,
     annualDiscountPct: 20,
-    cta: "Get Ultra Pro",
+    cta: "Get Big Companies",
     ctaHref: "/signup?plan=ultra_pro",
     features: [
       { label: "Unlimited shops", included: true },

@@ -69,8 +69,8 @@ export function TrialSettingsCard({
             Free Trial Badge
           </h2>
           <p style={{ fontSize: "0.8125rem", color: "#64748b" }}>
-            Controls the &ldquo;Free Trial&rdquo; badge shown on Pro &amp; Ultra
-            Pro plan cards during signup.
+            Controls the &ldquo;Free Trial&rdquo; badge shown on Pro &amp; Big
+            Companies plan cards during signup.
           </p>
         </div>
 
@@ -265,7 +265,7 @@ export function TrialSettingsCard({
                   alignItems: "center",
                 }}
               >
-                ← shown on Pro &amp; Ultra Pro cards
+                ← shown on Pro &amp; Big Companies cards
               </span>
             </div>
           </div>

@@ -29,7 +29,8 @@ export function PhoneStep({
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
 
-  const planLabel = plan.name === "ultra_pro" ? "Ultra Pro" : plan.display_name;
+  const planLabel =
+    plan.name === "ultra_pro" ? "Big Companies" : plan.display_name;
   const isAnnual = billingCycle === "annual";
   const discount = plan.annual_discount_pct ?? 20;
   const displayPrice =

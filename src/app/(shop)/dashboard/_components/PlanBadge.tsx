@@ -17,7 +17,7 @@ const PLAN_STYLE: Record<
     border: "var(--color-badge-blue-border)",
   },
   ultra_pro: {
-    label: "Ultra Pro",
+    label: "Big Companies",
     bg: "var(--color-badge-purple-bg)",
     color: "var(--color-badge-purple-text)",
     border: "var(--color-badge-purple-border)",

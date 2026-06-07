@@ -181,7 +181,7 @@ export function PlanUsageSection({
                 href="/billing?plan=ultra_pro"
                 className="btn btn-secondary btn-sm"
               >
-                Upgrade to Ultra Pro →
+                Upgrade to Big Companies →
               </Link>
             )}
             {isPro && sub.plan.name !== "pro" && !sub.isAdminOverride && (

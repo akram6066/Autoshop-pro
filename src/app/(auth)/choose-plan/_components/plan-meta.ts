@@ -57,7 +57,7 @@ export function buildPlanMeta(
       subtitle: trialEnabled
         ? `Free for ${trialDays} days, then KES 2,500/mo`
         : "KES 2,500 / month",
-      cta: trialEnabled ? "Start Free Trial →" : "Get Ultra Pro →",
+      cta: trialEnabled ? "Start Free Trial →" : "Get Big Companies →",
       note: trialEnabled ? "No credit card required now" : undefined,
     },
   };
