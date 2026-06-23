@@ -401,26 +401,42 @@ export default function NewProductPage() {
                 <label className="block text-sm font-medium mb-1.5">
                   Category
                 </label>
-                {categories.length === 0 ? (
-                  <div
-                    className="input flex items-center text-sm"
-                    style={{ color: "var(--color-ink-tertiary)" }}
+                <select
+                  className="input"
+                  value={effectiveCategory}
+                  onChange={(e) => setCategory(e.target.value)}
+                  required
+                  disabled={
+                    categoriesRes.isLoading ||
+                    categoriesRes.isError ||
+                    categories.length === 0
+                  }
+                >
+                  {categoriesRes.isLoading && (
+                    <option value="">Loading categories...</option>
+                  )}
+                  {categoriesRes.isError && (
+                    <option value="">Could not load categories</option>
+                  )}
+                  {!categoriesRes.isLoading &&
+                    !categoriesRes.isError &&
+                    categories.length === 0 && (
+                      <option value="">No categories in Settings</option>
+                    )}
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                {categoriesRes.isError && (
+                  <p
+                    className="text-xs mt-1"
+                    style={{ color: "var(--color-danger)" }}
                   >
-                    No categories — create in Settings
-                  </div>
-                ) : (
-                  <select
-                    className="input"
-                    value={effectiveCategory}
-                    onChange={(e) => setCategory(e.target.value)}
-                    required
-                  >
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                    Failed to read categories. Check Supabase category policies
+                    or try again.
+                  </p>
                 )}
               </div>
               <div>

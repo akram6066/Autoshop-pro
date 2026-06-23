@@ -47,8 +47,8 @@ export default function SetupCategoriesStep({
         className="text-sm mb-5"
         style={{ color: "var(--color-ink-secondary)" }}
       >
-        We&apos;ve added some defaults for your shop. Remove any you don&apos;t
-        need, or add your own.
+        Add the categories you use most. You can edit this list later in
+        Settings.
       </p>
 
       {/* Category list */}

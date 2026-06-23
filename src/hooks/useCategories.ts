@@ -9,14 +9,15 @@ import type { CategoryItem } from "@/types/app";
 // The query key still uses shopId so it re-fetches when the active shop changes,
 // but the query itself has no shop filter.
 export const categoryKeys = {
-  all: (shopId: string) => ["categories", shopId] as const,
+  all: (scope: string) => ["categories", scope] as const,
+  currentUser: () => ["categories", "current-user"] as const,
 };
 
 export function useCategories(shopId: string | null) {
   const supabase = createClient();
 
   return useQuery({
-    queryKey: shopId ? categoryKeys.all(shopId) : ["categories-disabled"],
+    queryKey: shopId ? categoryKeys.all(shopId) : categoryKeys.currentUser(),
     queryFn: async (): Promise<CategoryItem[]> => {
       const { data, error } = await supabase
         .from("categories")
@@ -25,8 +26,8 @@ export function useCategories(shopId: string | null) {
       if (error) throw error;
       return data as CategoryItem[];
     },
-    enabled: !!shopId,
     staleTime: 1000 * 60 * 5,
+    refetchOnMount: "always",
   });
 }
 
@@ -47,12 +48,12 @@ export function useCreateCategory(shopId: string | null) {
       return data as CategoryItem;
     },
     onSuccess: () => {
-      if (shopId) qc.invalidateQueries({ queryKey: categoryKeys.all(shopId) });
+      qc.invalidateQueries({ queryKey: ["categories"] });
     },
   });
 }
 
-export function useDeleteCategory(shopId: string | null) {
+export function useDeleteCategory(_shopId: string | null) {
   const qc = useQueryClient();
   const supabase = createClient();
 
@@ -65,12 +66,12 @@ export function useDeleteCategory(shopId: string | null) {
       if (error) throw error;
     },
     onSuccess: () => {
-      if (shopId) qc.invalidateQueries({ queryKey: categoryKeys.all(shopId) });
+      qc.invalidateQueries({ queryKey: ["categories"] });
     },
   });
 }
 
-export function useUpdateCategory(shopId: string | null) {
+export function useUpdateCategory(_shopId: string | null) {
   const qc = useQueryClient();
   const supabase = createClient();
 
@@ -92,7 +93,7 @@ export function useUpdateCategory(shopId: string | null) {
       if (error) throw error;
     },
     onSuccess: () => {
-      if (shopId) qc.invalidateQueries({ queryKey: categoryKeys.all(shopId) });
+      qc.invalidateQueries({ queryKey: ["categories"] });
     },
   });
 }

@@ -3,6 +3,7 @@
 import { useState, useTransition, Suspense, useEffect } from "react";
 import { useMounted } from "@/hooks/useMounted";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { seedLocalCache } from "@/lib/db/instance";
@@ -36,6 +37,7 @@ export default function SetupPage() {
 function SetupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const isAddingNew = searchParams.get("new") === "1";
   const planParam = searchParams.get("plan");
   const intervalParam = searchParams.get("interval");
@@ -259,6 +261,7 @@ function SetupContent() {
         .single();
       if (error) throw error;
       setSetupCategories((prev) => [...prev, data as CategoryItem]);
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
       setCatName("");
       setCatColor(
         PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)],
@@ -279,6 +282,7 @@ function SetupContent() {
       const { error } = await supabase.from("categories").delete().eq("id", id);
       if (error) throw error;
       setSetupCategories((prev) => prev.filter((c) => c.id !== id));
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
     } catch (err: unknown) {
       setCatError(
         err instanceof Error ? err.message : "Failed to delete category",
@@ -309,6 +313,7 @@ function SetupContent() {
         newShop,
       ];
       setAll(user, updatedProfile as typeof profile, createdShop, updatedShops);
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
       setStep("done");
 
       setTimeout(() => {
