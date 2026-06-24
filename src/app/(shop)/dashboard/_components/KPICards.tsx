@@ -4,14 +4,14 @@ interface KPICardsProps {
   totalRevenue: number;
   orderCount: number;
   lowStockCount: number;
-  productCount: number;
+  inventoryUnitCount: number;
 }
 
 export function KPICards({
   totalRevenue,
   orderCount,
   lowStockCount,
-  productCount,
+  inventoryUnitCount,
 }: KPICardsProps) {
   const kpis = [
     {
@@ -31,8 +31,8 @@ export function KPICards({
     },
     {
       label: "Products",
-      value: String(productCount),
-      sub: "In inventory",
+      value: String(inventoryUnitCount),
+      sub: "Units in stock",
     },
   ];
 

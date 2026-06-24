@@ -6,12 +6,13 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useQuery } from "@tanstack/react-query";
 import { getDb } from "@/lib/db/instance";
 import { createClient } from "@/lib/supabase/client";
+import { fetchAllProducts } from "@/lib/supabase/fetchAllProducts";
 import { formatDate } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useTeam } from "@/hooks/useTeam";
-import type { LowStockProduct } from "@/types/app";
+import type { LowStockProduct, Product, ProductVariant } from "@/types/app";
 import DashboardSkeleton from "./loading";
 import { SubscriptionBanner } from "./_components/SubscriptionBanner";
 import { LimitSummaryBanner } from "./_components/LimitSummaryBanner";
@@ -22,6 +23,40 @@ import { KPICards } from "./_components/KPICards";
 import { LowStockTable } from "./_components/LowStockTable";
 import { PendingOrdersTable } from "./_components/PendingOrdersTable";
 import type { PendingOrder } from "./_components/PendingOrdersTable";
+
+function countUniqueProductNames(
+  products: Array<{ id: string; name: string | null }>,
+) {
+  return new Set(
+    products.map((product) => {
+      const nameKey = product.name?.trim().replace(/\s+/g, " ").toLowerCase();
+      return nameKey || product.id;
+    }),
+  ).size;
+}
+
+function countInventoryUnits(
+  products: Array<Pick<Product, "id" | "quantity">>,
+  variants: Array<Pick<ProductVariant, "product_id" | "quantity">>,
+) {
+  const variantsByProduct = new Map<string, number[]>();
+
+  for (const variant of variants) {
+    const quantities = variantsByProduct.get(variant.product_id) ?? [];
+    quantities.push(Number(variant.quantity) || 0);
+    variantsByProduct.set(variant.product_id, quantities);
+  }
+
+  return products.reduce((total, product) => {
+    const variantQuantities = variantsByProduct.get(product.id);
+
+    if (variantQuantities?.length) {
+      return total + variantQuantities.reduce((sum, qty) => sum + qty, 0);
+    }
+
+    return total + (Number(product.quantity) || 0);
+  }, 0);
+}
 
 function DashboardContent() {
   const user = useAuthStore((s) => s.user);
@@ -117,23 +152,48 @@ function DashboardContent() {
     staleTime: 60000,
   });
 
-  // React Query: Supabase product counts per shop
+  // React Query: Supabase unique product/brand counts per shop
   const { data: onlineProductCounts } = useQuery({
     queryKey: ["dashboard-product-counts", shopIds],
     queryFn: async () => {
       const supabase = createClient();
       const counts = await Promise.all(
-        shopIds.map((id) =>
-          supabase
-            .from("products")
-            .select("*", { count: "exact", head: true })
-            .eq("shop_id", id)
-            .then((r) => [id, r.count ?? 0] as const),
-        ),
+        shopIds.map(async (id) => {
+          const products = await fetchAllProducts(supabase, id);
+          return [id, countUniqueProductNames(products)] as const;
+        }),
       );
       return Object.fromEntries(counts);
     },
     enabled: isOnline && shopIds.length > 0,
+    staleTime: 60000,
+  });
+
+  // React Query: Supabase stock units for the active shop KPI.
+  const { data: onlineInventoryUnitCount, isLoading: unitsLoading } = useQuery({
+    queryKey: ["dashboard-inventory-unit-count", activeShopId],
+    queryFn: async () => {
+      const supabase = createClient();
+      const products = await fetchAllProducts(supabase, activeShopId!);
+      const productIds = products.map((product) => product.id);
+
+      if (productIds.length === 0) {
+        return 0;
+      }
+
+      const { data, error } = await supabase
+        .from("product_variants")
+        .select("product_id, quantity")
+        .in("product_id", productIds);
+
+      if (error) throw error;
+
+      return countInventoryUnits(
+        products,
+        (data ?? []) as Array<Pick<ProductVariant, "product_id" | "quantity">>,
+      );
+    },
+    enabled: isOnline && !!activeShopId,
     staleTime: 60000,
   });
 
@@ -191,12 +251,31 @@ function DashboardContent() {
     const db = getDb();
     const counts = await Promise.all(
       shopIds.map(async (id) => {
-        const count = await db.products.where("shop_id").equals(id).count();
+        const products = await db.products
+          .where("shop_id")
+          .equals(id)
+          .toArray();
+        const count = countUniqueProductNames(products);
         return [id, count] as const;
       }),
     );
     return Object.fromEntries(counts);
   }, [shopIds]);
+
+  const localInventoryUnitCount = useLiveQuery(async () => {
+    if (!activeShopId) return 0;
+    const db = getDb();
+    const products = await db.products
+      .where("shop_id")
+      .equals(activeShopId)
+      .toArray();
+    const productIds = new Set(products.map((product) => product.id));
+    const variants = (await db.product_variants.toArray()).filter((variant) =>
+      productIds.has(variant.product_id),
+    );
+
+    return countInventoryUnits(products, variants);
+  }, [activeShopId]);
 
   // Combine online (Supabase) + local unsynced data
   const todaySales = useMemo(() => {
@@ -238,6 +317,13 @@ function DashboardContent() {
     return onlineProductCounts;
   }, [isOnline, onlineProductCounts, localProductCounts]);
 
+  const inventoryUnitCount = useMemo(() => {
+    if (!isOnline || onlineInventoryUnitCount === undefined) {
+      return localInventoryUnitCount ?? 0;
+    }
+    return onlineInventoryUnitCount;
+  }, [isOnline, onlineInventoryUnitCount, localInventoryUnitCount]);
+
   const staffCount = useMemo(() => {
     if (!isOnline || !teamMembers) {
       return 0;
@@ -251,8 +337,10 @@ function DashboardContent() {
     localLowStock === undefined ||
     localPOs === undefined ||
     localProductCounts === undefined ||
+    localInventoryUnitCount === undefined ||
     subLoading ||
-    (isOnline && (salesLoading || lowStockLoading || posLoading));
+    (isOnline &&
+      (salesLoading || lowStockLoading || posLoading || unitsLoading));
 
   if (isDataLoading) {
     return <DashboardSkeleton />;
@@ -380,7 +468,7 @@ function DashboardContent() {
         totalRevenue={totalRevenue}
         orderCount={orderCount}
         lowStockCount={lowStock.length}
-        productCount={activeShop?.productCount ?? 0}
+        inventoryUnitCount={inventoryUnitCount}
       />
 
       {/* Low stock table */}
