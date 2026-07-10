@@ -1,5 +1,5 @@
 import { AutoShopDatabase } from "./schema";
-import type { Product, Room, Shop } from "@/types/app";
+import type { Product, Room, Shop, Sale } from "@/types/app";
 
 // ─── Singleton ────────────────────────────────────────────────────────────────
 
@@ -85,19 +85,82 @@ export async function seedProducts(
   products: Product[],
 ): Promise<void> {
   const db = getDb();
-  const remoteIds = new Set(products.map((p) => p.id));
+
+  // Find all unsynced commands in the sync queue for this shop
+  // to avoid deleting products created/updated offline that haven't synced yet,
+  // and to apply pending stock deductions so the POS doesn't allow overselling.
+  const unsyncedCommands = await db.sync_queue
+    .where("shop_id")
+    .equals(shopId)
+    .filter((cmd) => cmd.status !== "synced")
+    .toArray();
+
+  const unsyncedProductIds = new Set<string>();
+  const pendingStockDeductions = new Map<string, number>();
+
+  for (const cmd of unsyncedCommands) {
+    if (cmd.command === "MANAGE_PRODUCT") {
+      const prod = cmd.payload?.product as Record<string, unknown> | undefined;
+      if (prod?.id) {
+        unsyncedProductIds.add(prod.id as string);
+      }
+    } else if (cmd.command === "RECORD_SALE") {
+      const items = cmd.payload?.items as
+        | Array<Record<string, unknown>>
+        | undefined;
+      if (items && Array.isArray(items)) {
+        for (const item of items) {
+          const pid = item.product_id as string | undefined;
+          const qty = item.quantity as number | undefined;
+          if (pid && typeof qty === "number") {
+            pendingStockDeductions.set(
+              pid,
+              (pendingStockDeductions.get(pid) || 0) + qty,
+            );
+          }
+        }
+      }
+    } else if (cmd.command === "RECORD_STOCK_MOVEMENT") {
+      const movement = cmd.payload?.movement as
+        | Record<string, unknown>
+        | undefined;
+      const pid = movement?.product_id as string | undefined;
+      const type = movement?.type as string | undefined;
+      const delta = movement?.delta as number | undefined;
+
+      if (pid && type && typeof delta === "number") {
+        const currentDeduction = pendingStockDeductions.get(pid) || 0;
+        if (type === "OUT") {
+          pendingStockDeductions.set(pid, currentDeduction + delta);
+        } else if (type === "IN") {
+          pendingStockDeductions.set(pid, currentDeduction - delta);
+        }
+      }
+    }
+  }
+
+  // Apply pending deductions to the incoming remote products
+  const adjustedProducts = products.map((p) => {
+    const deduction = pendingStockDeductions.get(p.id) || 0;
+    if (deduction !== 0) {
+      return { ...p, quantity: Math.max(0, p.quantity - deduction) };
+    }
+    return p;
+  });
+
+  const remoteIds = new Set(adjustedProducts.map((p) => p.id));
   const localProducts = await db.products
     .where("shop_id")
     .equals(shopId)
     .toArray();
 
   const staleIds = localProducts
-    .filter((p) => !remoteIds.has(p.id))
+    .filter((p) => !remoteIds.has(p.id) && !unsyncedProductIds.has(p.id))
     .map((p) => p.id);
 
   await db.transaction("rw", db.products, async () => {
     if (staleIds.length > 0) await db.products.bulkDelete(staleIds);
-    await db.products.bulkPut(products);
+    await db.products.bulkPut(adjustedProducts);
   });
 }
 
@@ -129,9 +192,7 @@ export async function pruneOldData(): Promise<void> {
   await Promise.all([
     db.sales.where("created_at").below(cutoff).delete(),
     db.stock_movements
-      .where("synced")
-      .equals(1)
-      .and((m) => m.created_at < cutoff)
+      .filter((m) => m.synced === true && m.created_at < cutoff)
       .delete(),
     db.sync_queue
       .where("status")
@@ -175,4 +236,39 @@ export async function getLocalRooms(shopId: string): Promise<Room[]> {
 
 export async function getLocalShop(shopId: string): Promise<Shop | undefined> {
   return getDb().shops.get(shopId);
+}
+
+/**
+ * Get sales from IndexedDB for a shop (newest first).
+ */
+export async function getLocalSales(
+  shopId: string,
+  limit = 50,
+): Promise<Sale[]> {
+  return getDb()
+    .sales.where("shop_id")
+    .equals(shopId)
+    .reverse()
+    .limit(limit)
+    .toArray();
+}
+
+/**
+ * Seed sales into IndexedDB (used after successful sync).
+ */
+export async function seedSales(shopId: string, sales: Sale[]): Promise<void> {
+  const db = getDb();
+  const remoteIds = new Set(sales.map((s) => s.id));
+  const localSales = await db.sales.where("shop_id").equals(shopId).toArray();
+
+  // ONLY delete local sales that are marked as synced.
+  // Never delete unsynced local sales (local-first/offline sales).
+  const staleIds = localSales
+    .filter((s) => s.synced && !remoteIds.has(s.id))
+    .map((s) => s.id);
+
+  await db.transaction("rw", db.sales, async () => {
+    if (staleIds.length > 0) await db.sales.bulkDelete(staleIds);
+    await db.sales.bulkPut(sales);
+  });
 }

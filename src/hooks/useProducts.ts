@@ -79,13 +79,30 @@ export function useCreateProduct() {
         ...data,
       };
 
+      let rpcError: unknown = null;
+      let isNetworkError = false;
       try {
         const { error } = await supabase.rpc("manage_product", {
           p_op: "INSERT",
           p_product: payload as unknown as Json,
         });
-
         if (error) {
+          rpcError = error;
+        }
+      } catch (err) {
+        console.warn(
+          "[useProducts] manage_product RPC failed with exception, falling back to offline:",
+          err,
+        );
+        rpcError = err || new Error("Failed to connect to Supabase");
+        isNetworkError = true;
+      }
+
+      try {
+        if (rpcError) {
+          if (!isNetworkError) {
+            throw rpcError;
+          }
           await enqueue(shopId, "MANAGE_PRODUCT", {
             op: "INSERT",
             product: payload as unknown as Record<string, unknown>,
@@ -94,6 +111,8 @@ export function useCreateProduct() {
           return { status: "offline", data: payload };
         }
 
+        // Cache product locally on success
+        await getDb().products.put(payload);
         return { status: "success", data: payload };
       } catch (err) {
         return {
@@ -135,6 +154,8 @@ export function useUpdateProduct() {
       const { quantity, ...otherChanges } = changes;
       const payload = { ...otherChanges, updated_at: now };
 
+      let rpcError: unknown = null;
+      let isNetworkError = false;
       try {
         const { error } = await supabase.rpc("manage_product", {
           p_op: "UPDATE",
@@ -144,8 +165,24 @@ export function useUpdateProduct() {
             ...payload,
           } as unknown as Json,
         });
+        if (error) {
+          rpcError = error;
+        }
+      } catch (err) {
+        console.warn(
+          "[useProducts] manage_product RPC failed with exception, falling back to offline:",
+          err,
+        );
+        rpcError = err || new Error("Failed to connect to Supabase");
+        isNetworkError = true;
+      }
 
-        const isOffline = !!error;
+      try {
+        if (rpcError && !isNetworkError) {
+          throw rpcError;
+        }
+
+        const isOffline = !!rpcError;
 
         if (isOffline) {
           await enqueue(shopId, "MANAGE_PRODUCT", {

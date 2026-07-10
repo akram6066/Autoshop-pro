@@ -79,7 +79,13 @@ export function useCart() {
   const updateQty = useCallback((cartKey: string, qty: number) => {
     setItems((prev) =>
       prev
-        .map((i) => (i.cartKey === cartKey ? { ...i, quantity: qty } : i))
+        .map((i) => {
+          if (i.cartKey === cartKey) {
+            const cappedQty = Math.min(qty, i.maxQuantity);
+            return { ...i, quantity: cappedQty };
+          }
+          return i;
+        })
         .filter((i) => i.quantity > 0),
     );
   }, []);

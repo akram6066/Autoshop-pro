@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { PaymentMethod } from "@/types/app";
@@ -42,7 +42,7 @@ export function SaleDetailModal({
   const { mutateAsync: voidSale, isPending: isVoiding } = useVoidSale();
   const [confirmingVoid, setConfirmingVoid] = useState(false);
   const [voidError, setVoidError] = useState("");
-
+  const queryClient = useQueryClient();
   const isVoided = sale.status === "voided";
 
   useEffect(() => {
@@ -56,12 +56,61 @@ export function SaleDetailModal({
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["sale-items", sale.id],
     queryFn: async (): Promise<SaleItem[]> => {
-      const { data, error } = await supabase
-        .from("sale_items")
-        .select("id, quantity, unit_price, products(name, sku)")
-        .eq("sale_id", sale.id);
-      if (error) throw error;
-      return (data ?? []) as unknown as SaleItem[];
+      const { getDb } = await import("@/lib/db/instance");
+      const db = getDb();
+
+      if (sale.status === "pending") {
+        const localItems = await db.sale_items
+          .where("sale_id")
+          .equals(sale.id)
+          .toArray();
+
+        return Promise.all(
+          localItems.map(async (item) => {
+            const product = await db.products.get(item.product_id);
+            return {
+              id: item.id,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              products: product
+                ? { name: product.name, sku: product.sku }
+                : null,
+            };
+          }),
+        );
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("sale_items")
+          .select("id, quantity, unit_price, products(name, sku)")
+          .eq("sale_id", sale.id);
+        if (error) throw error;
+        return (data ?? []) as unknown as SaleItem[];
+      } catch (err) {
+        console.warn(
+          "[SaleDetailModal] Supabase fetch items failed, using IndexedDB:",
+          err,
+        );
+        const localItems = await db.sale_items
+          .where("sale_id")
+          .equals(sale.id)
+          .toArray();
+
+        return Promise.all(
+          localItems.map(async (item) => {
+            const product = await db.products.get(item.product_id);
+            return {
+              id: item.id,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              products: product
+                ? { name: product.name, sku: product.sku }
+                : null,
+            };
+          }),
+        );
+      }
     },
     staleTime: 1000 * 60 * 10,
   });

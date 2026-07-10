@@ -5,14 +5,18 @@
 import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
-  dsn: "https://b63bf2517e9544a50acf14e90b817f67@o4511360374013952.ingest.de.sentry.io/4511360380764240",
+  dsn:
+    process.env.NEXT_PUBLIC_SENTRY_DSN ||
+    "https://b63bf2517e9544a50acf14e90b817f67@o4511360374013952.ingest.de.sentry.io/4511360380764240",
+
+  enabled: process.env.NODE_ENV === "production",
 
   // Add optional integrations for additional features
   integrations: [Sentry.replayIntegration()],
 
   tracesSampleRate: 0.1,
 
-  enableLogs: true,
+  enableLogs: process.env.NODE_ENV === "production",
 
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,

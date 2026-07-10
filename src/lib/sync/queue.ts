@@ -170,6 +170,40 @@ async function _doFlush(shopId: string): Promise<void> {
             status: "synced",
             error: null,
           });
+
+          // Mark local sale and related stock movements as synced in IndexedDB
+          if (entry.command === "RECORD_SALE") {
+            const salePayload = entry.payload.sale as
+              | Record<string, unknown>
+              | undefined;
+            const saleId = salePayload?.id as string | undefined;
+            if (saleId) {
+              await db.sales.update(saleId, { synced: true });
+
+              const items =
+                (entry.payload.items as Record<string, unknown>[]) ?? [];
+              const productIds = items.map((item) => item.product_id as string);
+              const createdAt = salePayload?.created_at as string | undefined;
+              if (productIds.length > 0 && createdAt) {
+                await db.stock_movements
+                  .where("created_at")
+                  .equals(createdAt)
+                  .modify((m) => {
+                    if (productIds.includes(m.product_id)) {
+                      m.synced = true;
+                    }
+                  });
+              }
+            }
+          } else if (entry.command === "RECORD_STOCK_MOVEMENT") {
+            const movementPayload = entry.payload.movement as
+              | Record<string, unknown>
+              | undefined;
+            const movementId = movementPayload?.id as string | undefined;
+            if (movementId) {
+              await db.stock_movements.update(movementId, { synced: true });
+            }
+          }
         } else {
           const attempts = entry.attempts + 1;
           await db.sync_queue.update(res.id, {

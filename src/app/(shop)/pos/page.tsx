@@ -274,8 +274,14 @@ export default function POSPage() {
         },
       });
       clear();
-    } catch {
-      toast.error("Sale failed — please try again.");
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null && "message" in err
+            ? String((err as Record<string, unknown>).message)
+            : "Sale failed — please try again.";
+      toast.error(msg);
     }
   }
 

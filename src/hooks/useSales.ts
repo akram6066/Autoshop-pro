@@ -7,7 +7,7 @@ import {
   useInfiniteQuery,
 } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
-import { getDb } from "@/lib/db/instance";
+import { getDb, getLocalSales, seedSales } from "@/lib/db/instance";
 import { enqueue } from "@/lib/sync/queue";
 import { sanitizeText } from "@/lib/sanitize";
 import { getDeviceId } from "@/lib/utils";
@@ -16,6 +16,8 @@ import type {
   PaymentMethod,
   SalesSummaryRow,
   Sale,
+  Product,
+  ProductVariant,
 } from "@/types/app";
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
@@ -28,6 +30,40 @@ export const saleKeys = {
     ["sales-summary", shopId, from, to] as const,
 };
 
+// ─── Fetch (network-first, IndexedDB fallback) ────────────────────────────────
+
+async function fetchSalesPage(
+  shopId: string,
+  pageParam: string | null,
+  pageSize: number,
+): Promise<Sale[]> {
+  const supabase = createClient();
+  try {
+    let query = supabase
+      .from("sales")
+      .select("*")
+      .eq("shop_id", shopId)
+      .order("created_at", { ascending: false })
+      .limit(pageSize);
+
+    if (pageParam) {
+      query = query.lt("created_at", pageParam);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    // Seed the first page to IndexedDB for offline access
+    if (!pageParam) {
+      seedSales(shopId, data as Sale[]).catch(console.error);
+    }
+    return data as Sale[];
+  } catch (err) {
+    console.warn("[useSales] Supabase fetch failed, using IndexedDB:", err);
+    return getLocalSales(shopId, pageSize);
+  }
+}
+
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
 export function useSales(shopId: string | null, pageSize = 50) {
@@ -38,21 +74,8 @@ export function useSales(shopId: string | null, pageSize = 50) {
     }: {
       pageParam: string | null;
     }): Promise<Sale[]> => {
-      const supabase = createClient();
-      let query = supabase
-        .from("sales")
-        .select("*")
-        .eq("shop_id", shopId!)
-        .order("created_at", { ascending: false })
-        .limit(pageSize);
-
-      if (pageParam) {
-        query = query.lt("created_at", pageParam);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Sale[];
+      if (!shopId) return [];
+      return fetchSalesPage(shopId, pageParam, pageSize);
     },
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) =>
@@ -194,14 +217,32 @@ export function useRecordSale() {
 
       // Attempt to call record_sale RPC (atomic: sale + items + movements)
       const supabase = createClient();
-      const { error } = await supabase.rpc("record_sale", {
-        p_sale: salePayload,
-        p_items: itemsPayload,
-      });
+      let rpcError: unknown = null;
+      let isNetworkError = false;
+      try {
+        const { error } = await supabase.rpc("record_sale", {
+          p_sale: salePayload,
+          p_items: itemsPayload,
+        });
+        if (error) {
+          rpcError = error;
+        }
+      } catch (err) {
+        console.warn(
+          "[useSales] record_sale RPC failed with network exception, falling back to offline:",
+          err,
+        );
+        rpcError = err || new Error("Failed to connect to Supabase");
+        isNetworkError = true;
+      }
 
       const db = getDb();
 
-      if (error) {
+      if (rpcError) {
+        if (!isNetworkError) {
+          throw rpcError;
+        }
+
         // Offline path: write locally, enqueue for sync
         await db.transaction(
           "rw",
@@ -211,9 +252,14 @@ export function useRecordSale() {
             db.stock_movements,
             db.sync_queue,
             db.products,
+            db.product_variants,
           ],
           async () => {
-            await db.sales.put({ ...salePayload, synced: false });
+            await db.sales.put({
+              ...salePayload,
+              synced: false,
+              status: "completed",
+            });
             await db.sale_items.bulkPut(itemsPayload);
 
             // Write stock movements locally
@@ -236,16 +282,25 @@ export function useRecordSale() {
 
             await db.stock_movements.bulkPut(movements);
 
-            // Decrement product quantities in IndexedDB so the UI reflects the sale
+            // Decrement product and variant quantities in IndexedDB so the UI reflects the sale immediately
             await Promise.all(
-              items.map((i) =>
-                db.products
+              items.map(async (i) => {
+                await db.products
                   .where("id")
                   .equals(i.product.id)
                   .modify((p) => {
                     p.quantity = Math.max(0, p.quantity - i.quantity);
-                  }),
-              ),
+                  });
+
+                if (i.variantId) {
+                  await db.product_variants
+                    .where("id")
+                    .equals(i.variantId)
+                    .modify((v) => {
+                      v.quantity = Math.max(0, v.quantity - i.quantity);
+                    });
+                }
+              }),
             );
 
             // Enqueue: sale header + items as a bundle for the record_sale RPC
@@ -256,16 +311,81 @@ export function useRecordSale() {
           },
         );
       } else {
-        // Online path: just persist locally for offline reads
-        await db.sales.put({ ...salePayload, synced: true });
-        await db.sale_items.bulkPut(itemsPayload);
+        // Online path: persist locally and immediately decrement quantities locally to stay in sync
+        await db.transaction(
+          "rw",
+          [
+            db.sales,
+            db.sale_items,
+            db.stock_movements,
+            db.products,
+            db.product_variants,
+          ],
+          async () => {
+            await db.sales.put({
+              ...salePayload,
+              synced: true,
+              status: "completed",
+            });
+            await db.sale_items.bulkPut(itemsPayload);
+
+            // Write stock movements locally (marked as synced since online call succeeded)
+            const movements = items.map((i) => ({
+              id: crypto.randomUUID(),
+              shop_id: shopId,
+              product_id: i.product.id,
+              variant_id: i.variantId ?? null,
+              type: "OUT" as const,
+              delta: i.quantity,
+              snapshot_qty: i.product.quantity - i.quantity,
+              seq: Date.now(),
+              device_id: deviceId,
+              reason: "sale" as const,
+              user_id: userId,
+              synced: true,
+              conflict_flag: false,
+              created_at: now,
+            }));
+
+            await db.stock_movements.bulkPut(movements);
+
+            // Decrement product and variant quantities in IndexedDB so the UI reflects the sale immediately
+            await Promise.all(
+              items.map(async (i) => {
+                await db.products
+                  .where("id")
+                  .equals(i.product.id)
+                  .modify((p: Product) => {
+                    p.quantity = Math.max(0, p.quantity - i.quantity);
+                  });
+
+                if (i.variantId) {
+                  await db.product_variants
+                    .where("id")
+                    .equals(i.variantId)
+                    .modify((v: ProductVariant) => {
+                      v.quantity = Math.max(0, v.quantity - i.quantity);
+                    });
+                }
+              }),
+            );
+          },
+        );
       }
 
       return { saleId, total };
     },
     onSuccess: (_, { shopId }) => {
       qc.invalidateQueries({ queryKey: saleKeys.all(shopId) });
+      // Invalidate paginated sales list and history pages
+      qc.invalidateQueries({ queryKey: saleKeys.list(shopId) });
+      // Use predicate to match all sales-history pages for this shop (more reliable than prefix)
+      qc.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === "sales-history" && query.queryKey[1] === shopId,
+      });
       qc.invalidateQueries({ queryKey: ["products", shopId] });
+      qc.invalidateQueries({ queryKey: ["variants", "shop", shopId] });
       qc.invalidateQueries({ queryKey: ["customers", shopId] });
     },
   });
@@ -292,8 +412,11 @@ export function useVoidSale() {
       if (error) throw error;
     },
     onSuccess: (_, { shopId }) => {
-      // Sales history list (paginated, sales/page.tsx)
-      qc.invalidateQueries({ queryKey: ["sales-history", shopId] });
+      // Sales history list (paginated, sales/page.tsx) — use predicate for reliable matching
+      qc.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === "sales-history" && query.queryKey[1] === shopId,
+      });
       // Infinite list used by POS / useSales hook
       qc.invalidateQueries({ queryKey: saleKeys.list(shopId) });
       // Summary used by reports — voiding a sale changes revenue totals

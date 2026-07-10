@@ -107,6 +107,7 @@ export interface Sale {
   delivery_address: string | null;
   synced: boolean;
   created_at: string;
+  status?: "completed" | "voided";
 }
 
 export interface Customer {

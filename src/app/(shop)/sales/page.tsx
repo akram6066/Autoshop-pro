@@ -6,9 +6,10 @@ import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore, selectShopId, selectIsOwner } from "@/stores/authStore";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import type { PaymentMethod } from "@/types/app";
+import type { PaymentMethod, Sale } from "@/types/app";
 import type { SaleSummary } from "./_components/SaleDetailModal";
 import { PaymentBadge } from "./_components/PaymentBadge";
+import { getDb, getLocalSales } from "@/lib/db/instance";
 
 // Only loaded when the user clicks a sale row — keep it out of the initial bundle.
 const SaleDetailModal = dynamic(
@@ -33,7 +34,36 @@ interface SaleRow {
 
 const PAGE_SIZE = 25;
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Local fallback fetch ────────────────────────────────────────────────────
+
+async function fetchLocalSales(
+  shopId: string,
+  page: number,
+): Promise<{
+  rows: SaleRow[];
+  count: number;
+}> {
+  // Fetch enough records to cover the requested page + buffer
+  const limit = (page + 1) * PAGE_SIZE + 10;
+  const sales = await getLocalSales(shopId, limit);
+  const offset = page * PAGE_SIZE;
+  const paginated = sales.slice(offset, offset + PAGE_SIZE);
+
+  return {
+    rows: paginated.map((s) => ({
+      id: s.id,
+      total_amount: s.total_amount,
+      payment_method: s.payment_method as PaymentMethod,
+      created_at: s.created_at,
+      staff_name: "Offline sale",
+      total_count: sales.length,
+      status: (s as Sale & { status?: string }).status ?? "completed",
+    })),
+    count: sales.length,
+  };
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function SalesPage() {
   const shopId = useAuthStore(selectShopId);
@@ -47,19 +77,68 @@ export default function SalesPage() {
       if (!shopId) return { rows: [] as SaleRow[], count: 0 };
       const supabase = createClient();
 
-      const { data: rows, error } = await supabase.rpc("get_sales_with_staff", {
-        p_shop_id: shopId,
-        p_offset: page * PAGE_SIZE,
-        p_limit: PAGE_SIZE,
-      });
+      try {
+        const { data: rows, error } = await supabase.rpc(
+          "get_sales_with_staff",
+          {
+            p_shop_id: shopId,
+            p_offset: page * PAGE_SIZE,
+            p_limit: PAGE_SIZE,
+          },
+        );
 
-      if (error) throw error;
-      if (!rows || rows.length === 0) return { rows: [], count: 0 };
+        if (error) throw error;
 
-      return {
-        rows: rows as SaleRow[],
-        count: Number(rows[0]?.total_count ?? 0),
-      };
+        // Fetch local unsynced sales to merge
+        const db = getDb();
+        const localSales = await db.sales
+          .where("shop_id")
+          .equals(shopId)
+          .filter((s) => !s.synced)
+          .toArray();
+
+        const unsyncedRows: SaleRow[] = localSales.map((s) => ({
+          id: s.id,
+          total_amount: s.total_amount,
+          payment_method: s.payment_method as PaymentMethod,
+          created_at: s.created_at,
+          staff_name: "Pending Sync",
+          total_count: 0,
+          status: "pending",
+        }));
+
+        // Sort unsynced rows newest first
+        unsyncedRows.sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        );
+
+        const remoteRows = (rows ?? []) as SaleRow[];
+        const combinedRows =
+          page === 0 ? [...unsyncedRows, ...remoteRows] : remoteRows;
+
+        // Remove duplicates in case a sale just synced but is still in our local unsynced query or vice versa
+        const seenIds = new Set<string>();
+        const uniqueRows = combinedRows.filter((r) => {
+          if (seenIds.has(r.id)) return false;
+          seenIds.add(r.id);
+          return true;
+        });
+
+        const remoteCount = Number(remoteRows[0]?.total_count ?? 0);
+        const totalCount = remoteCount + unsyncedRows.length;
+
+        return {
+          rows: uniqueRows,
+          count: totalCount,
+        };
+      } catch (err) {
+        console.warn(
+          "[SalesPage] Supabase fetch failed, using IndexedDB:",
+          err,
+        );
+        return fetchLocalSales(shopId, page);
+      }
     },
     enabled: !!shopId,
     staleTime: 1000 * 60,
