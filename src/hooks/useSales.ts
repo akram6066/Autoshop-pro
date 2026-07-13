@@ -158,6 +158,7 @@ interface RecordSaleInput {
   amountPaid?: number;
   deliveryAddress?: string;
   deliveryFee?: number;
+  createdAt?: string;
 }
 
 export function useRecordSale() {
@@ -173,8 +174,9 @@ export function useRecordSale() {
       amountPaid,
       deliveryAddress,
       deliveryFee,
+      createdAt,
     }: RecordSaleInput) => {
-      const now = new Date().toISOString();
+      const now = createdAt ?? new Date().toISOString();
       const saleId = crypto.randomUUID();
       const deviceId = getDeviceId();
       const itemsTotal = items.reduce(

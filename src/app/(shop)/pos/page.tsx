@@ -40,6 +40,7 @@ interface CheckoutState {
   customerId: string | null;
   customerSearch: string;
   amountPaid: number;
+  saleDate: string;
   // validation errors
   addressError: boolean;
   customerError: boolean;
@@ -57,6 +58,7 @@ type CheckoutAction =
   | { type: "SET_CUSTOMER_SEARCH"; value: string }
   | { type: "CLEAR_CUSTOMER" }
   | { type: "SET_AMOUNT_PAID"; value: number }
+  | { type: "SET_SALE_DATE"; value: string }
   | {
       type: "SET_ERRORS";
       errors: Partial<
@@ -77,6 +79,7 @@ const initial: CheckoutState = {
   customerId: null,
   customerSearch: "",
   amountPaid: 0,
+  saleDate: "",
   addressError: false,
   customerError: false,
   amountPaidError: false,
@@ -126,6 +129,8 @@ function checkoutReducer(
       return { ...state, customerId: null, customerSearch: "", amountPaid: 0 };
     case "SET_AMOUNT_PAID":
       return { ...state, amountPaid: action.value, amountPaidError: false };
+    case "SET_SALE_DATE":
+      return { ...state, saleDate: action.value };
     case "SET_ERRORS":
       return { ...state, ...action.errors };
     case "SET_RECEIPT":
@@ -202,6 +207,7 @@ export default function POSPage() {
     addressError,
     customerError,
     amountPaidError,
+    saleDate,
     receipt,
   } = state;
 
@@ -254,6 +260,7 @@ export default function POSPage() {
         amountPaid: paymentMethod === "partial" ? amountPaid : undefined,
         deliveryAddress: deliveryEnabled ? deliveryAddress.trim() : undefined,
         deliveryFee: deliveryEnabled ? deliveryFee : undefined,
+        createdAt: saleDate ? new Date(saleDate).toISOString() : undefined,
       });
       setMobileCartOpen(false);
       dispatch({
@@ -360,6 +367,10 @@ export default function POSPage() {
           amountPaidError={amountPaidError}
           onAmountPaidChange={(v) =>
             dispatch({ type: "SET_AMOUNT_PAID", value: v })
+          }
+          saleDate={saleDate}
+          onSaleDateChange={(v) =>
+            dispatch({ type: "SET_SALE_DATE", value: v })
           }
           isSaving={isSaving}
           onCheckout={handleCheckout}

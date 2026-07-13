@@ -43,6 +43,8 @@ interface Props {
   amountPaid: number;
   amountPaidError: boolean;
   onAmountPaidChange: (v: number) => void;
+  saleDate: string;
+  onSaleDateChange: (v: string) => void;
   isSaving: boolean;
   onCheckout: () => void;
   mobileOpen?: boolean;
@@ -78,6 +80,8 @@ export function CartPanel({
   amountPaid,
   amountPaidError,
   onAmountPaidChange,
+  saleDate,
+  onSaleDateChange,
   isSaving,
   onCheckout,
   mobileOpen = false,
@@ -227,6 +231,28 @@ export function CartPanel({
                 onChange={onAmountPaidChange}
               />
             )}
+
+            <div className="mb-4">
+              <label
+                className="block text-xs font-medium mb-1"
+                style={{ color: "var(--color-ink-secondary)" }}
+              >
+                Sale Date (Optional Backdate)
+              </label>
+              <input
+                type="date"
+                value={saleDate}
+                max={new Date().toISOString().split("T")[0]}
+                onChange={(e) => onSaleDateChange(e.target.value)}
+                className="input input-sm w-full"
+              />
+              <p
+                className="text-[10px] mt-1"
+                style={{ color: "var(--color-ink-tertiary)" }}
+              >
+                Leave empty for today
+              </p>
+            </div>
 
             <button
               type="button"
