@@ -124,7 +124,9 @@ export const POST = withAuth(
             Database["public"]["Tables"]["product_variants"]["Insert"];
           const variants = p.variants as unknown as VariantInsert[];
           const { error: insertError } = await withTimeout(
-            supabase.from("product_variants").insert(variants),
+            supabase
+              .from("product_variants")
+              .upsert(variants, { onConflict: "id" }),
           );
           if (insertError)
             error = friendlyError(insertError, "Variants could not be saved");

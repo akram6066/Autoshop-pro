@@ -23,7 +23,6 @@ export function useOnlineStatus(): OnlineStatus {
   const [wasOffline, setWasOffline] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
 
-  const checkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const wasOfflineTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const consecutiveFailuresRef = useRef(0);
@@ -34,12 +33,21 @@ export function useOnlineStatus(): OnlineStatus {
     if (typeof window === "undefined") return true;
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const forceOffline =
+        typeof window !== "undefined" &&
+        localStorage.getItem("force_offline") === "true";
+      if (forceOffline) return false;
 
-      // Check the root URL of the app itself to avoid CORS and Anon key issues
-      const response = await fetch("/", {
-        method: "HEAD",
+      const controller = new AbortController();
+      // Increase timeout slightly to be safe
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+      // We ping the same-origin /api/health route to completely bypass any CORS issues
+      // that might occur when pinging an external Supabase URL.
+      const pingUrl = `/api/health`;
+
+      const response = await fetch(pingUrl, {
+        method: "GET",
         signal: controller.signal,
         cache: "no-store",
       });
@@ -91,6 +99,20 @@ export function useOnlineStatus(): OnlineStatus {
     }
   }, [isOnline, verifyConnectivity]);
 
+  // Listen for force offline toggle events
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleForceOfflineToggle = () => {
+      checkConnectivity();
+    };
+    window.addEventListener("force_offline_toggled", handleForceOfflineToggle);
+    return () =>
+      window.removeEventListener(
+        "force_offline_toggled",
+        handleForceOfflineToggle,
+      );
+  }, [checkConnectivity]);
+
   // Initial check on mount
   useEffect(() => {
     isMountedRef.current = true;
@@ -103,7 +125,6 @@ export function useOnlineStatus(): OnlineStatus {
     return () => {
       isMountedRef.current = false;
       clearTimeout(timer);
-      if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
       if (wasOfflineTimerRef.current) clearTimeout(wasOfflineTimerRef.current);
     };
   }, [checkConnectivity]);
@@ -111,16 +132,14 @@ export function useOnlineStatus(): OnlineStatus {
   // Listen for browser online/offline events as hints, but verify
   useEffect(() => {
     const handleOnline = () => {
-      // Browser thinks we're online - verify immediately
       checkConnectivity();
     };
 
     const handleOffline = () => {
-      // Browser knows we're offline - trust this immediately
       if (isMountedRef.current) {
         setIsOnline(false);
         setWasOffline(false);
-        consecutiveFailuresRef.current = 2; // Force offline state
+        consecutiveFailuresRef.current = 2;
         if (wasOfflineTimerRef.current) {
           clearTimeout(wasOfflineTimerRef.current);
           wasOfflineTimerRef.current = null;
@@ -140,26 +159,28 @@ export function useOnlineStatus(): OnlineStatus {
   // Periodic verification - faster when we just came back online, slower when stable
   useEffect(() => {
     const getCheckInterval = () => {
-      // If we were recently offline, check more frequently
       const timeSinceSuccess = Date.now() - lastSuccessfulCheckRef.current;
-      if (timeSinceSuccess < 30000) return 5000; // 5s for 30s after reconnect
-      if (timeSinceSuccess < 120000) return 15000; // 15s for 2min
-      return 60000; // 1min when stable
+      if (timeSinceSuccess < 30000) return 5000;
+      if (timeSinceSuccess < 120000) return 15000;
+      return 60000;
     };
 
-    const setupInterval = () => {
-      if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
-      checkIntervalRef.current = setInterval(() => {
-        checkConnectivity();
-        // Reschedule with potentially new interval
-        setupInterval();
-      }, getCheckInterval());
+    let isActive = true;
+    let timerId: ReturnType<typeof setTimeout>;
+
+    const loop = async () => {
+      if (!isActive) return;
+      await checkConnectivity();
+      if (!isActive) return;
+      timerId = setTimeout(loop, getCheckInterval());
     };
 
-    setupInterval();
+    // Schedule first loop
+    timerId = setTimeout(loop, getCheckInterval());
 
     return () => {
-      if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
+      isActive = false;
+      clearTimeout(timerId);
     };
   }, [checkConnectivity]);
 

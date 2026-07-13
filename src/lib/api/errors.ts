@@ -103,15 +103,15 @@ export function friendlyError(
   if (!raw) return fallback;
 
   // Unique constraint violations — check constraint/table name for specificity
-  if (/duplicate key|unique.*constraint/i.test(raw)) {
+  if (/duplicate key|unique.*constraint|23505/i.test(raw)) {
     if (/categories_/i.test(raw))
       return "A category with that name already exists.";
     if (/products_/i.test(raw))
-      return "A product with that name already exists.";
+      return "A product with this SKU or Name already exists.";
     if (/shops_/i.test(raw)) return "A shop with that name already exists.";
     if (/profiles_/i.test(raw))
       return "An account with this email already exists.";
-    return "This already exists. Please use a different name.";
+    return "This already exists. Please use a different name or SKU.";
   }
 
   // Walk the rest of the known patterns

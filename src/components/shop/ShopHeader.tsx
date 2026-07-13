@@ -135,9 +135,9 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
               aria-label="User menu"
               aria-expanded={userMenuOpen}
             >
-              {profile?.full_name ? (
+              {profile?.full_name?.trim() ? (
                 <span className="text-xs font-semibold">
-                  {profile.full_name.charAt(0).toUpperCase()}
+                  {profile.full_name.trim().charAt(0).toUpperCase()}
                 </span>
               ) : (
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
@@ -176,7 +176,7 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
                     className="text-sm font-medium truncate"
                     style={{ color: "var(--color-ink-primary)" }}
                   >
-                    {profile?.full_name || "Profile"}
+                    {profile?.full_name?.trim() || "No Name Set"}
                   </p>
                 </div>
                 <Link

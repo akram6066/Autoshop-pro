@@ -49,13 +49,15 @@ async function fetchLocalSales(
   const offset = page * PAGE_SIZE;
   const paginated = sales.slice(offset, offset + PAGE_SIZE);
 
+  const currentProfile = useAuthStore.getState().profile;
+
   return {
     rows: paginated.map((s) => ({
       id: s.id,
       total_amount: s.total_amount,
       payment_method: s.payment_method as PaymentMethod,
       created_at: s.created_at,
-      staff_name: "Offline sale",
+      staff_name: currentProfile?.full_name || "Offline Sale",
       total_count: sales.length,
       status: (s as Sale & { status?: string }).status ?? "completed",
     })),
@@ -89,7 +91,6 @@ export default function SalesPage() {
 
         if (error) throw error;
 
-        // Fetch local unsynced sales to merge
         const db = getDb();
         const localSales = await db.sales
           .where("shop_id")
@@ -97,12 +98,14 @@ export default function SalesPage() {
           .filter((s) => !s.synced)
           .toArray();
 
+        const currentProfile = useAuthStore.getState().profile;
+
         const unsyncedRows: SaleRow[] = localSales.map((s) => ({
           id: s.id,
           total_amount: s.total_amount,
           payment_method: s.payment_method as PaymentMethod,
           created_at: s.created_at,
-          staff_name: "Pending Sync",
+          staff_name: currentProfile?.full_name || "Offline Sale",
           total_count: 0,
           status: "pending",
         }));
@@ -234,6 +237,9 @@ export default function SalesPage() {
                 <tbody>
                   {rows.map((sale) => {
                     const voided = sale.status === "voided";
+                    const safeStaffName =
+                      sale.staff_name?.trim() || "Unknown Staff";
+
                     return (
                       <tr
                         key={sale.id}
@@ -287,9 +293,9 @@ export default function SalesPage() {
                                 color: "var(--color-brand-700)",
                               }}
                             >
-                              {sale.staff_name.charAt(0).toUpperCase()}
+                              {safeStaffName.charAt(0).toUpperCase()}
                             </span>
-                            {sale.staff_name}
+                            {safeStaffName}
                           </span>
                         </td>
                         <td>
@@ -318,6 +324,8 @@ export default function SalesPage() {
           <div className="sm:hidden space-y-2">
             {rows.map((sale) => {
               const voided = sale.status === "voided";
+              const safeStaffName = sale.staff_name?.trim() || "Unknown Staff";
+
               return (
                 <button
                   key={sale.id}
@@ -335,13 +343,13 @@ export default function SalesPage() {
                           color: "var(--color-brand-700)",
                         }}
                       >
-                        {sale.staff_name.charAt(0).toUpperCase()}
+                        {safeStaffName.charAt(0).toUpperCase()}
                       </span>
                       <span
                         className="text-sm font-medium truncate"
                         style={{ color: "var(--color-ink-primary)" }}
                       >
-                        {sale.staff_name}
+                        {safeStaffName}
                       </span>
                       {voided && (
                         <span

@@ -105,6 +105,35 @@ export function Providers({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Periodically flush the sync queue to prevent items from getting stuck in "pending" (blue dot) indefinitely
+  // if previous flushes failed but didn't exhaust their retry limit.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const shopId = useAuthStore.getState().shopId;
+      if (shopId && navigator.onLine) {
+        flushQueue(shopId).catch(console.warn);
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Listen for manual sync clearing to invalidate UI state
+  useEffect(() => {
+    const handleSyncCleared = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const shopId = customEvent.detail?.shopId;
+      if (shopId) {
+        queryClient.invalidateQueries({ queryKey: ["products", shopId] });
+        queryClient.invalidateQueries({
+          queryKey: ["variants", "shop", shopId],
+        });
+      }
+    };
+    window.addEventListener("autoshop_sync_cleared", handleSyncCleared);
+    return () =>
+      window.removeEventListener("autoshop_sync_cleared", handleSyncCleared);
+  }, [queryClient]);
+
   // Prune old IndexedDB data every 24 hours
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;

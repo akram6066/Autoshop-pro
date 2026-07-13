@@ -39,6 +39,8 @@ export async function clearLocalDb(): Promise<void> {
     db.sync_queue.clear(),
     db.purchase_orders.clear(),
     db.po_items.clear(),
+    db.customers.clear(),
+    db.customer_payments.clear(),
   ]);
 }
 
@@ -80,42 +82,34 @@ export async function seedRooms(shopId: string, rooms: Room[]): Promise<void> {
 /**
  * Seed products for a shop into IndexedDB (bulk upsert).
  */
-export async function seedProducts(
+export async function getPendingDeductions(
   shopId: string,
-  products: Product[],
-): Promise<void> {
+  type: "product" | "variant",
+): Promise<Map<string, number>> {
   const db = getDb();
-
-  // Find all unsynced commands in the sync queue for this shop
-  // to avoid deleting products created/updated offline that haven't synced yet,
-  // and to apply pending stock deductions so the POS doesn't allow overselling.
   const unsyncedCommands = await db.sync_queue
     .where("shop_id")
     .equals(shopId)
     .filter((cmd) => cmd.status !== "synced")
     .toArray();
 
-  const unsyncedProductIds = new Set<string>();
   const pendingStockDeductions = new Map<string, number>();
 
   for (const cmd of unsyncedCommands) {
-    if (cmd.command === "MANAGE_PRODUCT") {
-      const prod = cmd.payload?.product as Record<string, unknown> | undefined;
-      if (prod?.id) {
-        unsyncedProductIds.add(prod.id as string);
-      }
-    } else if (cmd.command === "RECORD_SALE") {
+    if (cmd.command === "RECORD_SALE") {
       const items = cmd.payload?.items as
         | Array<Record<string, unknown>>
         | undefined;
       if (items && Array.isArray(items)) {
         for (const item of items) {
-          const pid = item.product_id as string | undefined;
+          const id = (
+            type === "variant" ? item.variant_id : item.product_id
+          ) as string | undefined;
           const qty = item.quantity as number | undefined;
-          if (pid && typeof qty === "number") {
+          if (id && typeof qty === "number") {
             pendingStockDeductions.set(
-              pid,
-              (pendingStockDeductions.get(pid) || 0) + qty,
+              id,
+              (pendingStockDeductions.get(id) || 0) + qty,
             );
           }
         }
@@ -124,20 +118,49 @@ export async function seedProducts(
       const movement = cmd.payload?.movement as
         | Record<string, unknown>
         | undefined;
-      const pid = movement?.product_id as string | undefined;
-      const type = movement?.type as string | undefined;
+      const id = (
+        type === "variant" ? movement?.variant_id : movement?.product_id
+      ) as string | undefined;
+      const moveType = movement?.type as string | undefined;
       const delta = movement?.delta as number | undefined;
 
-      if (pid && type && typeof delta === "number") {
-        const currentDeduction = pendingStockDeductions.get(pid) || 0;
-        if (type === "OUT") {
-          pendingStockDeductions.set(pid, currentDeduction + delta);
-        } else if (type === "IN") {
-          pendingStockDeductions.set(pid, currentDeduction - delta);
+      if (id && moveType && typeof delta === "number") {
+        const currentDeduction = pendingStockDeductions.get(id) || 0;
+        if (moveType === "OUT") {
+          pendingStockDeductions.set(id, currentDeduction + delta);
+        } else if (moveType === "IN") {
+          pendingStockDeductions.set(id, currentDeduction - delta);
         }
       }
     }
   }
+
+  return pendingStockDeductions;
+}
+
+export async function seedProducts(
+  shopId: string,
+  products: Product[],
+): Promise<Product[]> {
+  const db = getDb();
+
+  const unsyncedCommands = await db.sync_queue
+    .where("shop_id")
+    .equals(shopId)
+    .filter((cmd) => cmd.status !== "synced")
+    .toArray();
+
+  const unsyncedProductIds = new Set<string>();
+  for (const cmd of unsyncedCommands) {
+    if (cmd.command === "MANAGE_PRODUCT") {
+      const prod = cmd.payload?.product as Record<string, unknown> | undefined;
+      if (prod?.id) {
+        unsyncedProductIds.add(prod.id as string);
+      }
+    }
+  }
+
+  const pendingStockDeductions = await getPendingDeductions(shopId, "product");
 
   // Apply pending deductions to the incoming remote products
   const adjustedProducts = products.map((p) => {
@@ -162,6 +185,108 @@ export async function seedProducts(
     if (staleIds.length > 0) await db.products.bulkDelete(staleIds);
     await db.products.bulkPut(adjustedProducts);
   });
+
+  return adjustedProducts;
+}
+
+/**
+ * Seed customers for a shop into IndexedDB (bulk upsert).
+ * Uses sync_queue to correctly determine offline creations.
+ */
+export async function seedCustomers(
+  shopId: string,
+  customers: import("@/types/app").Customer[],
+): Promise<import("@/types/app").Customer[]> {
+  const db = getDb();
+
+  const unsyncedCommands = await db.sync_queue
+    .where("shop_id")
+    .equals(shopId)
+    .filter((cmd) => cmd.status !== "synced")
+    .toArray();
+
+  const unsyncedCustomerIds = new Set<string>();
+  const unsyncedCustomers: import("@/types/app").Customer[] = [];
+  const pendingBalanceUpdates = new Map<string, number>();
+
+  for (const cmd of unsyncedCommands) {
+    if (cmd.command === "MANAGE_CUSTOMER") {
+      const cust = cmd.payload?.customer as Record<string, unknown> | undefined;
+      if (cust?.id) {
+        unsyncedCustomerIds.add(cust.id as string);
+        if (cmd.payload?.op === "INSERT" || cmd.payload?.op === "UPDATE") {
+          unsyncedCustomers.push(
+            cust as unknown as import("@/types/app").Customer,
+          );
+        }
+      }
+    } else if (cmd.command === "RECORD_CUSTOMER_PAYMENT") {
+      const payment = cmd.payload?.payment as
+        | Record<string, unknown>
+        | undefined;
+      const cid = payment?.customer_id as string | undefined;
+      const amt = payment?.amount as number | undefined;
+      if (cid && typeof amt === "number") {
+        pendingBalanceUpdates.set(
+          cid,
+          (pendingBalanceUpdates.get(cid) || 0) + amt,
+        );
+      }
+    } else if (cmd.command === "RECORD_SALE") {
+      const sale = cmd.payload?.sale as Record<string, unknown> | undefined;
+      const cid = sale?.customer_id as string | undefined;
+      const total = Number(sale?.total_amount || 0);
+      const paid = Number(sale?.amount_paid || 0);
+      const debt = total - paid;
+      if (cid && debt > 0) {
+        pendingBalanceUpdates.set(
+          cid,
+          (pendingBalanceUpdates.get(cid) || 0) - debt,
+        );
+      }
+    }
+  }
+
+  const adjustedCustomers = customers.map((c) => {
+    const deduction = pendingBalanceUpdates.get(c.id) || 0;
+    // Find if there is a pending UPDATE for this customer
+    const pendingUpdate = unsyncedCustomers.find((u) => u.id === c.id);
+    if (pendingUpdate) {
+      return {
+        ...c,
+        ...pendingUpdate,
+        balance: (pendingUpdate.balance || c.balance) + deduction,
+      };
+    }
+    return { ...c, balance: c.balance + deduction };
+  });
+
+  // Add purely offline created customers that aren't from the server yet
+  for (const c of unsyncedCustomers) {
+    if (!adjustedCustomers.some((ac) => ac.id === c.id)) {
+      adjustedCustomers.push({
+        ...c,
+        balance: (c.balance || 0) + (pendingBalanceUpdates.get(c.id) || 0),
+      });
+    }
+  }
+
+  const remoteIds = new Set(adjustedCustomers.map((c) => c.id));
+  const localCustomers = await db.customers
+    .where("shop_id")
+    .equals(shopId)
+    .toArray();
+
+  const staleIds = localCustomers
+    .filter((c) => !remoteIds.has(c.id) && !unsyncedCustomerIds.has(c.id))
+    .map((c) => c.id);
+
+  await db.transaction("rw", db.customers, async () => {
+    if (staleIds.length > 0) await db.customers.bulkDelete(staleIds);
+    await db.customers.bulkPut(adjustedCustomers);
+  });
+
+  return adjustedCustomers;
 }
 
 /**
@@ -191,9 +316,7 @@ export async function pruneOldData(): Promise<void> {
   // Delete old transactional rows first.
   await Promise.all([
     db.sales.where("created_at").below(cutoff).delete(),
-    db.stock_movements
-      .filter((m) => m.synced === true && m.created_at < cutoff)
-      .delete(),
+    db.stock_movements.where("created_at").below(cutoff).delete(),
     db.sync_queue
       .where("status")
       .equals("synced")

@@ -123,17 +123,82 @@ export default function InventoryPage() {
             )}
           </p>
         </div>
-        <Link href="/inventory/new" className="btn btn-primary">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-            <path
-              d="M12 5v14M5 12h14"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-          Add product
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              const escapeCsvField = (f: string | number) =>
+                `"${String(f).replace(/"/g, '""')}"`;
+              const rows = [
+                [
+                  "SKU",
+                  "Name",
+                  "Category",
+                  "Quantity",
+                  "Min Stock",
+                  "Price (KES)",
+                  "Status",
+                ],
+                ...filtered.map((p) => {
+                  let totalQty = p.quantity;
+                  let minQty = p.min_stock;
+
+                  const variants = variantsByProduct.get(p.id);
+                  if (variants && variants.length > 0) {
+                    totalQty = variants.reduce((sum, v) => sum + v.quantity, 0);
+                    minQty = Math.max(...variants.map((v) => v.min_stock));
+                  }
+
+                  const status = totalQty <= minQty ? "Low Stock" : "In Stock";
+
+                  return [
+                    p.sku,
+                    p.name,
+                    p.category,
+                    String(totalQty),
+                    String(minQty),
+                    p.price.toFixed(2),
+                    status,
+                  ];
+                }),
+              ];
+              const csv = rows
+                .map((r) => r.map(escapeCsvField).join(","))
+                .join("\n");
+              const blob = new Blob([csv], { type: "text/csv" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `inventory-report-${new Date().toISOString().split("T")[0]}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="btn btn-secondary"
+            disabled={filtered.length === 0}
+          >
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+              <path
+                d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Export Excel/CSV
+          </button>
+          <Link href="/inventory/new" className="btn btn-primary">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+              <path
+                d="M12 5v14M5 12h14"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+            Add product
+          </Link>
+        </div>
       </div>
 
       <InventoryFilters

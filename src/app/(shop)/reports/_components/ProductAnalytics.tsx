@@ -56,9 +56,61 @@ export function ProductAnalytics({ shopId, from, to }: Props) {
           >
             Top selling products
           </h2>
-          <span className="text-xs" style={{ color: "var(--color-ink-ghost)" }}>
-            By revenue · top 10
-          </span>
+          <div className="flex items-center gap-4">
+            <span
+              className="text-xs"
+              style={{ color: "var(--color-ink-ghost)" }}
+            >
+              By revenue · top 10
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const escapeCsvField = (f: string | number) =>
+                  `"${String(f).replace(/"/g, '""')}"`;
+                const rows = [
+                  ["Product", "Category", "Units Sold", "Revenue (KES)"],
+                  ...data.map((r) => [
+                    r.product_name,
+                    r.category || "Uncategorised",
+                    String(r.units_sold),
+                    r.revenue.toFixed(2),
+                  ]),
+                  [],
+                  ["Category Breakdown"],
+                  ["Category", "Total Units", "Total Revenue (KES)"],
+                  ...categories.map((c) => [
+                    c.category,
+                    String(c.units),
+                    c.revenue.toFixed(2),
+                  ]),
+                ];
+                const csv = rows
+                  .map((r) => r.map(escapeCsvField).join(","))
+                  .join("\n");
+                const blob = new Blob([csv], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `product-report-${new Date().toISOString().split("T")[0]}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="btn btn-secondary btn-sm"
+              disabled={data.length === 0}
+            >
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+                <path
+                  d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              Export CSV
+            </button>
+          </div>
         </div>
 
         {isLoading ? (

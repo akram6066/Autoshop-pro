@@ -31,10 +31,25 @@ export function useShopVariants(shopId: string | null) {
           .order("size");
         if (error) throw error;
         const variants = (data ?? []) as ProductVariant[];
+
+        const { getDb, getPendingDeductions } =
+          await import("@/lib/db/instance");
+        const pendingDeductions = await getPendingDeductions(
+          shopId!,
+          "variant",
+        );
+        const adjustedVariants = variants.map((v) => {
+          const deduction = pendingDeductions.get(v.id) || 0;
+          if (deduction !== 0) {
+            return { ...v, quantity: Math.max(0, v.quantity - deduction) };
+          }
+          return v;
+        });
+
         // Seed local cache
         const db = getDb();
-        await db.product_variants.bulkPut(variants).catch(() => {});
-        return variants;
+        await db.product_variants.bulkPut(adjustedVariants).catch(() => {});
+        return adjustedVariants;
       } catch {
         const db = getDb();
         return db.product_variants.toArray();

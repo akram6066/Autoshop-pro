@@ -8,6 +8,7 @@ interface QueueCounts {
   pending: number;
   failed: number;
   total: number;
+  firstError?: string;
 }
 
 const EMPTY: QueueCounts = { pending: 0, failed: 0, total: 0 };
@@ -27,11 +28,20 @@ export function useSyncQueue(shopId: string | null): QueueCounts {
     const subscription = liveQuery(async () => {
       if (!shopId) return EMPTY;
       const db = getDb();
-      const [pending, failed] = await Promise.all([
-        db.sync_queue.where("[shop_id+status]").equals([shopId, "pending"]).count(),
-        db.sync_queue.where("[shop_id+status]").equals([shopId, "failed"]).count(),
+      const [pending, failedItems] = await Promise.all([
+        db.sync_queue
+          .where("[shop_id+status]")
+          .equals([shopId, "pending"])
+          .count(),
+        db.sync_queue
+          .where("[shop_id+status]")
+          .equals([shopId, "failed"])
+          .toArray(),
       ]);
-      return { pending, failed, total: pending + failed };
+      const failed = failedItems.length;
+      const firstError =
+        failed > 0 ? (failedItems[0].error ?? undefined) : undefined;
+      return { pending, failed, total: pending + failed, firstError };
     }).subscribe({
       next: (result) => setCounts(result),
       error: (err) => console.warn("[useSyncQueue] liveQuery error:", err),

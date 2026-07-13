@@ -29,8 +29,8 @@ async function fetchProducts(shopId: string): Promise<Product[]> {
   const supabase = createClient();
   try {
     const data = await fetchAllProducts(supabase, shopId);
-    seedProducts(shopId, data).catch(console.error);
-    return data;
+    const adjustedProducts = await seedProducts(shopId, data);
+    return adjustedProducts;
   } catch (err) {
     console.warn("[useProducts] Supabase fetch failed, using IndexedDB:", err);
     return getLocalProducts(shopId);
@@ -257,13 +257,35 @@ export function useDeleteProduct() {
       shopId: string;
       productId: string;
     }): Promise<MutationResult<{ shopId: string }>> => {
+      let rpcError: unknown = null;
+      let isNetworkError = false;
+
       try {
         const { error } = await supabase.rpc("manage_product", {
           p_op: "DELETE",
           p_product: { id: productId, shop_id: shopId } as unknown as Json,
         });
-
         if (error) {
+          rpcError = error;
+        }
+      } catch (err) {
+        console.warn(
+          "[useProducts] DELETE failed with exception, falling back to offline:",
+          err,
+        );
+        rpcError = err || new Error("Failed to connect to Supabase");
+        isNetworkError = true;
+      }
+
+      try {
+        // If it's a business logic error from the server (like "Not Authorized"), throw immediately.
+        if (rpcError && !isNetworkError) {
+          throw rpcError;
+        }
+
+        const isOffline = !!rpcError;
+
+        if (isOffline) {
           await enqueue(shopId, "MANAGE_PRODUCT", {
             op: "DELETE",
             product: { id: productId, shop_id: shopId } as unknown as Record<
@@ -273,9 +295,27 @@ export function useDeleteProduct() {
           });
         }
 
-        await getDb().products.delete(productId);
+        // Only delete from local IndexedDB if we successfully deleted on the server,
+        // or if we safely enqueued it while offline.
+        const db = getDb();
+        await db.transaction(
+          "rw",
+          [db.products, db.product_variants],
+          async () => {
+            await db.products.delete(productId);
+            const orphanedVariants = await db.product_variants
+              .where("product_id")
+              .equals(productId)
+              .toArray();
+            if (orphanedVariants.length > 0) {
+              await db.product_variants.bulkDelete(
+                orphanedVariants.map((v) => v.id),
+              );
+            }
+          },
+        );
 
-        return error
+        return isOffline
           ? { status: "offline", data: { shopId } }
           : { status: "success", data: { shopId } };
       } catch (err) {

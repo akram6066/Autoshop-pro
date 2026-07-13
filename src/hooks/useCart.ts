@@ -34,14 +34,26 @@ function saveToStorage(items: CartItem[]): void {
 }
 
 export function useCart() {
-  // Initialise from sessionStorage so the cart survives page refreshes and
-  // PWA cold starts (the OS can kill a PWA mid-checkout on low memory).
-  const [items, setItems] = useState<CartItem[]>(() => loadFromStorage());
+  const [items, setItems] = useState<CartItem[]>([]);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Keep sessionStorage in sync with every cart change
+  // Load from sessionStorage only on the client after hydration
+  // to avoid React hydration mismatches between server and client.
   useEffect(() => {
-    saveToStorage(items);
-  }, [items]);
+    const data = loadFromStorage();
+    const timer = setTimeout(() => {
+      setItems(data);
+      setIsMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Keep sessionStorage in sync with every cart change (after initial load)
+  useEffect(() => {
+    if (isMounted) {
+      saveToStorage(items);
+    }
+  }, [items, isMounted]);
 
   const add = useCallback((product: Product, variant?: ProductVariant) => {
     const cartKey = makeKey(product.id, variant?.id);
@@ -51,9 +63,19 @@ export function useCart() {
     setItems((prev) => {
       const existing = prev.find((i) => i.cartKey === cartKey);
       if (existing) {
-        if (existing.quantity >= maxQty) return prev;
+        // Refresh the snapshotted metadata in case the product was restocked
+        // or its price changed since it was originally added to the cart.
+        const updatedMaxQty = Math.max(existing.maxQuantity, maxQty);
+        if (existing.quantity >= updatedMaxQty) return prev;
         return prev.map((i) =>
-          i.cartKey === cartKey ? { ...i, quantity: i.quantity + 1 } : i,
+          i.cartKey === cartKey
+            ? {
+                ...i,
+                quantity: i.quantity + 1,
+                maxQuantity: updatedMaxQty,
+                unit_price: price,
+              }
+            : i,
         );
       }
       if (maxQty === 0) return prev;

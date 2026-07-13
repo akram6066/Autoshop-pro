@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { PaymentMethod } from "@/types/app";
@@ -42,7 +42,6 @@ export function SaleDetailModal({
   const { mutateAsync: voidSale, isPending: isVoiding } = useVoidSale();
   const [confirmingVoid, setConfirmingVoid] = useState(false);
   const [voidError, setVoidError] = useState("");
-  const queryClient = useQueryClient();
   const isVoided = sale.status === "voided";
 
   useEffect(() => {
@@ -122,7 +121,9 @@ export function SaleDetailModal({
       onVoided();
       onClose();
     } catch (err: unknown) {
-      setVoidError(friendlyError(err, "Failed to void sale. Try again."));
+      console.error("[SaleDetailModal] voidSale error:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setVoidError(friendlyError(err, `Failed to void sale: ${msg}`));
     }
   }
 
@@ -200,13 +201,15 @@ export function SaleDetailModal({
                   color: "var(--color-brand-700)",
                 }}
               >
-                {sale.staff_name.charAt(0).toUpperCase()}
+                {(sale.staff_name?.trim() || "Unknown Staff")
+                  .charAt(0)
+                  .toUpperCase()}
               </span>
               <span
                 className="text-sm"
                 style={{ color: "var(--color-ink-primary)" }}
               >
-                {sale.staff_name}
+                {sale.staff_name?.trim() || "Unknown Staff"}
               </span>
             </span>
 
@@ -345,70 +348,90 @@ export function SaleDetailModal({
             {/* Void section — owner only, not if already voided */}
             {isOwner && !isVoided && (
               <>
-                {voidError && (
-                  <p
-                    className="text-sm mb-3"
-                    style={{ color: "var(--color-danger)" }}
-                  >
-                    {voidError}
-                  </p>
-                )}
-
-                {confirmingVoid ? (
+                {sale.status === "pending" ? (
                   <div
                     className="rounded-xl p-3"
                     style={{
-                      background: "var(--color-danger-light)",
-                      border: "1px solid var(--color-danger)",
+                      background: "var(--color-surface-2)",
+                      border: "1px solid var(--color-surface-3)",
+                      textAlign: "center",
                     }}
                   >
                     <p
-                      className="text-sm font-medium mb-3"
-                      style={{ color: "var(--color-danger)" }}
+                      className="text-sm font-medium"
+                      style={{ color: "var(--color-ink-tertiary)" }}
                     >
-                      Void this sale? Stock will be restored and this cannot be
-                      undone.
+                      Cannot void an offline sale. Please wait for it to sync.
                     </p>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleVoid}
-                        disabled={isVoiding}
-                        className="btn btn-sm flex-1"
-                        style={{
-                          background: "var(--color-danger)",
-                          color: "#fff",
-                          opacity: isVoiding ? 0.7 : 1,
-                        }}
-                      >
-                        {isVoiding ? "Voiding…" : "Yes, void sale"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setConfirmingVoid(false);
-                          setVoidError("");
-                        }}
-                        disabled={isVoiding}
-                        className="btn btn-secondary btn-sm flex-1"
-                      >
-                        Cancel
-                      </button>
-                    </div>
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmingVoid(true)}
-                    className="btn btn-sm w-full"
-                    style={{
-                      color: "var(--color-danger)",
-                      border: "1px solid var(--color-danger)",
-                      background: "transparent",
-                    }}
-                  >
-                    Void sale
-                  </button>
+                  <>
+                    {voidError && (
+                      <p
+                        className="text-sm mb-3"
+                        style={{ color: "var(--color-danger)" }}
+                      >
+                        {voidError}
+                      </p>
+                    )}
+
+                    {confirmingVoid ? (
+                      <div
+                        className="rounded-xl p-3"
+                        style={{
+                          background: "var(--color-danger-light)",
+                          border: "1px solid var(--color-danger)",
+                        }}
+                      >
+                        <p
+                          className="text-sm font-medium mb-3"
+                          style={{ color: "var(--color-danger)" }}
+                        >
+                          Void this sale? Stock will be restored and this cannot
+                          be undone.
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={handleVoid}
+                            disabled={isVoiding}
+                            className="btn btn-sm flex-1"
+                            style={{
+                              background: "var(--color-danger)",
+                              color: "#fff",
+                              opacity: isVoiding ? 0.7 : 1,
+                            }}
+                          >
+                            {isVoiding ? "Voiding…" : "Yes, void sale"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConfirmingVoid(false);
+                              setVoidError("");
+                            }}
+                            disabled={isVoiding}
+                            className="btn btn-secondary btn-sm flex-1"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingVoid(true)}
+                        className="btn btn-sm w-full"
+                        style={{
+                          color: "var(--color-danger)",
+                          border: "1px solid var(--color-danger)",
+                          background: "transparent",
+                        }}
+                      >
+                        Void sale
+                      </button>
+                    )}
+                  </>
                 )}
               </>
             )}

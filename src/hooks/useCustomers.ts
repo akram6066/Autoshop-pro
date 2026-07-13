@@ -29,13 +29,30 @@ export function useCustomers(shopId: string | null) {
   return useQuery({
     queryKey: shopId ? customerKeys.all(shopId) : ["customers-disabled"],
     queryFn: async (): Promise<Customer[]> => {
-      const { data, error } = await supabase
-        .from("customers")
-        .select("*")
-        .eq("shop_id", shopId!)
-        .order("balance", { ascending: true });
-      if (error) throw error;
-      return data as Customer[];
+      try {
+        if (!navigator.onLine) throw new Error("Offline");
+        const { data, error } = await supabase
+          .from("customers")
+          .select("*")
+          .eq("shop_id", shopId!)
+          .order("balance", { ascending: true });
+        if (error) throw error;
+
+        // Background seed
+        import("@/lib/db/instance").then((m) =>
+          m.seedCustomers(shopId!, data as Customer[]).catch(console.warn),
+        );
+        return data as Customer[];
+      } catch (_err) {
+        const { getDb, seedCustomers } = await import("@/lib/db/instance");
+        // Read local customers and apply any pending offline commands
+        const local = await getDb()
+          .customers.where("shop_id")
+          .equals(shopId!)
+          .toArray();
+        const adjusted = await seedCustomers(shopId!, local);
+        return adjusted.sort((a, b) => a.balance - b.balance);
+      }
     },
     enabled: !!shopId,
     staleTime: 1000 * 30,
@@ -49,14 +66,41 @@ export function useCustomer(shopId: string | null, customerId: string) {
       ? customerKeys.detail(shopId, customerId)
       : ["customer-disabled"],
     queryFn: async (): Promise<Customer> => {
-      const { data, error } = await supabase
-        .from("customers")
-        .select("*")
-        .eq("id", customerId)
-        .eq("shop_id", shopId!)
-        .single();
-      if (error) throw error;
-      return data as Customer;
+      try {
+        if (!navigator.onLine) throw new Error("Offline");
+        const { data, error } = await supabase
+          .from("customers")
+          .select("*")
+          .eq("id", customerId)
+          .eq("shop_id", shopId!)
+          .single();
+        if (error) throw error;
+
+        // Background seed
+        import("@/lib/db/instance").then(async (m) => {
+          const local = await m
+            .getDb()
+            .customers.where("shop_id")
+            .equals(shopId!)
+            .toArray();
+          const existingIdx = local.findIndex((c) => c.id === data.id);
+          if (existingIdx >= 0) local[existingIdx] = data as Customer;
+          else local.push(data as Customer);
+          m.seedCustomers(shopId!, local).catch(console.warn);
+        });
+
+        return data as Customer;
+      } catch (_err) {
+        const { getDb, seedCustomers } = await import("@/lib/db/instance");
+        const local = await getDb()
+          .customers.where("shop_id")
+          .equals(shopId!)
+          .toArray();
+        const adjusted = await seedCustomers(shopId!, local);
+        const match = adjusted.find((c) => c.id === customerId);
+        if (!match) throw new Error("Customer not found offline");
+        return match;
+      }
     },
     enabled: !!shopId && !!customerId,
   });
@@ -157,6 +201,9 @@ export function useCreateCustomer() {
         });
       }
 
+      const { getDb } = await import("@/lib/db/instance");
+      await getDb().customers.put(payload);
+
       return payload;
     },
     onSuccess: (_, { shopId }) => {
@@ -191,6 +238,13 @@ export function useUpdateCustomer() {
           op: "UPDATE",
           customer: payload,
         });
+      }
+
+      const { getDb } = await import("@/lib/db/instance");
+      const db = getDb();
+      const existing = await db.customers.get(customerId);
+      if (existing) {
+        await db.customers.update(customerId, { ...existing, ...validated });
       }
     },
     onSuccess: (_, { shopId, customerId }) => {
@@ -238,6 +292,17 @@ export function useRecordCustomerPayment() {
       if (error) {
         await enqueue(shopId, "RECORD_CUSTOMER_PAYMENT", { payment: payload });
       }
+
+      const { getDb } = await import("@/lib/db/instance");
+      const db = getDb();
+      await db.customer_payments.put(payload);
+
+      const existing = await db.customers.get(customerId);
+      if (existing) {
+        await db.customers.update(customerId, {
+          balance: existing.balance - amount,
+        });
+      }
     },
     onSuccess: (_, { shopId, customerId }) => {
       qc.invalidateQueries({ queryKey: customerKeys.all(shopId) });
@@ -275,6 +340,9 @@ export function useDeleteCustomer() {
           customer: payload,
         });
       }
+
+      const { getDb } = await import("@/lib/db/instance");
+      await getDb().customers.delete(customerId);
     },
     onSuccess: (_, { shopId }) => {
       qc.invalidateQueries({ queryKey: customerKeys.all(shopId) });

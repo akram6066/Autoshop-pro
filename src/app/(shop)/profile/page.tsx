@@ -60,8 +60,9 @@ export default function ProfilePage() {
   }
 
   // Get initials for avatar
-  const initials = profile.full_name
+  const initials = profile.full_name?.trim()
     ? profile.full_name
+        .trim()
         .split(" ")
         .map((n) => n[0])
         .join("")
@@ -125,7 +126,7 @@ export default function ProfilePage() {
               className="text-2xl font-bold tracking-tight"
               style={{ color: "var(--color-ink-primary)" }}
             >
-              {profile.full_name || "No Name Set"}
+              {profile.full_name?.trim() || "No Name Set"}
             </h1>
             <div className="flex items-center justify-center gap-2 mt-2">
               <p

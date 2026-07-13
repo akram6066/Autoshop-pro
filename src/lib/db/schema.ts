@@ -10,6 +10,8 @@ import type {
   SyncCommand,
   PurchaseOrder,
   POItem,
+  Customer,
+  CustomerPayment,
 } from "@/types/app";
 
 // ─── AutoShop Database ────────────────────────────────────────────────────────
@@ -25,6 +27,8 @@ export class AutoShopDatabase extends Dexie {
   sync_queue!: Table<SyncCommand>;
   purchase_orders!: Table<PurchaseOrder>;
   po_items!: Table<POItem>;
+  customers!: Table<Customer>;
+  customer_payments!: Table<CustomerPayment>;
 
   constructor() {
     super("AutoShopDB");
@@ -122,6 +126,21 @@ export class AutoShopDatabase extends Dexie {
       sync_queue: "id, shop_id, command, status, created_at, [shop_id+status]",
       purchase_orders: "id, shop_id, status, synced, created_at",
       po_items: "id, po_id, product_id",
+    });
+    // V6 — Offline customers
+    this.version(6).stores({
+      shops: "id",
+      rooms: "id, shop_id",
+      products: "id, shop_id, room_id, category, sku, updated_at",
+      product_variants: "id, product_id",
+      sales: "id, shop_id, user_id, created_at, synced",
+      sale_items: "id, sale_id, product_id",
+      stock_movements: "id, shop_id, product_id, seq, synced, created_at",
+      sync_queue: "id, shop_id, command, status, created_at, [shop_id+status]",
+      purchase_orders: "id, shop_id, status, synced, created_at",
+      po_items: "id, po_id, product_id",
+      customers: "id, shop_id",
+      customer_payments: "id, shop_id, customer_id",
     });
   }
 }

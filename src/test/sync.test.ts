@@ -34,11 +34,7 @@ describe("getQueueCounts", () => {
   it("returns zero counts when queue is empty", async () => {
     const mockDb = {
       sync_queue: {
-        where: vi.fn().mockReturnValue({
-          equals: vi.fn().mockReturnValue({
-            count: vi.fn().mockResolvedValue(0),
-          }),
-        }),
+        toArray: vi.fn().mockResolvedValue([]),
       },
     };
     vi.mocked(getDb).mockReturnValue(mockDb as never);
@@ -51,17 +47,14 @@ describe("getQueueCounts", () => {
   });
 
   it("returns correct counts with pending and failed items", async () => {
-    let callCount = 0;
     const mockDb = {
       sync_queue: {
-        where: vi.fn().mockReturnValue({
-          equals: vi.fn().mockReturnValue({
-            count: vi.fn().mockImplementation(() => {
-              callCount++;
-              return Promise.resolve(callCount === 1 ? 3 : 1);
-            }),
-          }),
-        }),
+        toArray: vi.fn().mockResolvedValue([
+          { shop_id: "shop-1", status: "pending" },
+          { shop_id: "shop-1", status: "pending" },
+          { shop_id: "shop-1", status: "pending" },
+          { shop_id: "shop-1", status: "failed" },
+        ]),
       },
     };
     vi.mocked(getDb).mockReturnValue(mockDb as never);

@@ -423,6 +423,8 @@ export function useVoidSale() {
       qc.invalidateQueries({ queryKey: ["sales-summary", shopId] });
       // Product stock — void_sale restores quantities
       qc.invalidateQueries({ queryKey: ["products", shopId] });
+      // Customer balances — void_sale restores customer balances
+      qc.invalidateQueries({ queryKey: ["customers", shopId] });
     },
   });
 }
