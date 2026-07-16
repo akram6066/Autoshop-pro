@@ -48,3 +48,5 @@ export function BarChart({ data }: { data: SalesSummaryRow[] }) {
     </div>
   );
 }
+
+

@@ -18,19 +18,21 @@ import {
 interface ShopHeaderProps {
   role: string | null;
   shopId: string | null;
+  sidebarOpen: boolean;
+  onToggleSidebar: () => void;
   onSignOut: () => Promise<void>;
 }
 
-export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
+export function ShopHeader({ role, shopId, sidebarOpen, onToggleSidebar, onSignOut }: ShopHeaderProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const profile = useAuthStore(selectProfile);
+  const user = useAuthStore((s) => s.user);
   const isPaidPlan = useAuthStore(selectIsPaidPlan);
   const planName = useAuthStore(selectPlanName);
 
-  // Dynamically configure support channel based on user plan
   let supportHref = "/contact";
   let supportLabel = "Help & Support";
   if (planName === "ultra_pro") {
@@ -56,214 +58,129 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
   );
 
   return (
-    <header
-      style={{
-        background: "var(--color-surface-0)",
-        borderBottom: "1px solid var(--color-border)",
-        position: "sticky",
-        top: 0,
-        zIndex: 40,
-      }}
-    >
-      {/* ── Top bar ── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
-        {/* Product logo */}
-        <Link href="/dashboard" className="flex-shrink-0">
-          <Image
-            src="/logo.svg"
-            alt="AutoShop Pro"
-            width={260}
-            height={60}
-            className="h-8 w-auto logo-light"
-            style={{ width: "auto", height: "auto" }}
-            priority
-            loading="eager"
-          />
-          <Image
-            src="/logo-dark.svg"
-            alt="AutoShop Pro"
-            width={260}
-            height={60}
-            className="h-8 w-auto logo-dark"
-            style={{ width: "auto", height: "auto" }}
-            fetchPriority="high"
-          />
-        </Link>
+    <header className="sticky top-0 z-40 bg-[var(--color-surface-0)]/80 backdrop-blur-xl border-b border-[var(--color-border-subtle)]">
+      <div className="flex items-center justify-between px-4 sm:px-6 h-20">
+        
+        {/* Left Side (Hamburger / Logo / Desktop Toggle) */}
+        <div className="flex items-center gap-4">
+          {/* Mobile Logo & Hamburger */}
+          <div className="flex items-center gap-4 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileOpen((o) => !o)}
+              className="text-[var(--color-ink-secondary)] hover:text-[var(--color-ink-primary)] transition-colors p-2 -ml-2"
+            >
+              {mobileOpen ? (
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <span className="text-[var(--color-ink-primary)] font-bold tracking-tight text-lg">AutoShop Pro</span>
+            </Link>
+          </div>
 
-        {/* Desktop nav — hidden on mobile */}
-        <nav className="hidden sm:ml-2 lg:ml-4 sm:flex items-center gap-0.5 flex-1 overflow-x-auto">
-          {visibleNav.map((item) => {
-            const active = pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`px-3 h-9 rounded-lg text-sm font-medium transition-all duration-150 flex-shrink-0 flex items-center${active ? " nav-item-active" : ""}`}
-                style={
-                  active
-                    ? undefined
-                    : {
-                        color: "var(--color-ink-secondary)",
-                        background: "transparent",
-                      }
-                }
+          {/* Desktop Sidebar Toggle (Visible only when Sidebar is closed) */}
+          {!sidebarOpen && (
+            <div className="hidden lg:flex items-center">
+              <button
+                type="button"
+                onClick={onToggleSidebar}
+                className="p-2 -ml-2 text-[var(--color-ink-secondary)] hover:text-[var(--color-ink-primary)] rounded-lg hover:bg-[var(--color-surface-2)] transition-colors"
+                title="Open Sidebar"
               >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
 
-        {/* Right side */}
-        <div className="flex items-center gap-2 ml-auto flex-shrink-0">
-          <SyncBadge shopId={shopId} />
-          <ShopSwitcher />
+        {/* Right side Tools */}
+        <div className="flex items-center gap-4 flex-shrink-0">
           <ThemeToggle />
-          {/* User Menu — desktop only */}
-          <div className="hidden sm:block relative" ref={menuRef}>
+          <SyncBadge shopId={shopId} />
+          
+          <div className="hidden sm:block h-6 w-px bg-[var(--color-border)] mx-2"></div>
+          
+          <div className="hidden sm:block">
+            <ShopSwitcher />
+          </div>
+          
+          {/* User Menu */}
+          <div className="relative" ref={menuRef}>
             <button
               type="button"
               onClick={() => setUserMenuOpen((o) => !o)}
-              className="btn btn-ghost btn-icon flex items-center justify-center rounded-full"
-              style={{
-                width: 32,
-                height: 32,
-                background: "var(--color-surface-2)",
-                color: "var(--color-ink-secondary)",
-                border: "1px solid var(--color-border-subtle)",
-              }}
-              aria-label="User menu"
-              aria-expanded={userMenuOpen}
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] hover:border-[var(--color-brand-500)] transition-colors shadow-inner"
             >
               {profile?.full_name?.trim() ? (
-                <span className="text-xs font-semibold">
+                <span className="text-sm font-bold text-[var(--color-ink-primary)]">
                   {profile.full_name.trim().charAt(0).toUpperCase()}
                 </span>
               ) : (
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-                  <path
-                    stroke="currentColor"
-                    strokeWidth="1.75"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"
-                  />
-                  <circle
-                    cx="12"
-                    cy="7"
-                    r="4"
-                    stroke="currentColor"
-                    strokeWidth="1.75"
-                  />
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-[var(--color-ink-secondary)]">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               )}
             </button>
 
             {userMenuOpen && (
-              <div
-                className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg py-1 z-50 animate-fade-in-up"
-                style={{
-                  background: "var(--color-surface-0)",
-                  border: "1px solid var(--color-border)",
-                  boxShadow: "var(--shadow-raised)",
-                }}
-              >
-                <div
-                  className="px-4 py-2 border-b"
-                  style={{ borderColor: "var(--color-border-subtle)" }}
-                >
-                  <p
-                    className="text-sm font-medium truncate"
-                    style={{ color: "var(--color-ink-primary)" }}
-                  >
+              <div className="absolute right-0 mt-3 w-56 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-50 animate-fade-in-up bg-[var(--color-surface-0)] border border-[var(--color-border)] overflow-hidden">
+                <div className="px-4 py-3 border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-1)]">
+                  <p className="text-sm font-medium text-[var(--color-ink-primary)] truncate">
                     {profile?.full_name?.trim() || "No Name Set"}
                   </p>
+                  <p className="text-xs text-[var(--color-ink-secondary)] mt-0.5 truncate">{user?.email}</p>
                 </div>
-                <Link
-                  href="/profile"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="block px-4 py-2 text-sm transition-colors"
-                  style={{ color: "var(--color-ink-secondary)" }}
-                >
-                  Profile Settings
-                </Link>
-                {supportHref.startsWith("http") ? (
+                
+                <div className="p-2 space-y-1">
+                  <Link
+                    href="/profile"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="block px-3 py-2 text-sm text-[var(--color-ink-secondary)] hover:text-[var(--color-ink-primary)] hover:bg-[var(--color-surface-2)] rounded-lg transition-colors"
+                  >
+                    Profile Settings
+                  </Link>
                   <a
                     href={supportHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => setUserMenuOpen(false)}
-                    className="block px-4 py-2 text-sm transition-colors font-medium"
-                    style={{ color: "var(--color-brand-600)" }}
+                    className="block px-3 py-2 text-sm text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 hover:bg-[var(--color-brand-50)] dark:hover:bg-brand-500/10 rounded-lg transition-colors font-medium"
                   >
                     {supportLabel}
                   </a>
-                ) : (
-                  <Link
-                    href={supportHref}
-                    onClick={() => setUserMenuOpen(false)}
-                    className="block px-4 py-2 text-sm transition-colors"
-                    style={{ color: "var(--color-ink-secondary)" }}
+                </div>
+                
+                <div className="p-2 border-t border-[var(--color-border-subtle)]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      onSignOut();
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-danger hover:bg-danger/10 rounded-lg transition-colors"
                   >
-                    {supportLabel}
-                  </Link>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUserMenuOpen(false);
-                    onSignOut();
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm transition-colors"
-                  style={{ color: "var(--color-ink-tertiary)" }}
-                >
-                  Sign out
-                </button>
+                    Sign out
+                  </button>
+                </div>
               </div>
             )}
           </div>
-
-          {/* Hamburger — mobile only */}
-          <button
-            type="button"
-            onClick={() => setMobileOpen((o) => !o)}
-            className="sm:hidden btn btn-ghost btn-icon"
-            aria-label={mobileOpen ? "Close menu" : "Open menu"}
-            aria-expanded={mobileOpen}
-          >
-            {mobileOpen ? (
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-                <path
-                  d="M18 6L6 18M6 6l12 12"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            ) : (
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-                <path
-                  d="M4 6h16M4 12h16M4 18h16"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            )}
-          </button>
         </div>
       </div>
 
-      {/* ── Mobile drawer — sm:hidden ── */}
+      {/* Mobile Drawer (Only visible on small screens when hamburger is clicked) */}
       {mobileOpen && (
-        <nav
-          className="sm:hidden border-t"
-          style={{
-            borderColor: "var(--color-border)",
-            background: "var(--color-surface-0)",
-          }}
-        >
-          <div className="px-4 py-3 flex flex-col gap-1">
+        <nav className="lg:hidden border-t border-[var(--color-border-subtle)] bg-[var(--color-surface-0)]">
+          <div className="px-4 py-4 flex flex-col gap-2">
             {visibleNav.map((item) => {
               const active = pathname.startsWith(item.href);
               return (
@@ -271,103 +188,29 @@ export function ShopHeader({ role, shopId, onSignOut }: ShopHeaderProps) {
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all${active ? " nav-item-active" : ""}`}
-                  style={
-                    active
-                      ? undefined
-                      : {
-                          color: "var(--color-ink-primary)",
-                          background: "transparent",
-                        }
-                  }
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    active ? "bg-[var(--color-brand-50)] dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-500/20" : "text-[var(--color-ink-secondary)] hover:text-[var(--color-ink-primary)] border border-transparent"
+                  }`}
                 >
-                  {item.icon}
+                  <span className={active ? "text-brand-600 dark:text-brand-400" : "text-[var(--color-ink-secondary)]"}>{item.icon}</span>
                   {item.label}
                 </Link>
               );
             })}
-          </div>
-          <div
-            className="px-4 pb-4"
-            style={{ borderTop: "1px solid var(--color-border-subtle)" }}
-          >
-            <Link
-              href="/profile"
-              onClick={() => setMobileOpen(false)}
-              className="w-full mt-3 btn btn-ghost btn-sm justify-start gap-3"
-              style={{ color: "var(--color-ink-primary)" }}
-            >
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-                <path
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"
-                />
-                <circle
-                  cx="12"
-                  cy="7"
-                  r="4"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                />
-              </svg>
-              Profile Settings
-            </Link>
-            {supportHref.startsWith("http") ? (
-              <a
-                href={supportHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setMobileOpen(false)}
-                className="w-full mt-3 btn btn-ghost btn-sm justify-start gap-3"
-                style={{ color: "var(--color-brand-600)", fontWeight: 500 }}
-              >
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-                  <path
-                    d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12c0 1.821.487 3.53 1.338 5L2 22l5-1.338C8.47 21.513 10.179 22 12 22z"
-                    stroke="currentColor"
-                    strokeWidth="1.75"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                {supportLabel}
-              </a>
-            ) : (
-              <Link
-                href={supportHref}
-                onClick={() => setMobileOpen(false)}
-                className="w-full mt-3 btn btn-ghost btn-sm justify-start gap-3"
-                style={{ color: "var(--color-ink-primary)" }}
-              >
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-                  <path
-                    d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12c0 1.821.487 3.53 1.338 5L2 22l5-1.338C8.47 21.513 10.179 22 12 22z"
-                    stroke="currentColor"
-                    strokeWidth="1.75"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                {supportLabel}
-              </Link>
-            )}
+            
+            <div className="h-px bg-[var(--color-border-subtle)] my-2"></div>
+            
+            <div className="px-4 py-2">
+              <ShopSwitcher />
+            </div>
+            
             <button
               type="button"
               onClick={onSignOut}
-              className="w-full mt-3 btn btn-ghost btn-sm justify-start gap-3"
-              style={{ color: "var(--color-ink-tertiary)" }}
+              className="flex items-center gap-3 px-4 py-3 mt-2 rounded-xl text-sm font-medium text-danger hover:bg-danger/10 transition-colors"
             >
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-                <path
-                  d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
               Sign out
             </button>

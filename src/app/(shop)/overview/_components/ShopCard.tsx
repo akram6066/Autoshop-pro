@@ -70,7 +70,7 @@ export function ShopCard({
             <div
               key={i}
               className="h-14 rounded-lg animate-pulse-soft"
-              style={{ background: "var(--color-surface-2)" }}
+              style={{ background: "var(--color-skeleton-subtle)" }}
             />
           ))}
         </div>
@@ -133,3 +133,5 @@ export function ShopCard({
     </div>
   );
 }
+
+

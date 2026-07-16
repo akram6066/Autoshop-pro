@@ -234,7 +234,7 @@ export function SaleDetailModal({
                   <div
                     key={i}
                     className="h-12 rounded-lg animate-pulse-soft"
-                    style={{ background: "var(--color-surface-2)" }}
+                    style={{ background: "var(--color-skeleton-subtle)" }}
                   />
                 ))}
               </div>
@@ -441,3 +441,5 @@ export function SaleDetailModal({
     </>
   );
 }
+
+

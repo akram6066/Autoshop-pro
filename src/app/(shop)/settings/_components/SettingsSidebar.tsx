@@ -432,18 +432,16 @@ export function SettingsSidebar() {
         </nav>
       </div>
 
-      {/* ── Desktop panel sidebar (lg+) — position:fixed, never scrolls ─── */}
+      {/* ── Desktop panel sidebar (lg+) — position:sticky ─── */}
       <aside
         className="hidden lg:flex flex-col"
         style={{
-          position: "fixed",
-          // 56px sticky header + 16px gap
-          top: 72,
-          // Aligns with the left edge of the max-w-7xl + px-6 content area
-          // at every viewport width, with no JS needed.
-          left: "max(24px, calc(50vw - 640px + 24px))",
-          width: 256,
-          height: "calc(100vh - 88px)",
+          position: "sticky",
+          // Stick just below the ShopHeader
+          top: 80,
+          // Full width of its parent container
+          width: "100%",
+          height: "calc(100vh - 112px)",
           background: "var(--color-surface-0)",
           border: "1px solid var(--color-border)",
           borderRadius: 16,

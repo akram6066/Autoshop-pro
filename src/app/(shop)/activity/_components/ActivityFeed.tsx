@@ -26,21 +26,21 @@ export function ActivityFeed({
           <div key={i} className="flex items-center gap-4 px-5 py-4">
             <div
               className="w-2.5 h-2.5 rounded-full flex-shrink-0 animate-pulse-soft"
-              style={{ background: "var(--color-surface-3)" }}
+              style={{ background: "var(--color-skeleton)" }}
             />
             <div className="flex-1 space-y-2">
               <div
                 className="h-4 w-48 rounded animate-pulse-soft"
-                style={{ background: "var(--color-surface-2)" }}
+                style={{ background: "var(--color-skeleton-subtle)" }}
               />
               <div
                 className="h-3 w-32 rounded animate-pulse-soft"
-                style={{ background: "var(--color-surface-2)" }}
+                style={{ background: "var(--color-skeleton-subtle)" }}
               />
             </div>
             <div
               className="h-3 w-16 rounded animate-pulse-soft"
-              style={{ background: "var(--color-surface-2)" }}
+              style={{ background: "var(--color-skeleton-subtle)" }}
             />
           </div>
         ))}
@@ -157,3 +157,5 @@ export function ActivityFeed({
     </div>
   );
 }
+
+

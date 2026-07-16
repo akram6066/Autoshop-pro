@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Instrument_Serif, JetBrains_Mono } from "next/font/google";
+import { Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -7,10 +7,8 @@ import { Providers } from "@/components/providers";
 
 // ─── Fonts ────────────────────────────────────────────────────────────────────
 
-const dmSans = DM_Sans({
+const inter = Inter({
   subsets: ["latin"],
-  axes: ["opsz"],
-  style: ["normal", "italic"],
   variable: "--font-sans",
   display: "swap",
 });
@@ -77,7 +75,7 @@ export default async function RootLayout({
     <html
       lang="en"
       nonce={nonce}
-      className={`${dmSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
+      className={`${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}
       suppressHydrationWarning
       data-scroll-behavior="smooth"
     >

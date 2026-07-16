@@ -2,7 +2,7 @@ export default function InventoryLoading() {
   const row = (
     <div
       className="h-14 mx-4 my-2 rounded-lg animate-pulse-soft"
-      style={{ background: "var(--color-surface-2)" }}
+      style={{ background: "var(--color-skeleton-subtle)" }}
     />
   );
 
@@ -13,16 +13,16 @@ export default function InventoryLoading() {
         <div>
           <div
             className="h-8 w-32 rounded mb-2 animate-pulse-soft"
-            style={{ background: "var(--color-surface-3)" }}
+            style={{ background: "var(--color-skeleton)" }}
           />
           <div
             className="h-4 w-24 rounded animate-pulse-soft"
-            style={{ background: "var(--color-surface-3)" }}
+            style={{ background: "var(--color-skeleton)" }}
           />
         </div>
         <div
           className="h-9 w-32 rounded-lg animate-pulse-soft"
-          style={{ background: "var(--color-surface-3)" }}
+          style={{ background: "var(--color-skeleton)" }}
         />
       </div>
 
@@ -30,13 +30,13 @@ export default function InventoryLoading() {
       <div className="flex flex-wrap gap-3 mb-5">
         <div
           className="h-9 flex-1 min-w-48 rounded-lg animate-pulse-soft"
-          style={{ background: "var(--color-surface-2)" }}
+          style={{ background: "var(--color-skeleton-subtle)" }}
         />
         {[140, 130, 120].map((w) => (
           <div
             key={w}
             className="h-9 rounded-lg animate-pulse-soft"
-            style={{ width: w, background: "var(--color-surface-2)" }}
+            style={{ width: w, background: "var(--color-skeleton-subtle)" }}
           />
         ))}
       </div>
@@ -50,3 +50,4 @@ export default function InventoryLoading() {
     </div>
   );
 }
+

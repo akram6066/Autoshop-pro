@@ -350,83 +350,104 @@ function SetupContent() {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center p-6"
+      className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden"
       style={{ background: "var(--color-surface-1)" }}
     >
-      <div className="mb-10 text-center animate-fade-in-up">
-        <Image
-          src="/logo.svg"
-          alt="AutoShop Pro"
-          width={260}
-          height={60}
-          className="h-10 w-auto mx-auto mb-6 dark:hidden"
-          style={{ width: "auto", height: "auto" }}
-          priority
-          loading="eager"
-        />
-        <Image
-          src="/logo-dark.svg"
-          alt="AutoShop Pro"
-          width={260}
-          height={60}
-          className="h-10 w-auto mx-auto mb-6 hidden dark:block"
-          style={{ width: "auto", height: "auto" }}
-          priority
-          loading="eager"
-        />
-        <h1 className="font-display text-3xl mb-1">AutoShop Pro</h1>
-        <p className="text-sm" style={{ color: "var(--color-ink-tertiary)" }}>
-          {isAddingNew ? "Set up your new shop" : "Let's get your shop set up"}
-        </p>
-      </div>
+      {/* Luxury Background Gradients */}
+      <div 
+        className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full mix-blend-multiply filter blur-[128px] opacity-40 dark:opacity-20 animate-fade-in"
+        style={{ background: "var(--color-brand-200)" }}
+      />
+      <div 
+        className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full mix-blend-multiply filter blur-[128px] opacity-30 dark:opacity-10 animate-fade-in"
+        style={{ background: "var(--color-brand-400)" }}
+      />
 
-      <SetupProgressBar steps={STEPS} currentStepIdx={currentStepIdx} />
+      <div className="relative z-10 w-full max-w-lg mx-auto flex flex-col items-center">
+        <div className="mb-10 text-center animate-fade-in-up">
+          <Image
+            src="/logo-color.svg"
+            alt="AutoShop Pro"
+            width={260}
+            height={60}
+            className="h-10 w-auto mx-auto mb-6 dark:hidden drop-shadow-sm"
+            style={{ width: "auto", height: "auto" }}
+            priority
+            loading="eager"
+          />
+          <Image
+            src="/logo-dark.svg"
+            alt="AutoShop Pro"
+            width={260}
+            height={60}
+            className="h-10 w-auto mx-auto mb-6 hidden dark:block drop-shadow-sm"
+            style={{ width: "auto", height: "auto" }}
+            priority
+            loading="eager"
+          />
+          <h1 className="font-display text-4xl mb-2 text-transparent bg-clip-text bg-gradient-to-br from-[var(--color-ink-primary)] to-[var(--color-ink-tertiary)]">AutoShop Pro</h1>
+          <p className="text-base" style={{ color: "var(--color-ink-secondary)" }}>
+            {isAddingNew ? "Set up your new shop" : "Let's get your shop set up"}
+          </p>
+        </div>
 
-      <div className="card w-full max-w-md animate-scale-in">
-        {step === "shop" && (
-          <SetupShopStep
-            shopName={shopName}
-            shopAddress={shopAddress}
-            error={shopError}
-            isPending={isPending}
-            mounted={mounted}
-            onShopNameChange={setShopName}
-            onShopAddressChange={setShopAddress}
-            onSubmit={handleCreateShop}
-          />
-        )}
-        {step === "rooms" && (
-          <SetupRoomsStep
-            rooms={rooms}
-            newRoom={newRoom}
-            error={roomsError}
-            isPending={isPending}
-            mounted={mounted}
-            onNewRoomChange={setNewRoom}
-            onAddRoom={addRoom}
-            onRemoveRoom={(name) =>
-              setRooms((p) => p.filter((r) => r !== name))
-            }
-            onSubmit={handleCreateRooms}
-          />
-        )}
-        {step === "categories" && (
-          <SetupCategoriesStep
-            categories={setupCategories}
-            catName={catName}
-            catColor={catColor}
-            error={catError}
-            catAdding={catAdding}
-            isPending={isPending}
-            mounted={mounted}
-            onCatNameChange={setCatName}
-            onCatColorChange={setCatColor}
-            onAddCategory={handleAddCategory}
-            onDeleteCategory={handleDeleteCategory}
-            onFinish={handleFinishSetup}
-          />
-        )}
-        {step === "done" && <SetupDoneStep isAddingNew={isAddingNew} />}
+        <SetupProgressBar steps={STEPS} currentStepIdx={currentStepIdx} />
+
+        <div 
+          className="w-full rounded-2xl animate-scale-in"
+          style={{ 
+            background: "var(--color-surface-0)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            border: "1px solid var(--color-border)",
+            boxShadow: "var(--shadow-raised)"
+          }}
+        >
+          {step === "shop" && (
+            <SetupShopStep
+              shopName={shopName}
+              shopAddress={shopAddress}
+              error={shopError}
+              isPending={isPending}
+              mounted={mounted}
+              onShopNameChange={setShopName}
+              onShopAddressChange={setShopAddress}
+              onSubmit={handleCreateShop}
+            />
+          )}
+          {step === "rooms" && (
+            <SetupRoomsStep
+              rooms={rooms}
+              newRoom={newRoom}
+              error={roomsError}
+              isPending={isPending}
+              mounted={mounted}
+              onNewRoomChange={setNewRoom}
+              onAddRoom={addRoom}
+              onRemoveRoom={(name) =>
+                setRooms((p) => p.filter((r) => r !== name))
+              }
+              onSubmit={handleCreateRooms}
+            />
+          )}
+          {step === "categories" && (
+            <SetupCategoriesStep
+              categories={setupCategories}
+              catName={catName}
+              catColor={catColor}
+              error={catError}
+              catAdding={catAdding}
+              isPending={isPending}
+              mounted={mounted}
+              onCatNameChange={setCatName}
+              onCatColorChange={setCatColor}
+              onAddCategory={handleAddCategory}
+              onDeleteCategory={handleDeleteCategory}
+              onFinish={handleFinishSetup}
+            />
+          )}
+          {step === "done" && <SetupDoneStep isAddingNew={isAddingNew} />}
+        </div>
       </div>
     </div>
   );

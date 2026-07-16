@@ -20,10 +20,10 @@ export default function SetupShopStep({
   onSubmit,
 }: Props) {
   return (
-    <form onSubmit={onSubmit} className="p-6">
-      <h2 className="text-lg font-medium mb-1">Shop details</h2>
+    <form onSubmit={onSubmit} className="p-8 sm:p-10">
+      <h2 className="text-2xl font-display font-medium mb-2">Shop details</h2>
       <p
-        className="text-sm mb-6"
+        className="text-base mb-8"
         style={{ color: "var(--color-ink-secondary)" }}
       >
         Your shop name will appear on receipts and reports.
@@ -34,7 +34,7 @@ export default function SetupShopStep({
             Shop name <span style={{ color: "var(--color-danger)" }}>*</span>
           </label>
           <input
-            className="input"
+            className="input text-base py-3"
             type="text"
             placeholder="e.g. Nairobi Tyre Centre"
             value={shopName}
@@ -51,7 +51,7 @@ export default function SetupShopStep({
             </span>
           </label>
           <input
-            className="input"
+            className="input text-base py-3"
             type="text"
             placeholder="e.g. Mombasa Road, Nairobi"
             value={shopAddress}
@@ -66,7 +66,7 @@ export default function SetupShopStep({
       )}
       <button
         type="submit"
-        className="btn btn-primary w-full mt-6"
+        className="btn btn-primary w-full mt-8 py-3 text-base shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5"
         disabled={!mounted || isPending || !shopName.trim()}
       >
         {isPending ? "Creating…" : "Continue →"}

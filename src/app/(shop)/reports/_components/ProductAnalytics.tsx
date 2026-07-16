@@ -364,3 +364,5 @@ export function ProductAnalytics({ shopId, from, to }: Props) {
     </div>
   );
 }
+
+

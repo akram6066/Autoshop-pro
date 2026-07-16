@@ -1,17 +1,17 @@
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
+import SmoothScroll from "@/components/landing/SmoothScroll";
 import LandingNav from "@/components/landing/LandingNav";
+import CustomCursor from "@/components/landing/CustomCursor";
 import HeroSection from "@/components/landing/HeroSection";
-import { AuthCallbackHandler } from "@/components/AuthCallbackHandler";
-import StatsSection from "@/components/landing/StatsSection";
-import ProblemSection from "@/components/landing/ProblemSection";
-import FeaturesSection from "@/components/landing/FeaturesSection";
-import WhoItsForSection from "@/components/landing/WhoItsForSection";
+import MetricsSection from "@/components/landing/MetricsSection";
+import StorytellingShowcase from "@/components/landing/StorytellingShowcase";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
+import EnterpriseTrustSection from "@/components/landing/EnterpriseTrustSection";
+import { AuthCallbackHandler } from "@/components/AuthCallbackHandler";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
-import FinalCTASection from "@/components/landing/FinalCTASection";
+import ContactCTASection from "@/components/landing/ContactCTASection";
 import FooterSection from "@/components/landing/FooterSection";
-import WhatsAppButton from "@/components/landing/WhatsAppButton";
 import { fetchPlans, dbPlanToLanding, FALLBACK_PLANS } from "@/lib/plans";
 
 // Defer client-heavy sections — both have interactive JS (toggle / accordion)
@@ -38,33 +38,36 @@ export default async function LandingPage() {
   const plans = mapped.length > 0 ? mapped : FALLBACK_PLANS;
 
   return (
-    <div
-      className="landing-light"
-      style={{ minHeight: "100vh", overflowX: "hidden" }}
-    >
-      <LandingNav />
-      <main>
-        <HeroSection />
-        <StatsSection />
-        <ProblemSection />
-        <FeaturesSection />
-        <WhoItsForSection />
-        <HowItWorksSection />
-        <TestimonialsSection />
-        <Suspense fallback={<div style={{ minHeight: 480 }} />}>
-          <PricingSection plans={plans} />
-        </Suspense>
-        <Suspense fallback={<div style={{ minHeight: 320 }} />}>
-          <FAQSection />
-        </Suspense>
-        <FinalCTASection />
-      </main>
-      <FooterSection />
-      <WhatsAppButton />
-      {/* Silently forwards auth tokens to /api/auth/callback when Supabase
-          falls back to the Site URL (landing page) instead of the intended
-          emailRedirectTo URL. Zero visible UI — runs only when params present. */}
-      <AuthCallbackHandler />
-    </div>
+    <>
+      <CustomCursor />
+      <SmoothScroll>
+        <div
+          className="landing-dark text-white bg-[#000000] min-h-screen selection:bg-brand-500/30 selection:text-brand-200"
+          style={{ overflowX: "hidden", cursor: "none" }}
+        >
+          <LandingNav />
+        <main>
+          <HeroSection />
+          <MetricsSection />
+          <StorytellingShowcase />
+          <HowItWorksSection />
+          <EnterpriseTrustSection />
+          <TestimonialsSection />
+          <Suspense fallback={<div style={{ minHeight: 480 }} />}>
+            <PricingSection plans={plans} />
+          </Suspense>
+          <Suspense fallback={<div style={{ minHeight: 320 }} />}>
+            <FAQSection />
+          </Suspense>
+          <ContactCTASection />
+        </main>
+        <FooterSection />
+        {/* Silently forwards auth tokens to /api/auth/callback when Supabase
+            falls back to the Site URL (landing page) instead of the intended
+            emailRedirectTo URL. Zero visible UI — runs only when params present. */}
+        <AuthCallbackHandler />
+      </div>
+    </SmoothScroll>
+    </>
   );
 }

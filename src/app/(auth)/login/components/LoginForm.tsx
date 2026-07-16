@@ -155,21 +155,8 @@ export default function LoginForm() {
   }
 
   return (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "32px 24px",
-        background: "var(--color-surface-1)",
-        overflowY: "auto",
-      }}
-    >
-      <div
-        style={{ width: "100%", maxWidth: 420 }}
-        className="animate-fade-in-up"
-      >
+    <div className="w-full">
+      <div className="w-full max-w-[420px] mx-auto animate-fade-in-up">
         {/* Mobile logo */}
         <div className="lg:hidden text-center mb-8">
           <Image
@@ -217,28 +204,18 @@ export default function LoginForm() {
               </div>
             )}
 
-            <div style={{ marginBottom: 28, textAlign: "center" }}>
-              <h1
-                style={{
-                  fontWeight: 700,
-                  fontSize: "1.625rem",
-                  color: "var(--color-ink-primary)",
-                  marginBottom: 6,
-                }}
-              >
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-[var(--color-ink-primary)] mb-2 tracking-tight">
                 Sign in to your account
               </h1>
-              <p
-                style={{
-                  fontSize: "0.9375rem",
-                  color: "var(--color-ink-secondary)",
-                }}
-              >
+              <p className="text-sm text-[var(--color-ink-secondary)] font-medium">
                 Welcome back — enter your details below.
               </p>
             </div>
 
-            <div className="card p-6 sm:p-8">
+            <div className="bg-[var(--color-surface-0)]/80 backdrop-blur-xl p-6 sm:p-8 rounded-2xl border border-[var(--color-border)] shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] relative">
+              {/* Subtle top glow */}
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent"></div>
               <form
                 onSubmit={handleLogin}
                 style={{ display: "flex", flexDirection: "column", gap: 20 }}
@@ -246,19 +223,11 @@ export default function LoginForm() {
               >
                 {/* Email */}
                 <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "0.8125rem",
-                      fontWeight: 600,
-                      color: "var(--color-ink-primary)",
-                      marginBottom: 6,
-                    }}
-                  >
+                  <label className="block text-sm font-semibold text-[var(--color-ink-secondary)] mb-2">
                     Email address
                   </label>
                   <input
-                    className="input"
+                    className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border-input)] rounded-xl px-4 py-3 text-[var(--color-ink-primary)] placeholder:text-[var(--color-ink-ghost)] focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all"
                     type="email"
                     autoComplete="email"
                     placeholder="you@example.com"
@@ -288,41 +257,21 @@ export default function LoginForm() {
 
                 {/* Password */}
                 <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 6,
-                    }}
-                  >
-                    <label
-                      style={{
-                        fontSize: "0.8125rem",
-                        fontWeight: 600,
-                        color: "var(--color-ink-primary)",
-                      }}
-                    >
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-sm font-semibold text-[var(--color-ink-secondary)]">
                       Password
                     </label>
                     <button
                       type="button"
                       onClick={openForgot}
-                      style={{
-                        fontSize: "0.8125rem",
-                        color: "var(--color-brand-600)",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        padding: 0,
-                      }}
+                      className="text-sm font-semibold text-brand-400 hover:text-brand-300 transition-colors"
                     >
                       Forgot password?
                     </button>
                   </div>
-                  <div style={{ position: "relative" }}>
+                  <div className="relative">
                     <input
-                      className="input"
+                      className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border-input)] rounded-xl px-4 py-3 text-[var(--color-ink-primary)] placeholder:text-[var(--color-ink-ghost)] focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all pr-12"
                       type={showPassword ? "text" : "password"}
                       autoComplete="current-password"
                       placeholder="Your password"
@@ -341,12 +290,11 @@ export default function LoginForm() {
                       }}
                       onBlur={() => touch("password")}
                       disabled={isLoading}
-                      style={{
-                        paddingRight: 44,
-                        ...(fieldErrors.password
+                      style={
+                        fieldErrors.password
                           ? { borderColor: "var(--color-danger)" }
-                          : {}),
-                      }}
+                          : {}
+                      }
                     />
                     <EyeButton
                       show={showPassword}
@@ -364,17 +312,8 @@ export default function LoginForm() {
                 {/* Submit */}
                 <button
                   type="submit"
-                  className="btn btn-primary"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl transition-colors shadow-[0_0_20px_rgba(99,102,241,0.3)] mt-2"
                   disabled={isLoading}
-                  style={{
-                    width: "100%",
-                    justifyContent: "center",
-                    padding: "12px",
-                    fontSize: "0.9375rem",
-                    position: "relative",
-                    zIndex: 10,
-                    pointerEvents: "auto",
-                  }}
                 >
                   {isLoading ? (
                     <span
@@ -414,22 +353,11 @@ export default function LoginForm() {
                 </button>
               </form>
 
-              <p
-                style={{
-                  textAlign: "center",
-                  fontSize: "0.875rem",
-                  color: "var(--color-ink-tertiary)",
-                  marginTop: 20,
-                }}
-              >
+              <p className="text-center text-sm text-[var(--color-ink-secondary)] mt-6 font-medium">
                 Don&apos;t have an account?{" "}
                 <Link
                   href="/signup"
-                  style={{
-                    color: "var(--color-brand-600)",
-                    fontWeight: 600,
-                    textDecoration: "none",
-                  }}
+                  className="text-brand-400 font-bold hover:text-brand-300 transition-colors"
                 >
                   Sign up free
                 </Link>

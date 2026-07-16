@@ -12,7 +12,9 @@ export default function SetupProgressBar({ steps, currentStepIdx }: Props) {
         <div key={s.key} className="flex items-center gap-2">
           <div className="flex items-center gap-2">
             <div
-              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-all duration-300"
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-500 ease-out ${
+                i === currentStepIdx ? "shadow-[0_0_20px_var(--color-brand-500)] scale-110" : ""
+              }`}
               style={{
                 background:
                   i <= currentStepIdx
@@ -20,6 +22,7 @@ export default function SetupProgressBar({ steps, currentStepIdx }: Props) {
                     : "var(--color-surface-3)",
                 color:
                   i <= currentStepIdx ? "white" : "var(--color-ink-tertiary)",
+                border: i > currentStepIdx ? "1px solid var(--color-border)" : "none",
               }}
             >
               {i < currentStepIdx ? (
@@ -51,12 +54,13 @@ export default function SetupProgressBar({ steps, currentStepIdx }: Props) {
           </div>
           {i < steps.length - 1 && (
             <div
-              className="w-8 h-px"
+              className="w-10 h-[2px] rounded-full transition-all duration-500"
               style={{
                 background:
                   i < currentStepIdx
                     ? "var(--color-brand-400)"
                     : "var(--color-border)",
+                boxShadow: i < currentStepIdx ? "0 0 8px var(--color-brand-400)" : "none",
               }}
             />
           )}

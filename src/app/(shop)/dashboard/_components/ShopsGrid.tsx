@@ -37,10 +37,7 @@ export function ShopsGrid({ shops }: ShopsGridProps) {
 
   return (
     <div className="mb-8">
-      <p
-        className="text-xs font-medium uppercase tracking-widest mb-3"
-        style={{ color: "var(--color-ink-tertiary)" }}
-      >
+      <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-secondary)] mb-4 mt-2">
         Your shops
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 stagger">
@@ -51,64 +48,55 @@ export function ShopsGrid({ shops }: ShopsGridProps) {
           return (
             <div
               key={shop.id}
-              className="card p-4 animate-fade-in-up"
+              className="card relative p-5 overflow-hidden animate-fade-in-up"
               style={{
-                borderColor: shop.isActive
-                  ? "var(--color-brand-400)"
-                  : undefined,
-                borderWidth: shop.isActive ? 2 : undefined,
+                borderColor: shop.isActive ? "#6366f1" : undefined,
+                borderWidth: shop.isActive ? 1.5 : 1,
                 opacity: isBusy && !isSwitching ? 0.5 : 1,
                 transition: "opacity 0.15s",
               }}
             >
+              {/* Subtle top glow line for active shop */}
+              {shop.isActive && (
+                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent"></div>
+              )}
+
               <div className="flex items-start justify-between mb-2">
-                <p
-                  className="font-medium text-sm truncate flex-1 mr-2"
-                  style={{ color: "var(--color-ink-primary)" }}
-                >
+                <p className="font-semibold text-[var(--color-ink-primary)] text-base truncate flex-1 mr-2">
                   {shop.name}
                 </p>
                 <span
-                  className={`badge ${shop.role === "owner" ? "badge-info" : "badge-neutral"} flex-shrink-0`}
+                  className={`inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold border flex-shrink-0 ${
+                    shop.role === "owner" 
+                      ? "bg-brand-500/10 text-brand-400 border-brand-500/20" 
+                      : "bg-[var(--color-surface-2)] text-[var(--color-ink-secondary)] border-[var(--color-border-subtle)]"
+                  }`}
                 >
                   {shop.role}
                 </span>
               </div>
 
               {shop.address && (
-                <p
-                  className="text-xs mb-3"
-                  style={{ color: "var(--color-ink-tertiary)" }}
-                >
+                <p className="text-xs text-[var(--color-ink-secondary)] font-medium mb-4">
                   {shop.address}
                 </p>
               )}
 
-              <div className="flex items-center justify-between mt-2">
-                <p
-                  className="text-xs"
-                  style={{ color: "var(--color-ink-secondary)" }}
-                >
-                  {shop.productCount} product
-                  {shop.productCount !== 1 ? "s" : ""}
+              <div className="flex items-center justify-between mt-auto pt-2">
+                <p className="text-xs text-[var(--color-ink-secondary)] font-medium">
+                  {shop.productCount} product{shop.productCount !== 1 ? "s" : ""}
                 </p>
 
                 {shop.isActive ? (
-                  <div className="flex items-center gap-1">
-                    <div
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ background: "var(--color-success)" }}
-                    />
-                    <span
-                      className="text-xs"
-                      style={{ color: "var(--color-success)" }}
-                    >
+                  <div className="flex items-center gap-1.5 px-2 py-1 bg-success/10 border border-success/20 rounded-md">
+                    <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse shadow-[0_0_8px_var(--color-success)]" />
+                    <span className="text-xs font-bold text-success">
                       Active
                     </span>
                   </div>
                 ) : (
                   <button
-                    className="btn btn-secondary btn-sm"
+                    className="px-3 py-1.5 bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-ink-primary)] text-xs font-semibold rounded-lg border border-[var(--color-border-subtle)] transition-colors"
                     disabled={isBusy}
                     onClick={() => handleSwitch(shop.id)}
                     style={{ minWidth: 64 }}
@@ -124,3 +112,5 @@ export function ShopsGrid({ shops }: ShopsGridProps) {
     </div>
   );
 }
+
+

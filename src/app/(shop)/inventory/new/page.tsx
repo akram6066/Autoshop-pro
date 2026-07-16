@@ -333,7 +333,7 @@ export default function NewProductPage() {
                 fontSize: "0.8125rem",
                 fontWeight: 600,
                 cursor: "pointer",
-                background: tab === t ? "white" : "transparent",
+                background: tab === t ? "var(--color-surface-3)" : "transparent",
                 color:
                   tab === t
                     ? "var(--color-ink-primary)"
@@ -564,3 +564,5 @@ export default function NewProductPage() {
     </div>
   );
 }
+
+

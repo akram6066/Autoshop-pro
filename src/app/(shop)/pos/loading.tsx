@@ -7,14 +7,14 @@ export default function POSLoading() {
         <div className="flex gap-3 mb-4">
           <div
             className="h-9 flex-1 rounded-lg animate-pulse-soft"
-            style={{ background: "var(--color-surface-2)" }}
+            style={{ background: "var(--color-skeleton-subtle)" }}
           />
           <div className="flex gap-1">
             {[60, 80, 70].map((w) => (
               <div
                 key={w}
                 className="h-9 rounded animate-pulse-soft"
-                style={{ width: w, background: "var(--color-surface-2)" }}
+                style={{ width: w, background: "var(--color-skeleton-subtle)" }}
               />
             ))}
           </div>
@@ -26,7 +26,7 @@ export default function POSLoading() {
             <div
               key={i}
               className="h-32 rounded-xl animate-pulse-soft"
-              style={{ background: "var(--color-surface-2)" }}
+              style={{ background: "var(--color-skeleton-subtle)" }}
             />
           ))}
         </div>
@@ -35,8 +35,9 @@ export default function POSLoading() {
       {/* Cart panel — desktop only */}
       <div
         className="hidden sm:flex sm:w-80 flex-col card p-0 overflow-hidden flex-shrink-0 animate-pulse-soft"
-        style={{ background: "var(--color-surface-2)" }}
+        style={{ background: "var(--color-skeleton-subtle)" }}
       />
     </div>
   );
 }
+

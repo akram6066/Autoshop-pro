@@ -22,10 +22,10 @@ export default function SetupRoomsStep({
   onSubmit,
 }: Props) {
   return (
-    <form onSubmit={onSubmit} className="p-6">
-      <h2 className="text-lg font-medium mb-1">Storage rooms</h2>
+    <form onSubmit={onSubmit} className="p-8 sm:p-10">
+      <h2 className="text-2xl font-display font-medium mb-2">Storage rooms</h2>
       <p
-        className="text-sm mb-5"
+        className="text-base mb-6"
         style={{ color: "var(--color-ink-secondary)" }}
       >
         Rooms help you organise where parts are stored. Add as many as you need.
@@ -40,7 +40,7 @@ export default function SetupRoomsStep({
         {rooms.map((name) => (
           <div
             key={name}
-            className="flex items-center justify-between px-3 py-2.5 rounded-lg"
+            className="flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300"
             style={{
               background: "var(--color-surface-1)",
               border: "1px solid var(--color-border)",
@@ -68,7 +68,7 @@ export default function SetupRoomsStep({
 
       <div className="flex gap-2">
         <input
-          className="input flex-1"
+          className="input flex-1 text-base py-3"
           type="text"
           placeholder="Room name…"
           value={newRoom}
@@ -80,7 +80,7 @@ export default function SetupRoomsStep({
             }
           }}
         />
-        <button type="button" onClick={onAddRoom} className="btn btn-secondary">
+        <button type="button" onClick={onAddRoom} className="btn btn-secondary px-6 font-medium">
           Add
         </button>
       </div>
@@ -93,7 +93,7 @@ export default function SetupRoomsStep({
 
       <button
         type="submit"
-        className="btn btn-primary w-full mt-6"
+        className="btn btn-primary w-full mt-8 py-3 text-base shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5"
         disabled={!mounted || isPending || rooms.length === 0}
       >
         {isPending

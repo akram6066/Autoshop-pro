@@ -64,7 +64,7 @@ export default function InvitesPage() {
             <div
               key={i}
               className="h-20 rounded-xl animate-pulse-soft"
-              style={{ background: "var(--color-surface-2)" }}
+              style={{ background: "var(--color-skeleton-subtle)" }}
             />
           ))}
         </div>
@@ -145,3 +145,5 @@ export default function InvitesPage() {
     </div>
   );
 }
+
+

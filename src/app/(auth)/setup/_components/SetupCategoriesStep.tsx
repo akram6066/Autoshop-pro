@@ -41,10 +41,10 @@ export default function SetupCategoriesStep({
   onFinish,
 }: Props) {
   return (
-    <div className="p-6">
-      <h2 className="text-lg font-medium mb-1">Product categories</h2>
+    <div className="p-8 sm:p-10">
+      <h2 className="text-2xl font-display font-medium mb-2">Product categories</h2>
       <p
-        className="text-sm mb-5"
+        className="text-base mb-6"
         style={{ color: "var(--color-ink-secondary)" }}
       >
         Add the categories you use most. You can edit this list later in
@@ -57,7 +57,7 @@ export default function SetupCategoriesStep({
           {categories.map((cat) => (
             <div
               key={cat.id}
-              className="flex items-center justify-between py-2.5"
+              className="flex items-center justify-between py-3 px-1"
               style={{ borderBottom: "1px solid var(--color-border-subtle)" }}
             >
               <div className="flex items-center gap-2.5">
@@ -93,7 +93,7 @@ export default function SetupCategoriesStep({
       <form onSubmit={onAddCategory} className="space-y-3 mb-5">
         <div className="flex gap-2">
           <input
-            className="input flex-1"
+            className="input flex-1 text-base py-3"
             type="text"
             placeholder="New category name…"
             value={catName}
@@ -101,7 +101,7 @@ export default function SetupCategoriesStep({
           />
           <button
             type="submit"
-            className="btn btn-secondary"
+            className="btn btn-secondary px-6 font-medium"
             disabled={!catName.trim() || catAdding}
           >
             {catAdding ? "Adding…" : "Add"}
@@ -141,7 +141,7 @@ export default function SetupCategoriesStep({
       <button
         type="button"
         onClick={onFinish}
-        className="btn btn-primary w-full"
+        className="btn btn-primary w-full py-3 text-base mt-2 shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5"
         disabled={!mounted || isPending}
       >
         {isPending ? "Finishing…" : "Finish setup →"}
@@ -149,7 +149,7 @@ export default function SetupCategoriesStep({
       <button
         type="button"
         onClick={onFinish}
-        className="w-full mt-3 text-sm text-center"
+        className="w-full mt-4 text-sm text-center transition-colors hover:text-opacity-80"
         style={{ color: "var(--color-ink-tertiary)" }}
         disabled={isPending}
       >

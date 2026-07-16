@@ -35,9 +35,6 @@ export function ProductCard({
       disabled={outOfStock}
       className="card w-full h-full text-left rounded-xl transition-all duration-150 flex flex-col overflow-hidden"
       style={{
-        background: outOfStock
-          ? "var(--color-surface-2)"
-          : "var(--color-surface-0)",
         opacity: outOfStock ? 0.55 : 1,
         cursor: outOfStock ? "not-allowed" : "pointer",
         borderTop: `3px solid ${getCategoryColor(product.category)}`,

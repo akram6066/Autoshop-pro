@@ -44,7 +44,7 @@ export default async function ShopPage() {
       db.from("shops").select("name").eq("id", shopId).single(),
       db
         .from("products")
-        .select("id", { count: "exact", head: true })
+        .select("id, quantity")
         .eq("shop_id", shopId),
       db
         .from("sales")
@@ -61,8 +61,32 @@ export default async function ShopPage() {
     ]);
 
     shopName = shopRes.data?.name ?? "";
-    productCount = productsRes.count ?? 0;
     salesCount = salesRes.count ?? 0;
+
+    let totalPieces = 0;
+    if (productsRes.data && productsRes.data.length > 0) {
+      const productIds = productsRes.data.map((p) => p.id);
+      const { data: variants } = await db
+        .from("product_variants")
+        .select("product_id, quantity")
+        .in("product_id", productIds);
+
+      const variantsByProduct = new Map<string, number[]>();
+      for (const v of variants ?? []) {
+        const arr = variantsByProduct.get(v.product_id) ?? [];
+        arr.push(Number(v.quantity) || 0);
+        variantsByProduct.set(v.product_id, arr);
+      }
+
+      totalPieces = productsRes.data.reduce((sum, p) => {
+        const vQty = variantsByProduct.get(p.id);
+        if (vQty?.length) {
+          return sum + vQty.reduce((a, b) => a + b, 0);
+        }
+        return sum + (Number(p.quantity) || 0);
+      }, 0);
+    }
+    productCount = totalPieces;
 
     type MemberRow = { shop_id: string; shops: { id: string; name: string } };
     otherShops = ((membershipsRes.data ?? []) as unknown as MemberRow[]).map(

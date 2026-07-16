@@ -230,7 +230,7 @@ export default function ReportsPage() {
             {isLoading ? (
               <div
                 className="h-40 rounded-lg animate-pulse-soft"
-                style={{ background: "var(--color-surface-2)" }}
+                style={{ background: "var(--color-skeleton-subtle)" }}
               />
             ) : isError ? (
               <div className="h-40 flex items-center justify-center">
@@ -303,3 +303,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+

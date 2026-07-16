@@ -4,9 +4,9 @@ interface Props {
 
 export default function SetupDoneStep({ isAddingNew }: Props) {
   return (
-    <div className="p-8 text-center animate-scale-in">
+    <div className="p-10 sm:p-14 text-center animate-scale-in">
       <div
-        className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4"
+        className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-6 shadow-[0_0_40px_rgba(22,163,74,0.3)] dark:shadow-[0_0_40px_rgba(74,222,128,0.2)] transition-all"
         style={{ background: "var(--color-success-light)" }}
       >
         <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
@@ -19,10 +19,10 @@ export default function SetupDoneStep({ isAddingNew }: Props) {
           />
         </svg>
       </div>
-      <h2 className="text-xl font-medium mb-2">
+      <h2 className="text-3xl font-display font-medium mb-3">
         {isAddingNew ? "New shop created!" : "You're all set!"}
       </h2>
-      <p className="text-sm" style={{ color: "var(--color-ink-secondary)" }}>
+      <p className="text-base" style={{ color: "var(--color-ink-secondary)" }}>
         {isAddingNew
           ? "Taking you to your overview…"
           : "Taking you to your dashboard…"}

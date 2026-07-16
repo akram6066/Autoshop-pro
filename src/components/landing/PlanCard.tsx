@@ -1,96 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { MouseEvent, useRef } from "react";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import type { PricingPlan } from "@/lib/pricing";
-
-function CheckIcon({ highlighted }: { highlighted: boolean }) {
-  return (
-    <svg
-      width="15"
-      height="15"
-      fill="none"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      style={{
-        flexShrink: 0,
-        color: highlighted ? "rgba(255,255,255,0.9)" : "var(--color-success)",
-      }}
-    >
-      <path
-        d="M20 6L9 17l-5-5"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CheckIconBlue() {
-  return (
-    <svg
-      width="15"
-      height="15"
-      fill="none"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      style={{ flexShrink: 0, color: "var(--color-brand-500)" }}
-    >
-      <path
-        d="M20 6L9 17l-5-5"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function XIcon({ highlighted }: { highlighted: boolean }) {
-  return (
-    <svg
-      width="15"
-      height="15"
-      fill="none"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      style={{
-        flexShrink: 0,
-        color: highlighted
-          ? "rgba(255,255,255,0.25)"
-          : "var(--color-ink-ghost)",
-      }}
-    >
-      <path
-        d="M18 6L6 18M6 6l12 12"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function ArrowIcon() {
-  return (
-    <svg
-      width="15"
-      height="15"
-      fill="none"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      style={{ flexShrink: 0 }}
-    >
-      <path
-        d="M5 12h14M13 6l6 6-6 6"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+import { Check, X, ArrowRight, Sparkles } from "lucide-react";
 
 export function PlanCard({
   plan,
@@ -105,165 +19,119 @@ export function PlanCard({
       ? Math.round(plan.monthlyPrice * (1 - plan.annualDiscountPct / 100))
       : plan.monthlyPrice;
 
-  return (
-    <div
-      style={{
-        position: "relative",
-        transform: plan.highlighted ? undefined : "scale(1)",
-        zIndex: plan.highlighted ? 1 : 0,
-      }}
-      className={plan.highlighted ? "plan-highlighted" : undefined}
-    >
-      {plan.highlighted && (
-        <div
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            inset: -16,
-            background:
-              "radial-gradient(ellipse at 50% 60%, rgba(59,110,245,0.28) 0%, transparent 70%)",
-            pointerEvents: "none",
-            zIndex: -1,
-          }}
-        />
-      )}
+  const ref = useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
 
+  const mouseXSpring = useSpring(x, { stiffness: 300, damping: 20 });
+  const mouseYSpring = useSpring(y, { stiffness: 300, damping: 20 });
+
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["5deg", "-5deg"]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-5deg", "5deg"]);
+
+  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const xPct = mouseX / width - 0.5;
+    const yPct = mouseY / height - 0.5;
+    x.set(xPct);
+    y.set(yPct);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        rotateX,
+        rotateY,
+        transformStyle: "preserve-3d",
+      }}
+      className={`group relative rounded-3xl transition-all duration-500 ${
+        plan.highlighted
+          ? "ring-2 ring-brand-500/50 shadow-[0_0_60px_rgba(99,102,241,0.15)]"
+          : isUltra
+            ? "ring-1 ring-brand-500/30"
+            : "ring-1 ring-zinc-800/80 hover:ring-zinc-700"
+      }`}
+    >
+      {/* Background */}
       <div
-        style={{
-          position: "relative",
-          padding: "32px 28px",
-          borderRadius: "var(--radius-lg)",
-          background: plan.highlighted
-            ? "linear-gradient(160deg, #1d4ed8 0%, #3b6ef5 50%, #6d28d9 100%)"
-            : "var(--color-surface-0)",
-          border: plan.highlighted
-            ? "none"
-            : isUltra
-              ? "2px solid var(--color-brand-500)"
-              : "1px solid var(--color-border)",
-          borderTop:
-            isUltra && !plan.highlighted
-              ? "3px solid var(--color-brand-500)"
-              : undefined,
-          boxShadow: plan.highlighted
-            ? "0 24px 72px rgba(59,110,245,0.4), 0 4px 16px rgba(0,0,0,0.1)"
-            : isUltra
-              ? "0 8px 32px rgba(59,110,245,0.14), 0 1px 4px rgba(0,0,0,0.06)"
-              : "0 1px 4px rgba(0,0,0,0.06)",
-          display: "flex",
-          flexDirection: "column",
-          height: "100%",
-        }}
+        style={{ transform: "translateZ(30px)" }}
+        className={`relative p-8 flex flex-col h-full rounded-3xl overflow-hidden ${
+          plan.highlighted
+            ? "bg-gradient-to-br from-brand-600 via-brand-700 to-purple-800 pt-10"
+            : "bg-[#0a0a0a]"
+        } ${(plan.badge || (plan.freeTrial && !plan.badge)) ? "pt-10" : ""}`}
       >
+        {/* Subtle hover glow for non-highlighted */}
+        {!plan.highlighted && (
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+        )}
+
+        {/* Badge */}
         {(plan.badge || (plan.freeTrial && !plan.badge)) && (
           <div
-            style={{
-              position: "absolute",
-              top: -13,
-              left: "50%",
-              transform: "translateX(-50%)",
-              background: plan.badge
+            className={`absolute top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap shadow-lg z-20 ${
+              plan.badge
                 ? plan.highlighted
-                  ? "white"
-                  : "var(--color-brand-500)"
-                : "var(--color-success)",
-              color: plan.badge
-                ? plan.highlighted
-                  ? "#3b6ef5"
-                  : "white"
-                : "white",
-              fontSize: "0.6875rem",
-              fontWeight: 700,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              padding: "4px 14px",
-              borderRadius: 999,
-              boxShadow: plan.badge
-                ? "0 2px 8px rgba(0,0,0,0.14)"
-                : "0 2px 8px rgba(22,163,74,0.3)",
-              whiteSpace: "nowrap",
-            }}
+                  ? "bg-white text-brand-600"
+                  : "bg-brand-500 text-white"
+                : "bg-success text-white"
+            }`}
           >
             {plan.badge ?? "1 month free"}
           </div>
         )}
 
         {/* Plan name */}
-        <p
-          style={{
-            fontSize: "0.6875rem",
-            fontWeight: 700,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: plan.highlighted
-              ? "rgba(255,255,255,0.65)"
-              : isUltra
-                ? "var(--color-brand-600)"
-                : "var(--color-ink-tertiary)",
-            marginBottom: 10,
-          }}
-        >
-          {plan.name}
-        </p>
+        <div className="flex items-center gap-2 mb-6 mt-2">
+          {plan.highlighted && <Sparkles size={16} className="text-brand-200" />}
+          <p
+            className={`text-xs font-bold tracking-[0.14em] uppercase ${
+              plan.highlighted
+                ? "text-brand-200"
+                : isUltra
+                  ? "text-brand-400"
+                  : "text-zinc-500"
+            }`}
+          >
+            {plan.name}
+          </p>
+        </div>
 
         {/* Price */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-end",
-            gap: 4,
-            marginBottom: 6,
-          }}
-        >
+        <div className="flex items-baseline gap-1 mb-2 flex-wrap">
           {plan.monthlyPrice === 0 ? (
-            <span
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "2.75rem",
-                fontWeight: 700,
-                lineHeight: 1,
-                color: "var(--color-ink-primary)",
-              }}
-            >
-              Free
-            </span>
+            <span className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">Free</span>
           ) : (
             <>
               <span
-                style={{
-                  fontSize: "0.9375rem",
-                  fontWeight: 600,
-                  color: plan.highlighted
-                    ? "rgba(255,255,255,0.7)"
-                    : "var(--color-ink-secondary)",
-                  paddingBottom: 7,
-                }}
+                className={`text-sm font-semibold ${
+                  plan.highlighted ? "text-white/60" : "text-zinc-500"
+                }`}
               >
                 {plan.currency}
               </span>
               <span
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: "2.75rem",
-                  fontWeight: 700,
-                  lineHeight: 1,
-                  color: plan.highlighted
-                    ? "white"
-                    : isUltra
-                      ? "var(--color-brand-600)"
-                      : "var(--color-ink-primary)",
-                }}
+                className={`text-4xl sm:text-5xl font-extrabold tracking-tight text-white`}
               >
                 {displayPrice?.toLocaleString()}
               </span>
               <span
-                style={{
-                  fontSize: "0.875rem",
-                  color: plan.highlighted
-                    ? "rgba(255,255,255,0.55)"
-                    : "var(--color-ink-tertiary)",
-                  paddingBottom: 5,
-                }}
+                className={`text-sm font-medium ${
+                  plan.highlighted ? "text-white/40" : "text-zinc-500"
+                }`}
               >
                 /mo
               </span>
@@ -273,15 +141,11 @@ export function PlanCard({
 
         {isAnnual && plan.monthlyPrice && plan.monthlyPrice > 0 && (
           <p
-            style={{
-              fontSize: "0.8125rem",
-              color: plan.highlighted
-                ? "rgba(255,255,255,0.6)"
-                : "var(--color-ink-ghost)",
-              marginBottom: 4,
-            }}
+            className={`text-sm mb-2 ${
+              plan.highlighted ? "text-white/50" : "text-zinc-600"
+            }`}
           >
-            <span style={{ textDecoration: "line-through" }}>
+            <span className="line-through">
               {plan.currency} {plan.monthlyPrice?.toLocaleString()}
             </span>{" "}
             billed annually
@@ -290,15 +154,9 @@ export function PlanCard({
 
         {/* Description */}
         <p
-          style={{
-            fontSize: "0.875rem",
-            color: plan.highlighted
-              ? "rgba(255,255,255,0.68)"
-              : "var(--color-ink-tertiary)",
-            lineHeight: 1.6,
-            marginBottom: 22,
-            minHeight: "2.8em",
-          }}
+          className={`text-sm leading-relaxed mb-8 min-h-[2.8em] ${
+            plan.highlighted ? "text-white/60" : "text-zinc-400"
+          }`}
         >
           {plan.description}
         </p>
@@ -306,127 +164,84 @@ export function PlanCard({
         {/* CTA button */}
         <Link
           href={plan.ctaHref}
-          className="plan-cta"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            padding: "12px 20px",
-            borderRadius: "var(--radius-md)",
-            fontWeight: 700,
-            fontSize: "0.9375rem",
-            textDecoration: "none",
-            letterSpacing: "0.01em",
-            ...(plan.highlighted
-              ? {
-                  background: "white",
-                  color: "#3b6ef5",
-                  boxShadow: "0 4px 14px rgba(0,0,0,0.14)",
-                }
+          className={`flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl font-bold text-[15px] transition-all duration-300 ${
+            plan.highlighted
+              ? "bg-white text-brand-600 hover:bg-zinc-100 shadow-[0_4px_20px_rgba(0,0,0,0.15)]"
               : isUltra
-                ? {
-                    background:
-                      "linear-gradient(135deg, #3b6ef5 0%, #6d28d9 100%)",
-                    color: "white",
-                    boxShadow: "0 4px 20px rgba(59,110,245,0.35)",
-                  }
-                : {
-                    background: "var(--color-surface-2)",
-                    color: "var(--color-ink-primary)",
-                    border: "1.5px solid var(--color-border-input)",
-                  }),
-          }}
+                ? "bg-gradient-to-r from-brand-600 to-purple-600 text-white hover:from-brand-500 hover:to-purple-500 shadow-[0_4px_20px_rgba(99,102,241,0.3)]"
+                : "bg-zinc-900 text-white border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800"
+          }`}
         >
           {plan.cta}
-          <ArrowIcon />
+          <ArrowRight size={16} />
         </Link>
 
         {/* Divider */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            margin: "24px 0 18px",
-          }}
-        >
+        <div className="flex items-center gap-4 my-8">
           <div
-            style={{
-              flex: 1,
-              height: 1,
-              background: plan.highlighted
-                ? "rgba(255,255,255,0.15)"
-                : "var(--color-border-subtle)",
-            }}
+            className={`flex-1 h-px ${
+              plan.highlighted ? "bg-white/15" : "bg-zinc-800"
+            }`}
           />
           <span
-            style={{
-              fontSize: "0.6875rem",
-              fontWeight: 600,
-              letterSpacing: "0.07em",
-              textTransform: "uppercase",
-              color: plan.highlighted
-                ? "rgba(255,255,255,0.35)"
-                : "var(--color-ink-ghost)",
-              whiteSpace: "nowrap",
-            }}
+            className={`text-[11px] font-bold tracking-[0.08em] uppercase ${
+              plan.highlighted ? "text-white/30" : "text-zinc-600"
+            }`}
           >
             What&apos;s included
           </span>
           <div
-            style={{
-              flex: 1,
-              height: 1,
-              background: plan.highlighted
-                ? "rgba(255,255,255,0.15)"
-                : "var(--color-border-subtle)",
-            }}
+            className={`flex-1 h-px ${
+              plan.highlighted ? "bg-white/15" : "bg-zinc-800"
+            }`}
           />
         </div>
 
         {/* Feature list */}
-        <ul
-          style={{
-            listStyle: "none",
-            padding: 0,
-            margin: 0,
-            display: "flex",
-            flexDirection: "column",
-            gap: 11,
-          }}
-        >
+        <ul className="flex flex-col gap-3.5">
           {plan.features.map((f) => (
             <li
               key={f.label}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                fontSize: "0.875rem",
-                color: f.included
+              className={`flex items-center gap-3 text-sm ${
+                f.included
                   ? plan.highlighted
-                    ? "rgba(255,255,255,0.88)"
-                    : "var(--color-ink-secondary)"
+                    ? "text-white/85"
+                    : "text-zinc-300"
                   : plan.highlighted
-                    ? "rgba(255,255,255,0.25)"
-                    : "var(--color-ink-ghost)",
-              }}
+                    ? "text-white/20"
+                    : "text-zinc-700"
+              }`}
             >
               {f.included ? (
-                plan.highlighted ? (
-                  <CheckIcon highlighted />
-                ) : (
-                  <CheckIconBlue />
-                )
+                <div
+                  className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    plan.highlighted
+                      ? "bg-white/20"
+                      : "bg-brand-500/15"
+                  }`}
+                >
+                  <Check
+                    size={12}
+                    className={
+                      plan.highlighted ? "text-white" : "text-brand-400"
+                    }
+                  />
+                </div>
               ) : (
-                <XIcon highlighted={plan.highlighted} />
+                <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 bg-zinc-800/50">
+                  <X
+                    size={10}
+                    className={
+                      plan.highlighted ? "text-white/20" : "text-zinc-700"
+                    }
+                  />
+                </div>
               )}
               {f.label}
             </li>
           ))}
         </ul>
       </div>
-    </div>
+    </motion.div>
   );
 }

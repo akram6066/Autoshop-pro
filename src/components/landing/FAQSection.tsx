@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Container from "./Container";
-import SectionHead from "./SectionHead";
-import { RevealOnScroll } from "./RevealOnScroll";
+import { Plus, Minus } from "lucide-react";
 
 const faqs = [
   {
@@ -38,157 +38,99 @@ function FAQSection() {
   return (
     <section
       id="faq"
-      style={{
-        padding: "96px 0",
-        background: "linear-gradient(160deg, #f5f0ff 0%, #eef2ff 100%)",
-      }}
+      className="py-16 lg:py-32 relative bg-[#020202] overflow-hidden"
     >
-      <Container>
-        <RevealOnScroll>
-          <SectionHead
-            eyebrow="FAQ"
-            title="Common questions"
-            subtitle="Everything you need to know before getting started."
-          />
-        </RevealOnScroll>
-        <div
-          style={{
-            maxWidth: 700,
-            margin: "0 auto",
-            display: "flex",
-            flexDirection: "column",
-            gap: 0,
-          }}
-        >
-          {faqs.map((item, i) => {
-            const isOpen = openIdx === i;
-            const bodyId = `faq-body-${i}`;
-            const btnId = `faq-btn-${i}`;
-            return (
-              <RevealOnScroll key={item.q} delay={i * 60}>
-                <div
-                  style={{
-                    borderRadius: isOpen ? "var(--radius-lg)" : 0,
-                    background: isOpen
-                      ? "var(--color-surface-1)"
-                      : "transparent",
-                    border: isOpen ? "1px solid var(--color-border)" : "none",
-                    borderBottom: isOpen
-                      ? undefined
-                      : "1px solid var(--color-border-subtle)",
-                    marginBottom: isOpen ? 8 : 0,
-                    transition: "all 0.2s var(--ease-smooth)",
-                    overflow: "hidden",
-                  }}
-                >
-                  <button
-                    id={btnId}
-                    type="button"
-                    aria-expanded={isOpen}
-                    aria-controls={bodyId}
-                    onClick={() => setOpenIdx(isOpen ? null : i)}
-                    style={{
-                      width: "100%",
-                      textAlign: "left",
-                      padding: isOpen ? "20px 20px 0" : "20px 0",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 16,
-                    }}
+      {/* Gradient border line at top */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent"></div>
+
+      <Container className="relative z-10">
+        <div className="flex flex-col lg:flex-row gap-16 lg:gap-12 lg:gap-24">
+          {/* Left Column — Heading */}
+          <div className="lg:w-1/3 lg:sticky lg:top-32 lg:self-start">
+            <motion.p
+              className="text-xs font-bold tracking-[0.2em] uppercase text-brand-400 mb-4"
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+            >
+              FAQ
+            </motion.p>
+            <motion.h2
+              className="text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-[1.1] mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+            >
+              Common <br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-400 to-zinc-600">
+                questions.
+              </span>
+            </motion.h2>
+            <motion.p
+              className="text-zinc-400 font-medium leading-relaxed"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              Everything you need to know before getting started. Can&apos;t find what you&apos;re looking for? Reach out via WhatsApp.
+            </motion.p>
+          </div>
+
+          {/* Right Column — Accordion */}
+          <div className="lg:w-2/3">
+            <div className="flex flex-col">
+              {faqs.map((item, i) => {
+                const isOpen = openIdx === i;
+                return (
+                  <motion.div
+                    key={item.q}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-40px" }}
+                    transition={{ duration: 0.5, delay: i * 0.06 }}
+                    className="border-b border-zinc-800/80"
                   >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 14 }}
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      onClick={() => setOpenIdx(isOpen ? null : i)}
+                      className="w-full flex items-center justify-between gap-6 py-6 text-left group"
                     >
-                      <span
-                        aria-hidden="true"
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: "50%",
-                          background: isOpen
-                            ? "var(--color-brand-500)"
-                            : "var(--color-surface-2)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          transition: "background 0.2s",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "0.6875rem",
-                            fontWeight: 700,
-                            color: isOpen
-                              ? "white"
-                              : "var(--color-ink-tertiary)",
-                          }}
-                        >
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
-                      </span>
-                      <span
-                        style={{
-                          fontWeight: 600,
-                          fontSize: "0.9375rem",
-                          color: "var(--color-ink-primary)",
-                        }}
-                      >
+                      <span className="text-[17px] font-semibold text-zinc-200 group-hover:text-white transition-colors leading-snug">
                         {item.q}
                       </span>
-                    </div>
-                    <svg
-                      width="18"
-                      height="18"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                      style={{
-                        flexShrink: 0,
-                        color: "var(--color-ink-tertiary)",
-                        transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                        transition: "transform 0.25s var(--ease-smooth)",
-                      }}
-                    >
-                      <path
-                        d="M6 9l6 6 6-6"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border transition-all duration-300 ${
+                        isOpen 
+                          ? "bg-brand-500/20 border-brand-500/30 text-brand-400 rotate-0" 
+                          : "bg-zinc-900 border-zinc-800 text-zinc-500 rotate-0"
+                      }`}>
+                        {isOpen ? <Minus size={16} /> : <Plus size={16} />}
+                      </div>
+                    </button>
 
-                  {/* CSS grid accordion — no layout jank */}
-                  <div
-                    id={bodyId}
-                    role="region"
-                    aria-labelledby={btnId}
-                    className={`faq-body${isOpen ? " open" : ""}`}
-                  >
-                    <div className="faq-body-inner">
-                      <p
-                        style={{
-                          padding: "14px 20px 20px 46px",
-                          fontSize: "0.9375rem",
-                          color: "var(--color-ink-secondary)",
-                          lineHeight: 1.75,
-                        }}
-                      >
-                        {item.a}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </RevealOnScroll>
-            );
-          })}
+                    <AnimatePresence>
+                      {isOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                          className="overflow-hidden"
+                        >
+                          <p className="pb-6 text-[15px] text-zinc-400 leading-[1.8] max-w-xl pr-12 font-medium">
+                            {item.a}
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </Container>
     </section>

@@ -97,7 +97,7 @@ function ProblemSection() {
             subtitle="Every day without the right tools costs you time, money, and peace of mind."
           />
         </RevealOnScroll>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {problems.map((p, i) => (
             <RevealOnScroll key={p.title} delay={i * 90}>
               <div

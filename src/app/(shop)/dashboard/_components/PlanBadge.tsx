@@ -6,27 +6,27 @@ const PLAN_STYLE: Record<
 > = {
   trial: {
     label: "Free",
-    bg: "var(--color-badge-neutral-bg)",
-    color: "var(--color-badge-neutral-text)",
-    border: "var(--color-badge-neutral-border)",
+    bg: "rgba(255, 255, 255, 0.05)",
+    color: "#a1a1aa", // zinc-400
+    border: "rgba(255, 255, 255, 0.1)",
   },
   pro: {
     label: "Pro",
-    bg: "var(--color-badge-blue-bg)",
-    color: "var(--color-badge-blue-text)",
-    border: "var(--color-badge-blue-border)",
+    bg: "rgba(99, 102, 241, 0.15)", // brand-500/15
+    color: "#818cf8", // brand-400
+    border: "rgba(99, 102, 241, 0.3)",
   },
   ultra_pro: {
     label: "Big Companies",
-    bg: "var(--color-badge-purple-bg)",
-    color: "var(--color-badge-purple-text)",
-    border: "var(--color-badge-purple-border)",
+    bg: "rgba(168, 85, 247, 0.15)", // purple-500/15
+    color: "#c084fc", // purple-400
+    border: "rgba(168, 85, 247, 0.3)",
   },
   free_forever: {
     label: "Free",
-    bg: "var(--color-success-light)",
-    color: "var(--color-success-text)",
-    border: "var(--color-success)",
+    bg: "rgba(34, 197, 94, 0.15)", // success/15
+    color: "#4ade80", // success-400
+    border: "rgba(34, 197, 94, 0.3)",
   },
 };
 

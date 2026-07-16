@@ -49,11 +49,11 @@ export default function ProfilePage() {
       <div className="max-w-2xl animate-fade-in">
         <div
           className="h-8 w-48 mb-2 rounded animate-pulse-soft"
-          style={{ background: "var(--color-surface-2)" }}
+          style={{ background: "var(--color-skeleton-subtle)" }}
         />
         <div
           className="h-4 w-64 mb-8 rounded animate-pulse-soft"
-          style={{ background: "var(--color-surface-2)" }}
+          style={{ background: "var(--color-skeleton-subtle)" }}
         />
       </div>
     );
@@ -163,3 +163,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+

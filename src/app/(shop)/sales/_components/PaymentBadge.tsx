@@ -18,3 +18,5 @@ export function PaymentBadge({ method }: { method: PaymentMethod }) {
     </span>
   );
 }
+
+

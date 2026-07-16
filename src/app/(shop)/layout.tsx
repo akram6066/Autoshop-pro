@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useCallback, type ReactNode } from "react";
+import { useEffect, useRef, useCallback, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { RouteErrorBoundary } from "@/components/ErrorBoundary";
 import { createClient } from "@/lib/supabase/client";
-import { useAuthStore, selectRole, selectShopId } from "@/stores/authStore";
+import { useAuthStore, selectRole, selectShopId, selectIsPaidPlan } from "@/stores/authStore";
 import { seedLocalCache, clearLocalDb } from "@/lib/db/instance";
 import { listenForCrossTabSync, closeChannel } from "@/lib/sync/queue";
 import { ShopHeader } from "@/components/shop/ShopHeader";
+import { Sidebar } from "@/components/shop/Sidebar";
 import EmailConfirmBanner from "@/components/EmailConfirmBanner";
 import { PendingInviteBanner } from "@/components/shop/PendingInviteBanner";
 import { TrialBanner } from "@/components/TrialBanner";
@@ -38,6 +39,8 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
   const setUser = useAuthStore((s) => s.setUser);
   const setPlanName = useAuthStore((s) => s.setPlanName);
   const reset = useAuthStore((s) => s.reset);
+
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const initialised = useRef(false);
   const initInFlight = useRef(false);
@@ -223,19 +226,40 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
     // router.replace("/login") is handled by the SIGNED_OUT listener above
   };
 
-  return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ background: "var(--color-surface-1)" }}
-    >
-      <ShopHeader role={role} shopId={shopId} onSignOut={handleSignOut} />
-      <TrialBanner />
-      <PendingInviteBanner />
-      <EmailConfirmBanner />
+  const isPaidPlan = useAuthStore(selectIsPaidPlan);
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
-        <RouteErrorBoundary>{children}</RouteErrorBoundary>
-      </main>
+  return (
+    <div className="min-h-screen flex bg-[var(--color-surface-1)] text-[var(--color-ink-primary)] selection:bg-brand-500/30 selection:text-brand-200">
+      <Sidebar 
+        role={role} 
+        isPaidPlan={isPaidPlan} 
+        isOpen={sidebarOpen} 
+        onToggle={() => setSidebarOpen(!sidebarOpen)} 
+      />
+      
+      <div 
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
+          sidebarOpen ? "lg:pl-64" : "lg:pl-0"
+        }`}
+      >
+        <ShopHeader 
+          role={role} 
+          shopId={shopId} 
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          onSignOut={handleSignOut} 
+        />
+        
+        <div className="z-30 sticky top-20">
+          <TrialBanner />
+          <PendingInviteBanner />
+          <EmailConfirmBanner />
+        </div>
+
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
+          <RouteErrorBoundary>{children}</RouteErrorBoundary>
+        </main>
+      </div>
     </div>
   );
 }

@@ -39,10 +39,7 @@ export function PlanUsageSection({
     ).toISOString();
 
     Promise.all([
-      supabase
-        .from("products")
-        .select("id", { count: "exact", head: true })
-        .eq("shop_id", shopId),
+      supabase.from("products").select("id, quantity").eq("shop_id", shopId),
       supabase
         .from("shop_members")
         .select("id", { count: "exact", head: true })
@@ -53,10 +50,33 @@ export function PlanUsageSection({
         .select("id", { count: "exact", head: true })
         .eq("shop_id", shopId)
         .gte("created_at", monthStart),
-    ]).then(([p, s, sl]) => {
-      setProducts(p.count ?? 0);
-      setStaff(s.count ?? 0);
-      setSales(sl.count ?? 0);
+    ]).then(async ([pRes, sRes, slRes]) => {
+      let totalPieces = 0;
+      if (pRes.data && pRes.data.length > 0) {
+        const productIds = pRes.data.map((p) => p.id);
+        const { data: variants } = await supabase
+          .from("product_variants")
+          .select("product_id, quantity")
+          .in("product_id", productIds);
+
+        const variantsByProduct = new Map<string, number[]>();
+        for (const v of variants ?? []) {
+          const arr = variantsByProduct.get(v.product_id) ?? [];
+          arr.push(Number(v.quantity) || 0);
+          variantsByProduct.set(v.product_id, arr);
+        }
+
+        totalPieces = pRes.data.reduce((sum, p) => {
+          const vQty = variantsByProduct.get(p.id);
+          if (vQty?.length) {
+            return sum + vQty.reduce((a, b) => a + b, 0);
+          }
+          return sum + (Number(p.quantity) || 0);
+        }, 0);
+      }
+      setProducts(totalPieces);
+      setStaff(sRes.count ?? 0);
+      setSales(slRes.count ?? 0);
     });
   }, [shopId]);
 
@@ -110,7 +130,7 @@ export function PlanUsageSection({
             <div
               key={i}
               className="h-5 rounded animate-pulse-soft"
-              style={{ background: "var(--color-surface-2)" }}
+              style={{ background: "var(--color-skeleton-subtle)" }}
             />
           ))}
         </div>
@@ -266,3 +286,5 @@ export function PlanUsageSection({
     </Section>
   );
 }
+
+

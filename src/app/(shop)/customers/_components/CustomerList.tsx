@@ -24,7 +24,7 @@ export function CustomerList({
           <div
             key={i}
             className="h-14 mx-4 my-2 rounded-lg animate-pulse-soft"
-            style={{ background: "var(--color-surface-2)" }}
+            style={{ background: "var(--color-skeleton-subtle)" }}
           />
         ))}
       </div>
@@ -227,3 +227,5 @@ export function CustomerList({
     </>
   );
 }
+
+

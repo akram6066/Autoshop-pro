@@ -203,21 +203,8 @@ export default function SignupForm() {
     );
 
   return (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "32px 24px",
-        background: "var(--color-surface-1)",
-        overflowY: "auto",
-      }}
-    >
-      <div
-        style={{ width: "100%", maxWidth: 420 }}
-        className="animate-fade-in-up"
-      >
+    <div className="w-full">
+      <div className="w-full max-w-[420px] mx-auto animate-fade-in-up">
         {/* Mobile logo */}
         <div className="lg:hidden text-center mb-8">
           <Image
@@ -242,28 +229,18 @@ export default function SignupForm() {
           />
         </div>
 
-        <div style={{ marginBottom: 28, textAlign: "center" }}>
-          <h1
-            style={{
-              fontWeight: 700,
-              fontSize: "1.625rem",
-              color: "var(--color-ink-primary)",
-              marginBottom: 6,
-            }}
-          >
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-[var(--color-ink-primary)] mb-2 tracking-tight">
             Create your account
           </h1>
-          <p
-            style={{
-              fontSize: "0.9375rem",
-              color: "var(--color-ink-secondary)",
-            }}
-          >
+          <p className="text-sm text-[var(--color-ink-secondary)] font-medium">
             Free to start — no credit card required.
           </p>
         </div>
 
-        <div className="card p-6 sm:p-8">
+        <div className="bg-[var(--color-surface-0)]/80 backdrop-blur-xl p-6 sm:p-8 rounded-2xl border border-[var(--color-border)] shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] relative">
+          {/* Subtle top glow */}
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent"></div>
           <form
             onSubmit={handleSignup}
             style={{ display: "flex", flexDirection: "column", gap: 20 }}
@@ -271,19 +248,11 @@ export default function SignupForm() {
           >
             {/* Full name */}
             <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "0.8125rem",
-                  fontWeight: 600,
-                  color: "var(--color-ink-primary)",
-                  marginBottom: 6,
-                }}
-              >
+              <label className="block text-sm font-semibold text-[var(--color-ink-secondary)] mb-2">
                 Full name
               </label>
               <input
-                className="input"
+                className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border-input)] rounded-xl px-4 py-3 text-[var(--color-ink-primary)] placeholder:text-[var(--color-ink-ghost)] focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all"
                 type="text"
                 placeholder="e.g. Felix Odhiambo"
                 autoComplete="name"
@@ -310,19 +279,11 @@ export default function SignupForm() {
 
             {/* Email */}
             <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "0.8125rem",
-                  fontWeight: 600,
-                  color: "var(--color-ink-primary)",
-                  marginBottom: 6,
-                }}
-              >
+              <label className="block text-sm font-semibold text-[var(--color-ink-secondary)] mb-2">
                 Email address
               </label>
               <input
-                className="input"
+                className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border-input)] rounded-xl px-4 py-3 text-[var(--color-ink-primary)] placeholder:text-[var(--color-ink-ghost)] focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all"
                 type="email"
                 placeholder="you@example.com"
                 autoComplete="email"
@@ -348,20 +309,12 @@ export default function SignupForm() {
 
             {/* Password */}
             <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "0.8125rem",
-                  fontWeight: 600,
-                  color: "var(--color-ink-primary)",
-                  marginBottom: 6,
-                }}
-              >
+              <label className="block text-sm font-semibold text-[var(--color-ink-secondary)] mb-2">
                 Password
               </label>
-              <div style={{ position: "relative" }}>
+              <div className="relative">
                 <input
-                  className="input"
+                  className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border-input)] rounded-xl px-4 py-3 text-[var(--color-ink-primary)] placeholder:text-[var(--color-ink-ghost)] focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all pr-12"
                   type={showPassword ? "text" : "password"}
                   placeholder="Min. 8 characters"
                   autoComplete="new-password"
@@ -380,7 +333,6 @@ export default function SignupForm() {
                   onBlur={() => touch("password")}
                   disabled={isLoading}
                   style={{
-                    paddingRight: 44,
                     ...(touched.password && fieldErrors.password
                       ? { borderColor: "var(--color-danger)" }
                       : {}),
@@ -403,20 +355,12 @@ export default function SignupForm() {
 
             {/* Confirm password */}
             <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "0.8125rem",
-                  fontWeight: 600,
-                  color: "var(--color-ink-primary)",
-                  marginBottom: 6,
-                }}
-              >
+              <label className="block text-sm font-semibold text-[var(--color-ink-secondary)] mb-2">
                 Confirm password
               </label>
-              <div style={{ position: "relative" }}>
+              <div className="relative">
                 <input
-                  className="input"
+                  className="w-full bg-[var(--color-surface-2)] border border-[var(--color-border-input)] rounded-xl px-4 py-3 text-[var(--color-ink-primary)] placeholder:text-[var(--color-ink-ghost)] focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all pr-12"
                   type={showConfirm ? "text" : "password"}
                   placeholder="Repeat your password"
                   autoComplete="new-password"
@@ -433,7 +377,6 @@ export default function SignupForm() {
                   onBlur={() => touch("confirmPassword")}
                   disabled={isLoading}
                   style={{
-                    paddingRight: 44,
                     ...(touched.confirmPassword &&
                     (fieldErrors.confirmPassword || passwordsMismatch)
                       ? { borderColor: "var(--color-danger)" }
@@ -489,14 +432,8 @@ export default function SignupForm() {
 
             <button
               type="submit"
-              className="btn btn-primary"
+              className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl transition-colors shadow-[0_0_20px_rgba(99,102,241,0.3)] mt-2"
               disabled={isLoading}
-              style={{
-                width: "100%",
-                justifyContent: "center",
-                padding: "12px",
-                fontSize: "0.9375rem",
-              }}
             >
               {isLoading ? (
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -530,14 +467,7 @@ export default function SignupForm() {
             </button>
           </form>
 
-          <p
-            style={{
-              textAlign: "center",
-              fontSize: "0.875rem",
-              color: "var(--color-ink-tertiary)",
-              marginTop: 20,
-            }}
-          >
+          <p className="text-center text-sm text-[var(--color-ink-secondary)] mt-6 font-medium">
             Already have an account?{" "}
             <Link
               href={
@@ -545,11 +475,7 @@ export default function SignupForm() {
                   ? `/login?plan=${planParam}${intervalParam ? `&interval=${intervalParam}` : ""}`
                   : "/login"
               }
-              style={{
-                color: "var(--color-brand-600)",
-                fontWeight: 600,
-                textDecoration: "none",
-              }}
+              className="text-brand-400 font-bold hover:text-brand-300 transition-colors"
             >
               Sign in
             </Link>
@@ -570,3 +496,4 @@ export default function SignupForm() {
     </div>
   );
 }
+

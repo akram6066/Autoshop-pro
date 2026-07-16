@@ -160,7 +160,17 @@ function DashboardContent() {
       const counts = await Promise.all(
         shopIds.map(async (id) => {
           const products = await fetchAllProducts(supabase, id);
-          return [id, countUniqueProductNames(products)] as const;
+          if (products.length === 0) return [id, 0] as const;
+          const productIds = products.map((p) => p.id);
+          const { data: variants } = await supabase
+            .from("product_variants")
+            .select("product_id, quantity")
+            .in("product_id", productIds);
+          
+          return [
+            id, 
+            countInventoryUnits(products, (variants ?? []) as any)
+          ] as const;
         }),
       );
       return Object.fromEntries(counts);
@@ -169,33 +179,7 @@ function DashboardContent() {
     staleTime: 60000,
   });
 
-  // React Query: Supabase stock units for the active shop KPI.
-  const { data: onlineInventoryUnitCount, isLoading: unitsLoading } = useQuery({
-    queryKey: ["dashboard-inventory-unit-count", activeShopId],
-    queryFn: async () => {
-      const supabase = createClient();
-      const products = await fetchAllProducts(supabase, activeShopId!);
-      const productIds = products.map((product) => product.id);
-
-      if (productIds.length === 0) {
-        return 0;
-      }
-
-      const { data, error } = await supabase
-        .from("product_variants")
-        .select("product_id, quantity")
-        .in("product_id", productIds);
-
-      if (error) throw error;
-
-      return countInventoryUnits(
-        products,
-        (data ?? []) as Array<Pick<ProductVariant, "product_id" | "quantity">>,
-      );
-    },
-    enabled: isOnline && !!activeShopId,
-    staleTime: 60000,
-  });
+  // Removed onlineInventoryUnitCount as we now use productCount for the KPI
 
   // useTeam hook: client-side team (online)
   const { data: teamMembers } = useTeam(activeShopId);
@@ -255,27 +239,17 @@ function DashboardContent() {
           .where("shop_id")
           .equals(id)
           .toArray();
-        const count = countUniqueProductNames(products);
-        return [id, count] as const;
+        const productIds = new Set(products.map((p) => p.id));
+        const variants = (await db.product_variants.toArray()).filter((v) =>
+          productIds.has(v.product_id),
+        );
+        return [id, countInventoryUnits(products, variants)] as const;
       }),
     );
     return Object.fromEntries(counts);
   }, [shopIds]);
 
-  const localInventoryUnitCount = useLiveQuery(async () => {
-    if (!activeShopId) return 0;
-    const db = getDb();
-    const products = await db.products
-      .where("shop_id")
-      .equals(activeShopId)
-      .toArray();
-    const productIds = new Set(products.map((product) => product.id));
-    const variants = (await db.product_variants.toArray()).filter((variant) =>
-      productIds.has(variant.product_id),
-    );
-
-    return countInventoryUnits(products, variants);
-  }, [activeShopId]);
+  // Removed localInventoryUnitCount as we now use productCount
 
   // Combine online (Supabase) + local unsynced data
   const todaySales = useMemo(() => {
@@ -317,12 +291,7 @@ function DashboardContent() {
     return onlineProductCounts;
   }, [isOnline, onlineProductCounts, localProductCounts]);
 
-  const inventoryUnitCount = useMemo(() => {
-    if (!isOnline || onlineInventoryUnitCount === undefined) {
-      return localInventoryUnitCount ?? 0;
-    }
-    return onlineInventoryUnitCount;
-  }, [isOnline, onlineInventoryUnitCount, localInventoryUnitCount]);
+  // Removed inventoryUnitCount useMemo
 
   const staffCount = useMemo(() => {
     if (!isOnline || !teamMembers) {
@@ -337,10 +306,9 @@ function DashboardContent() {
     localLowStock === undefined ||
     localPOs === undefined ||
     localProductCounts === undefined ||
-    localInventoryUnitCount === undefined ||
     subLoading ||
     (isOnline &&
-      (salesLoading || lowStockLoading || posLoading || unitsLoading));
+      (salesLoading || lowStockLoading || posLoading));
 
   if (isDataLoading) {
     return <DashboardSkeleton />;
@@ -391,41 +359,25 @@ function DashboardContent() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <p
-            className="text-sm mb-1"
-            style={{ color: "var(--color-ink-tertiary)" }}
-          >
+          <p className="text-sm font-medium text-[var(--color-ink-secondary)] mb-1">
             {greeting}, {firstName}
           </p>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              flexWrap: "wrap",
-            }}
-          >
-            <h1
-              className="text-2xl font-semibold"
-              style={{ color: "var(--color-ink-primary)" }}
-            >
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-bold text-[var(--color-ink-primary)] tracking-tight">
               Dashboard
             </h1>
             {sub && <PlanBadge sub={sub} />}
           </div>
-          <p
-            className="text-sm mt-1"
-            style={{ color: "var(--color-ink-tertiary)" }}
-          >
+          <p className="text-sm mt-1 text-[var(--color-ink-secondary)]">
             {formatDate(now.toISOString())}
           </p>
         </div>
-        <div className="flex gap-2 flex-shrink-0">
-          <Link href="/pos" className="btn btn-primary btn-sm">
-            New Sale
-          </Link>
-          <Link href="/inventory/new" className="btn btn-secondary btn-sm">
+        <div className="flex gap-3 flex-shrink-0">
+          <Link href="/inventory/new" className="px-4 py-2 bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-ink-primary)] font-medium rounded-xl border border-[var(--color-border-subtle)] transition-colors shadow-sm">
             Add Product
+          </Link>
+          <Link href="/pos" className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl transition-colors shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+            New Sale
           </Link>
         </div>
       </div>
@@ -458,17 +410,14 @@ function DashboardContent() {
       {shops.length > 1 && <ShopsGrid shops={shops} />}
 
       {/* Today KPIs */}
-      <p
-        className="text-xs font-medium uppercase tracking-widest mb-3"
-        style={{ color: "var(--color-ink-tertiary)" }}
-      >
+      <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-secondary)] mb-4 mt-2">
         Today — {activeShop?.name}
       </p>
       <KPICards
         totalRevenue={totalRevenue}
         orderCount={orderCount}
         lowStockCount={lowStock.length}
-        inventoryUnitCount={inventoryUnitCount}
+        productCount={countMap[activeShopId] ?? 0}
       />
 
       {/* Low stock table */}
@@ -478,24 +427,22 @@ function DashboardContent() {
       <PendingOrdersTable orders={pendingOrders} />
 
       {lowStock.length === 0 && orderCount === 0 && (
-        <div className="card p-8 text-center animate-fade-in-up">
-          <div
-            className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-4"
-            style={{ background: "var(--color-success-light)" }}
-          >
-            <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+        <div className="card p-12 text-center animate-fade-in-up">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-6 bg-success/10 border border-success/20 shadow-[0_0_15px_var(--color-success-light)] relative">
+            <div className="absolute inset-0 rounded-full animate-ping bg-success/20"></div>
+            <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
               <path
                 d="M5 12l5 5L20 7"
                 stroke="var(--color-success)"
-                strokeWidth="2.5"
+                strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
             </svg>
           </div>
-          <h3 className="font-medium mb-1">All clear</h3>
-          <p className="text-sm" style={{ color: "var(--color-ink-tertiary)" }}>
-            No low stock alerts. Head to POS to record a sale.
+          <h3 className="text-xl font-bold text-[var(--color-ink-primary)] mb-2 tracking-tight">All clear</h3>
+          <p className="text-[var(--color-ink-secondary)] font-medium max-w-sm mx-auto">
+            No low stock alerts. Head over to the POS to record your first sale of the day.
           </p>
         </div>
       )}
@@ -510,3 +457,5 @@ export default function DashboardPage() {
     </Suspense>
   );
 }
+
+

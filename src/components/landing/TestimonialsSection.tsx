@@ -1,6 +1,9 @@
+"use client";
+
+import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
 import Container from "./Container";
-import SectionHead from "./SectionHead";
-import { RevealOnScroll } from "./RevealOnScroll";
+import { Star, BadgeCheck } from "lucide-react";
+import { MouseEvent } from "react";
 
 const quotes = [
   {
@@ -9,7 +12,7 @@ const quotes = [
     shop: "Clothing & Accessories",
     city: "Nairobi",
     initials: "AK",
-    color: "var(--color-brand-500)",
+    gradient: "from-brand-500 to-purple-500",
     stars: 5,
   },
   {
@@ -18,7 +21,7 @@ const quotes = [
     shop: "Electronics Shop",
     city: "Kampala",
     initials: "JO",
-    color: "var(--color-success)",
+    gradient: "from-success to-emerald-400",
     stars: 5,
   },
   {
@@ -27,188 +30,127 @@ const quotes = [
     shop: "Hardware Store",
     city: "Mombasa",
     initials: "FM",
-    color: "#6d28d9",
-    stars: 4,
+    gradient: "from-purple-500 to-pink-500",
+    stars: 5,
   },
 ];
+
+function TestimonialCard({ q, delay }: { q: typeof quotes[0], delay: number }) {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  function handleMouseMove({ currentTarget, clientX, clientY }: MouseEvent) {
+    const { left, top } = currentTarget.getBoundingClientRect();
+    mouseX.set(clientX - left);
+    mouseY.set(clientY - top);
+  }
+
+  return (
+    <motion.div
+      className="group relative rounded-3xl bg-[#0a0a0a] border border-zinc-800/80 p-8 overflow-hidden flex flex-col h-full"
+      onMouseMove={handleMouseMove}
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
+    >
+      {/* Mouse Spotlight */}
+      <motion.div
+        className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-500 group-hover:opacity-100"
+        style={{
+          background: useMotionTemplate`
+            radial-gradient(
+              450px circle at ${mouseX}px ${mouseY}px,
+              rgba(255,255,255,0.05),
+              transparent 80%
+            )
+          `,
+        }}
+      />
+
+      {/* Stars */}
+      <div className="flex gap-1 mb-6">
+        {Array.from({ length: q.stars }).map((_, idx) => (
+          <Star key={idx} size={16} className="fill-warning text-warning" />
+        ))}
+      </div>
+
+      {/* Quote */}
+      <p className="text-[15px] text-zinc-300 leading-[1.8] flex-grow mb-8 relative z-10 font-medium">
+        &ldquo;{q.body}&rdquo;
+      </p>
+
+      {/* Author */}
+      <div className="flex items-center gap-4 relative z-10">
+        <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${q.gradient} flex items-center justify-center flex-shrink-0 shadow-lg`}>
+          <span className="text-sm font-bold text-white">{q.initials}</span>
+        </div>
+        <div className="flex-1">
+          <p className="font-bold text-white text-[15px] mb-0.5">{q.name}</p>
+          <p className="text-sm text-zinc-500">{q.shop} · {q.city}</p>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-success/10 border border-success/20">
+          <BadgeCheck size={14} className="text-success" />
+          <span className="text-xs font-semibold text-success">Verified</span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 function TestimonialsSection() {
   return (
     <section
       id="testimonials"
-      style={{
-        padding: "96px 0",
-        background: "linear-gradient(160deg, #eef2ff 0%, #f0e9ff 100%)",
-        position: "relative",
-        overflow: "hidden",
-      }}
+      className="pt-16 pb-32 relative bg-[#020202] overflow-hidden"
     >
-      {/* Background glow */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          bottom: -60,
-          right: -60,
-          width: 300,
-          height: 300,
-          borderRadius: "50%",
-          background: "#c4b5fd",
-          opacity: 0.3,
-          filter: "blur(70px)",
-          pointerEvents: "none",
-        }}
-      />
+      {/* Gradient border line at top */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent"></div>
 
-      <Container style={{ position: "relative" }}>
-        <RevealOnScroll>
-          <SectionHead
-            eyebrow="Testimonials"
-            title="Shop owners love running their business smarter"
-            subtitle="Real stories from owners who switched from paper and spreadsheets to AutoShop Pro."
-          />
-        </RevealOnScroll>
+      {/* Subtle ambient glow */}
+      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-600/5 blur-[120px] rounded-full pointer-events-none"></div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <Container className="relative z-10">
+        <div className="flex flex-col lg:flex-row justify-between items-end gap-10 mb-20">
+          <div className="max-w-2xl">
+            <motion.p
+              className="text-xs font-bold tracking-[0.2em] uppercase text-brand-400 mb-4"
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+            >
+              Testimonials
+            </motion.p>
+            <motion.h2
+              className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.05]"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+            >
+              Trusted by shop owners <br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-400 to-zinc-600">
+                across East Africa.
+              </span>
+            </motion.h2>
+          </div>
+          <div className="max-w-sm pb-2">
+            <motion.p
+              className="text-lg text-zinc-400 font-medium"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              Real stories from owners who switched from paper and spreadsheets.
+            </motion.p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {quotes.map((q, i) => (
-            <RevealOnScroll key={q.name} delay={i * 90}>
-              <div
-                className="card-hover"
-                style={{
-                  padding: "32px 28px",
-                  borderRadius: "var(--radius-lg)",
-                  background: "var(--color-surface-0)",
-                  border: "1px solid var(--color-border)",
-                  boxShadow: "var(--shadow-card)",
-                  display: "flex",
-                  flexDirection: "column",
-                  height: "100%",
-                }}
-              >
-                {/* Stars */}
-                <div style={{ display: "flex", gap: 3, marginBottom: 20 }}>
-                  {Array.from({ length: 5 }).map((_, idx) => (
-                    <svg
-                      key={idx}
-                      width="15"
-                      height="15"
-                      viewBox="0 0 24 24"
-                      fill={idx < q.stars ? "var(--color-warning)" : "none"}
-                      stroke={idx < q.stars ? "none" : "var(--color-ink-ghost)"}
-                      strokeWidth="1.5"
-                      aria-hidden="true"
-                    >
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                    </svg>
-                  ))}
-                </div>
-
-                {/* Opening quote mark */}
-                <svg
-                  width="28"
-                  height="22"
-                  fill="none"
-                  viewBox="0 0 36 28"
-                  aria-hidden="true"
-                  style={{ marginBottom: 12, flexShrink: 0 }}
-                >
-                  <path
-                    d="M0 28V17.5C0 7.5 6 2 18 0l2 3.5C13 5.5 10 9 10 14h6V28H0zm18 0V17.5C18 7.5 24 2 36 0l2 3.5C31 5.5 28 9 28 14h6V28H18z"
-                    fill="var(--color-brand-100)"
-                  />
-                </svg>
-
-                <p
-                  style={{
-                    fontSize: "0.9375rem",
-                    color: "var(--color-ink-secondary)",
-                    lineHeight: 1.75,
-                    flexGrow: 1,
-                    marginBottom: 24,
-                    fontStyle: "italic",
-                  }}
-                >
-                  {q.body}
-                </p>
-
-                {/* Author */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: "50%",
-                      background: q.color,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: "0.75rem",
-                        fontWeight: 700,
-                        color: "white",
-                      }}
-                    >
-                      {q.initials}
-                    </span>
-                  </div>
-                  <div>
-                    <p
-                      style={{
-                        fontWeight: 700,
-                        fontSize: "0.875rem",
-                        color: "var(--color-ink-primary)",
-                        marginBottom: 2,
-                      }}
-                    >
-                      {q.name}
-                    </p>
-                    <p
-                      style={{
-                        fontSize: "0.8125rem",
-                        color: "var(--color-ink-tertiary)",
-                        marginBottom: 3,
-                      }}
-                    >
-                      {q.shop} · {q.city}
-                    </p>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
-                        fontSize: "0.6875rem",
-                        fontWeight: 600,
-                        color: "var(--color-success-text)",
-                        background: "var(--color-success-light)",
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                      }}
-                    >
-                      <svg
-                        width="9"
-                        height="9"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M20 6L9 17l-5-5"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      Verified customer
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </RevealOnScroll>
+            <TestimonialCard key={q.name} q={q} delay={i * 0.1} />
           ))}
         </div>
       </Container>

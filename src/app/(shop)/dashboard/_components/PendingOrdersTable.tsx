@@ -15,44 +15,51 @@ export function PendingOrdersTable({ orders }: PendingOrdersTableProps) {
   if (orders.length === 0) return null;
 
   return (
-    <div className="card mb-8 animate-fade-in-up">
-      <div
-        className="px-5 py-4 flex items-center gap-2"
-        style={{ borderBottom: "1px solid var(--color-border)" }}
-      >
-        <div
-          className="w-2 h-2 rounded-full"
-          style={{ background: "var(--color-brand-400)" }}
-        />
-        <h2 className="font-medium text-sm">Pending purchase orders</h2>
-        <span className="badge badge-info ml-auto">{orders.length}</span>
+    <div className="card overflow-hidden mb-8 animate-fade-in-up relative">
+      {/* Subtle top glow line */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent"></div>
+      
+      <div className="px-6 py-5 flex items-center gap-3 border-b border-[var(--color-border-subtle)]">
+        <div className="w-2.5 h-2.5 rounded-full bg-brand-400 shadow-[0_0_8px_var(--color-brand-400)]" />
+        <h2 className="font-semibold text-[var(--color-ink-primary)]">Pending purchase orders</h2>
+        <span className="px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 text-xs font-bold ml-auto border border-brand-500/20">
+          {orders.length}
+        </span>
       </div>
-      <table className="table-auto-shop">
-        <thead>
-          <tr>
-            <th>Supplier</th>
-            <th>Status</th>
-            <th>Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map((po) => (
-            <tr key={po.id}>
-              <td className="font-medium">{po.supplier_name}</td>
-              <td>
-                <span
-                  className={`badge ${po.status === "partial" ? "badge-warning" : "badge-neutral"}`}
-                >
-                  {po.status === "partial" ? "Partial" : "Draft"}
-                </span>
-              </td>
-              <td style={{ color: "var(--color-ink-tertiary)", fontSize: 13 }}>
-                {formatDate(po.created_at)}
-              </td>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-[var(--color-surface-1)] border-b border-[var(--color-border-subtle)] text-xs uppercase tracking-wider text-[var(--color-ink-secondary)] font-semibold">
+              <th className="px-6 py-4">Supplier</th>
+              <th className="px-6 py-4">Status</th>
+              <th className="px-6 py-4 text-right">Created</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-[var(--color-border-subtle)]">
+            {orders.map((po) => (
+              <tr key={po.id} className="hover:bg-[var(--color-surface-2)] transition-colors">
+                <td className="px-6 py-4 font-medium text-[var(--color-ink-primary)]">{po.supplier_name}</td>
+                <td className="px-6 py-4">
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold border ${
+                      po.status === "partial" 
+                        ? "bg-warning/10 text-warning border-warning/20" 
+                        : "bg-[var(--color-surface-2)] text-[var(--color-ink-secondary)] border-[var(--color-border-subtle)]"
+                    }`}
+                  >
+                    {po.status === "partial" ? "Partial" : "Draft"}
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-right text-[var(--color-ink-secondary)] text-sm">
+                  {formatDate(po.created_at)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
+
+

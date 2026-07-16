@@ -114,7 +114,7 @@ export function ProductGrid({
               <div
                 key={i}
                 className="h-32 rounded-xl animate-pulse-soft"
-                style={{ background: "var(--color-surface-2)" }}
+                style={{ background: "var(--color-skeleton-subtle)" }}
               />
             ))}
           </div>
@@ -168,3 +168,5 @@ export function ProductGrid({
     </div>
   );
 }
+
+
