@@ -130,6 +130,7 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
   // Auto-select first room when rooms load
   useEffect(() => {
     if (rooms.length > 0 && !rooms.find((r) => r.id === destRoomId)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDestRoomId(rooms[0].id);
     }
   }, [rooms, destRoomId]);
@@ -137,6 +138,7 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
   // Auto-select first variant if variants exist
   useEffect(() => {
     if (productVariants.length > 0 && !variantId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVariantId(productVariants[0].id);
     }
   }, [productVariants, variantId]);

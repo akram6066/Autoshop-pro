@@ -413,7 +413,7 @@ export interface Database {
           snapshot_qty: number;
           seq: number;
           device_id: string;
-          reason: "sale" | "restock" | "adjustment";
+          reason: "sale" | "restock" | "adjustment" | "transfer";
           user_id: string;
           synced: boolean;
           conflict_flag: boolean;
@@ -428,7 +428,7 @@ export interface Database {
           snapshot_qty: number;
           seq?: number;
           device_id: string;
-          reason: "sale" | "restock" | "adjustment";
+          reason: "sale" | "restock" | "adjustment" | "transfer";
           user_id: string;
           synced?: boolean;
           conflict_flag?: boolean;
@@ -443,7 +443,7 @@ export interface Database {
           snapshot_qty?: number;
           seq?: number;
           device_id?: string;
-          reason?: "sale" | "restock" | "adjustment";
+          reason?: "sale" | "restock" | "adjustment" | "transfer";
           user_id?: string;
           synced?: boolean;
           conflict_flag?: boolean;

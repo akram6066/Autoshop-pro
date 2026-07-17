@@ -70,7 +70,19 @@ function ChevronRight() {
   );
 }
 
-const SETTINGS_GROUPS = [
+type SettingsGroup = {
+  group: string;
+  description: string;
+  items: {
+    href: string;
+    label: string;
+    description: string;
+    Icon: React.ElementType;
+    danger?: boolean;
+  }[];
+};
+
+const SETTINGS_GROUPS: SettingsGroup[] = [
   {
     group: "Subscription",
     description: "Manage your plan, limits, and billing",
