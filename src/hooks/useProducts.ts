@@ -333,3 +333,54 @@ export function useDeleteProduct() {
     },
   });
 }
+
+export interface TransferProductInput {
+  sourceProductId: string;
+  variantId?: string;
+  destShopId: string;
+  destRoomId: string;
+  quantity: number;
+}
+
+export function useTransferProduct() {
+  const qc = useQueryClient();
+  const supabase = createClient();
+  const currentShopId = useAuthStore((s) => s.shopId);
+
+  return useMutation({
+    mutationFn: async ({
+      sourceProductId,
+      variantId,
+      destShopId,
+      destRoomId,
+      quantity,
+    }: TransferProductInput): Promise<MutationResult<{ destProductId: string }>> => {
+      try {
+        const { data, error } = await supabase.rpc("execute_inventory_transfer", {
+          p_source_product_id: sourceProductId,
+          p_variant_id: variantId || null,
+          p_dest_shop_id: destShopId,
+          p_dest_room_id: destRoomId,
+          p_quantity: quantity,
+        });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        return { status: "success", data: { destProductId: data as string } };
+      } catch (err) {
+        return {
+          status: "error",
+          error:
+            err instanceof Error ? err : new Error("Failed to transfer product"),
+        };
+      }
+    },
+    onSuccess: (result) => {
+      if (result.status !== "error" && currentShopId) {
+        qc.invalidateQueries({ queryKey: productKeys.all(currentShopId) });
+      }
+    },
+  });
+}

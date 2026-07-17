@@ -2,7 +2,7 @@
 
 export type UserRole = "owner" | "staff";
 export type MovementType = "IN" | "OUT";
-export type MovementReason = "sale" | "restock" | "adjustment";
+export type MovementReason = "sale" | "restock" | "adjustment" | "transfer";
 export type SyncOperation = "INSERT" | "UPDATE" | "DELETE";
 export type SyncStatus = "pending" | "synced" | "failed";
 export type POStatus = "draft" | "received" | "partial";
@@ -251,6 +251,7 @@ export const MOVEMENT_REASON_LABELS: Record<MovementReason, string> = {
   sale: "Sale",
   restock: "Restock",
   adjustment: "Adjustment",
+  transfer: "Transfer",
 };
 
 // Maps category strings to display labels.

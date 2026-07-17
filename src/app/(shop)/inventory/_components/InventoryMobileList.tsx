@@ -14,6 +14,7 @@ interface InventoryMobileListProps {
   PAGE_SIZE: number;
   onSetPage: (p: number) => void;
   onDeleteClick: (p: { id: string; name: string }) => void;
+  onTransferClick: (p: { id: string; name: string }) => void;
 }
 
 export function InventoryMobileList({
@@ -25,6 +26,7 @@ export function InventoryMobileList({
   PAGE_SIZE,
   onSetPage,
   onDeleteClick,
+  onTransferClick,
 }: InventoryMobileListProps) {
   return (
     <div className="sm:hidden space-y-2">
@@ -98,10 +100,29 @@ export function InventoryMobileList({
                   qty {totalQty}
                 </span>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 justify-end">
+                <button
+                  type="button"
+                  onClick={() =>
+                    onTransferClick({ id: product.id, name: product.name })
+                  }
+                  className="btn btn-ghost btn-sm btn-icon"
+                  title="Transfer Stock"
+                >
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+                    <path
+                      d="M8 7h12m0 0l-4-4m4 4l-4 4m4 5H4m0 0l4 4m-4-4l4-4"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
                 <Link
                   href={`/inventory/${product.id}`}
                   className="btn btn-ghost btn-sm btn-icon"
+                  title="Edit Product"
                 >
                   <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                     <path
@@ -126,6 +147,7 @@ export function InventoryMobileList({
                   }
                   className="btn btn-ghost btn-sm btn-icon"
                   style={{ color: "var(--color-danger)" }}
+                  title="Delete Product"
                 >
                   <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
                     <path

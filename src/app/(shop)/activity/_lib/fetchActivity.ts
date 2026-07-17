@@ -123,9 +123,9 @@ export async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
 
     supabase
       .from("stock_movements")
-      .select("id, type, delta, product_id, created_at, user_id")
+      .select("id, type, delta, product_id, created_at, user_id, reason")
       .eq("shop_id", shopId)
-      .eq("reason", "adjustment")
+      .in("reason", ["adjustment", "transfer"])
       .order("created_at", { ascending: false })
       .limit(LIMIT),
 
@@ -198,15 +198,18 @@ export async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
     });
   }
 
-  // Stock adjustment events
+  // Stock adjustment and transfer events
   for (const m of adjustmentsRes.data ?? []) {
     const sign = m.type === "IN" ? "+" : "-";
     const productName = productMap.get(m.product_id) ?? "product";
+    const isTransfer = m.reason === "transfer";
     events.push({
       id: `mov-${m.id}`,
       type: "STOCK_ADJUST",
       staffName: profileMap.get(m.user_id) ?? "Unknown",
-      label: `Adjusted stock: ${sign}${m.delta} units`,
+      label: isTransfer 
+        ? `Transferred stock: ${sign}${m.delta} units` 
+        : `Adjusted stock: ${sign}${m.delta} units`,
       detail: productName,
       created_at: m.created_at,
       severity: "info",

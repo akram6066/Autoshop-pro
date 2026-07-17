@@ -754,12 +754,22 @@ export interface Database {
         Args: { p_sale_id: string; p_shop_id: string };
         Returns: undefined;
       };
+      execute_inventory_transfer: {
+        Args: {
+          p_source_product_id: string;
+          p_variant_id: string | null;
+          p_dest_shop_id: string;
+          p_dest_room_id: string;
+          p_quantity: number;
+        };
+        Returns: string;
+      };
     };
     Enums: {
       user_role: "owner" | "staff";
       product_category: "tire" | "battery" | "rim";
       movement_type: "IN" | "OUT";
-      movement_reason: "sale" | "restock" | "adjustment";
+      movement_reason: "sale" | "restock" | "adjustment" | "transfer";
       po_status: "draft" | "received" | "partial";
     };
   };

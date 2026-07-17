@@ -66,6 +66,7 @@
 
   .dark .input {
     background: var(--color-surface-2);
+    color-scheme: dark;
   }
 
   /* ─── Buttons ─── */

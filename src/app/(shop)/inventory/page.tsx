@@ -16,6 +16,7 @@ import { InventoryFilters } from "./_components/InventoryFilters";
 import { InventoryTable } from "./_components/InventoryTable";
 import { InventoryMobileList } from "./_components/InventoryMobileList";
 import { DeleteProductModal } from "./_components/DeleteProductModal";
+import { TransferModal } from "./_components/TransferModal";
 
 export default function InventoryPage() {
   const shopId = useAuthStore(selectShopId);
@@ -37,6 +38,10 @@ export default function InventoryPage() {
   const [sortBy, setSortBy] = useState<"name" | "qty" | "price">("name");
   const [page, setPage] = useState(0);
   const [deletingProduct, setDeletingProduct] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [transferringProduct, setTransferringProduct] = useState<{
     id: string;
     name: string;
   } | null>(null);
@@ -270,6 +275,7 @@ export default function InventoryPage() {
             PAGE_SIZE={PAGE_SIZE}
             onSetPage={setPage}
             onDeleteClick={setDeletingProduct}
+            onTransferClick={setTransferringProduct}
           />
           <InventoryTable
             paginated={paginated}
@@ -280,6 +286,7 @@ export default function InventoryPage() {
             PAGE_SIZE={PAGE_SIZE}
             onSetPage={setPage}
             onDeleteClick={setDeletingProduct}
+            onTransferClick={setTransferringProduct}
           />
         </>
       )}
@@ -306,6 +313,11 @@ export default function InventoryPage() {
             },
           );
         }}
+      />
+
+      <TransferModal
+        product={transferringProduct}
+        onClose={() => setTransferringProduct(null)}
       />
     </div>
   );
