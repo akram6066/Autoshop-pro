@@ -340,6 +340,7 @@ export interface TransferProductInput {
   destShopId: string;
   destRoomId: string;
   quantity: number;
+  transferDate?: string;
 }
 
 export function useTransferProduct() {
@@ -354,6 +355,7 @@ export function useTransferProduct() {
       destShopId,
       destRoomId,
       quantity,
+      transferDate,
     }: TransferProductInput): Promise<MutationResult<{ destProductId: string }>> => {
       try {
         const { data, error } = await supabase.rpc("execute_inventory_transfer", {
@@ -362,6 +364,7 @@ export function useTransferProduct() {
           p_dest_shop_id: destShopId,
           p_dest_room_id: destRoomId,
           p_quantity: quantity,
+          p_transfer_date: transferDate || null,
         });
 
         if (error) {

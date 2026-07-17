@@ -119,6 +119,7 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
   const [destRoomId, setDestRoomId] = useState<string>("");
   const [variantId, setVariantId] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1);
+  const [transferDate, setTransferDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
 
   // Fetch rooms for the selected destination shop
   const { data: rooms = [], isLoading: isRoomsLoading } = useRooms(destShopId);
@@ -165,6 +166,7 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
         destShopId,
         destRoomId,
         quantity,
+        transferDate: new Date(transferDate).toISOString(),
       },
       {
         onSuccess: (result) => {
@@ -246,6 +248,20 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
                   value: r.id,
                   label: r.name,
                 }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1 text-[var(--color-ink-secondary)]">
+                Transfer Date
+              </label>
+              <input
+                type="date"
+                className="input w-full"
+                value={transferDate}
+                onChange={(e) => setTransferDate(e.target.value)}
+                max={new Date().toISOString().split("T")[0]}
+                required
               />
             </div>
 
