@@ -33,7 +33,7 @@ export function useAddStaff() {
     email: string,
     password: string,
     fullName: string,
-  ): Promise<void> => {
+  ): Promise<{ created: boolean; invited: boolean }> => {
     const res = await fetch("/api/admin/create-staff", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -55,6 +55,7 @@ export function useAddStaff() {
       throw new Error(data.error || "Failed to create staff account");
 
     qc.invalidateQueries({ queryKey: teamKeys.all(shopId) });
+    return data;
   };
 }
 

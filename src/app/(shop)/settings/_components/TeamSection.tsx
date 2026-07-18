@@ -63,8 +63,12 @@ export function TeamSection({ maxStaff }: { maxStaff: number }) {
       return;
     setIsAdding(true);
     try {
-      await addStaff(shopId, staffEmail, staffPassword, staffName);
-      toast.success("Staff account created successfully.");
+      const result = await addStaff(shopId, staffEmail, staffPassword, staffName);
+      if (result.invited) {
+        toast.success("User already has an account. An invitation was sent to them to join your shop.");
+      } else {
+        toast.success("Staff account created successfully.");
+      }
       setStaffEmail("");
       setStaffPassword("");
       setStaffName("");
