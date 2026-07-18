@@ -2,10 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { SyncBadge } from "./SyncBadge";
+import { NotificationBell } from "./NotificationBell";
 import { ShopSwitcher } from "./ShopSwitcher";
 import { NAV } from "@/lib/nav";
 import {
@@ -23,7 +23,13 @@ interface ShopHeaderProps {
   onSignOut: () => Promise<void>;
 }
 
-export function ShopHeader({ role, shopId, sidebarOpen, onToggleSidebar, onSignOut }: ShopHeaderProps) {
+export function ShopHeader({
+  role,
+  shopId,
+  sidebarOpen,
+  onToggleSidebar,
+  onSignOut,
+}: ShopHeaderProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -60,7 +66,6 @@ export function ShopHeader({ role, shopId, sidebarOpen, onToggleSidebar, onSignO
   return (
     <header className="sticky top-0 z-40 bg-[var(--color-surface-0)]/80 backdrop-blur-xl border-b border-[var(--color-border-subtle)]">
       <div className="flex items-center justify-between px-4 sm:px-6 h-20">
-        
         {/* Left Side (Hamburger / Logo / Desktop Toggle) */}
         <div className="flex items-center gap-4">
           {/* Mobile Logo & Hamburger */}
@@ -71,17 +76,41 @@ export function ShopHeader({ role, shopId, sidebarOpen, onToggleSidebar, onSignO
               className="text-[var(--color-ink-secondary)] hover:text-[var(--color-ink-primary)] transition-colors p-2 -ml-2"
             >
               {mobileOpen ? (
-                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  width="24"
+                  height="24"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               ) : (
-                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                <svg
+                  width="24"
+                  height="24"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 </svg>
               )}
             </button>
             <Link href="/dashboard" className="flex items-center gap-2">
-              <span className="text-[var(--color-ink-primary)] font-bold tracking-tight text-lg">AutoShop Pro</span>
+              <span className="text-[var(--color-ink-primary)] font-bold tracking-tight text-lg">
+                AutoShop Pro
+              </span>
             </Link>
           </div>
 
@@ -94,8 +123,19 @@ export function ShopHeader({ role, shopId, sidebarOpen, onToggleSidebar, onSignO
                 className="p-2 -ml-2 text-[var(--color-ink-secondary)] hover:text-[var(--color-ink-primary)] rounded-lg hover:bg-[var(--color-surface-2)] transition-colors"
                 title="Open Sidebar"
               >
-                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                <svg
+                  width="24"
+                  height="24"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 </svg>
               </button>
             </div>
@@ -105,14 +145,15 @@ export function ShopHeader({ role, shopId, sidebarOpen, onToggleSidebar, onSignO
         {/* Right side Tools */}
         <div className="flex items-center gap-4 flex-shrink-0">
           <ThemeToggle />
+          <NotificationBell shopId={shopId} />
           <SyncBadge shopId={shopId} />
-          
+
           <div className="hidden sm:block h-6 w-px bg-[var(--color-border)] mx-2"></div>
-          
+
           <div className="hidden sm:block">
             <ShopSwitcher />
           </div>
-          
+
           {/* User Menu */}
           <div className="relative" ref={menuRef}>
             <button
@@ -125,8 +166,20 @@ export function ShopHeader({ role, shopId, sidebarOpen, onToggleSidebar, onSignO
                   {profile.full_name.trim().charAt(0).toUpperCase()}
                 </span>
               ) : (
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-[var(--color-ink-secondary)]">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                <svg
+                  width="18"
+                  height="18"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  className="text-[var(--color-ink-secondary)]"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
                 </svg>
               )}
             </button>
@@ -137,9 +190,11 @@ export function ShopHeader({ role, shopId, sidebarOpen, onToggleSidebar, onSignO
                   <p className="text-sm font-medium text-[var(--color-ink-primary)] truncate">
                     {profile?.full_name?.trim() || "No Name Set"}
                   </p>
-                  <p className="text-xs text-[var(--color-ink-secondary)] mt-0.5 truncate">{user?.email}</p>
+                  <p className="text-xs text-[var(--color-ink-secondary)] mt-0.5 truncate">
+                    {user?.email}
+                  </p>
                 </div>
-                
+
                 <div className="p-2 space-y-1">
                   <Link
                     href="/profile"
@@ -158,7 +213,7 @@ export function ShopHeader({ role, shopId, sidebarOpen, onToggleSidebar, onSignO
                     {supportLabel}
                   </a>
                 </div>
-                
+
                 <div className="p-2 border-t border-[var(--color-border-subtle)]">
                   <button
                     type="button"
@@ -189,28 +244,49 @@ export function ShopHeader({ role, shopId, sidebarOpen, onToggleSidebar, onSignO
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                    active ? "bg-[var(--color-brand-50)] dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-500/20" : "text-[var(--color-ink-secondary)] hover:text-[var(--color-ink-primary)] border border-transparent"
+                    active
+                      ? "bg-[var(--color-brand-50)] dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-500/20"
+                      : "text-[var(--color-ink-secondary)] hover:text-[var(--color-ink-primary)] border border-transparent"
                   }`}
                 >
-                  <span className={active ? "text-brand-600 dark:text-brand-400" : "text-[var(--color-ink-secondary)]"}>{item.icon}</span>
+                  <span
+                    className={
+                      active
+                        ? "text-brand-600 dark:text-brand-400"
+                        : "text-[var(--color-ink-secondary)]"
+                    }
+                  >
+                    {item.icon}
+                  </span>
                   {item.label}
                 </Link>
               );
             })}
-            
+
             <div className="h-px bg-[var(--color-border-subtle)] my-2"></div>
-            
+
             <div className="px-4 py-2">
               <ShopSwitcher />
             </div>
-            
+
             <button
               type="button"
               onClick={onSignOut}
               className="flex items-center gap-3 px-4 py-3 mt-2 rounded-xl text-sm font-medium text-danger hover:bg-danger/10 transition-colors"
             >
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              <svg
+                width="18"
+                height="18"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
               </svg>
               Sign out
             </button>

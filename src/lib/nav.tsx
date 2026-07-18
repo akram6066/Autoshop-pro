@@ -243,6 +243,21 @@ export const NAV: NavItem[] = [
     ),
   },
   {
+    href: "/notifications",
+    label: "Notifications",
+    ownerOnly: false,
+    paidOnly: false,
+    icon: (
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M12 22a2 2 0 002-2H10a2 2 0 002 2zm8-10v5.5l-1 1H5l-1-1V12a8 8 0 1116 0z"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+      </svg>
+    ),
+  },
+  {
     href: "/settings",
     label: "Settings",
     ownerOnly: true,

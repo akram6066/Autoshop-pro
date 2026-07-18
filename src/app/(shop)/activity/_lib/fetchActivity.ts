@@ -12,7 +12,8 @@ export type EventType =
   | "VARIANT_UPDATED"
   | "VARIANT_DELETED"
   | "MEMBER_CHANGE"
-  | "MEMBER_REMOVED";
+  | "MEMBER_REMOVED"
+  | "TRANSFER";
 
 export interface ActivityEvent {
   id: string;
@@ -20,6 +21,7 @@ export interface ActivityEvent {
   staffName: string;
   label: string;
   detail: string;
+  extraDetail?: string;
   created_at: string;
   severity: "info" | "warning";
 }
@@ -60,6 +62,11 @@ export const EVENT_STYLES: Record<
     dot: "var(--color-brand-500)",
     badge: "badge-info",
     label: "Stock",
+  },
+  TRANSFER: {
+    dot: "var(--color-brand-600)",
+    badge: "badge-info",
+    label: "Transfer",
   },
   PRODUCT_ADDED: {
     dot: "var(--color-brand-400)",
@@ -123,7 +130,9 @@ export async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
 
     supabase
       .from("stock_movements")
-      .select("id, type, delta, product_id, created_at, user_id, reason")
+      .select(
+        "id, type, delta, product_id, created_at, user_id, reason, device_id",
+      )
       .eq("shop_id", shopId)
       .in("reason", ["adjustment", "transfer"])
       .order("created_at", { ascending: false })
@@ -149,18 +158,44 @@ export async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
   // Collect all unique user IDs and product IDs to resolve in one round-trip each
   const allUserIds = new Set<string>();
   const allProductIds = new Set<string>();
+  const allShopIds = new Set<string>();
+  const allRoomIds = new Set<string>();
 
   for (const s of salesRes.data ?? []) if (s.user_id) allUserIds.add(s.user_id);
   for (const m of adjustmentsRes.data ?? []) {
     if (m.user_id) allUserIds.add(m.user_id);
     if (m.product_id) allProductIds.add(m.product_id);
+    if (m.reason === "transfer" && m.device_id) {
+      if (m.device_id.startsWith("transfer_to:")) {
+        const parts = m.device_id.replace("transfer_to:", "").split(":");
+        if (parts[0]) allShopIds.add(parts[0]);
+        if (parts[1]) allRoomIds.add(parts[1]);
+      } else if (m.device_id.startsWith("transfer_from:")) {
+        const parts = m.device_id.replace("transfer_from:", "").split(":");
+        if (parts[0]) allShopIds.add(parts[0]);
+        if (parts[1]) allRoomIds.add(parts[1]);
+      }
+    }
   }
   for (const a of auditRes.data ?? []) {
     if (a.user_id) allUserIds.add(a.user_id);
   }
 
+  // Fetch products first so we know which rooms to fetch for current shop's products
+  const productsRes =
+    allProductIds.size > 0
+      ? await supabase
+          .from("products")
+          .select("id, name, room_id")
+          .in("id", [...allProductIds])
+      : { data: [] };
+
+  for (const p of productsRes.data ?? []) {
+    if (p.room_id) allRoomIds.add(p.room_id);
+  }
+
   // Resolve names in parallel
-  const [profilesRes, productsRes] = await Promise.all([
+  const [profilesRes, shopsRes, roomsRes] = await Promise.all([
     allUserIds.size > 0
       ? supabase
           .from("profiles")
@@ -168,20 +203,29 @@ export async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
           .in("id", [...allUserIds])
       : Promise.resolve({ data: [] }),
 
-    allProductIds.size > 0
+    allShopIds.size > 0
       ? supabase
-          .from("products")
+          .from("shops")
           .select("id, name")
-          .in("id", [...allProductIds])
+          .in("id", [...allShopIds])
+      : Promise.resolve({ data: [] }),
+
+    allRoomIds.size > 0
+      ? supabase
+          .from("rooms")
+          .select("id, name")
+          .in("id", [...allRoomIds])
       : Promise.resolve({ data: [] }),
   ]);
 
   const profileMap = new Map(
     (profilesRes.data ?? []).map((p) => [p.id, p.full_name ?? "Unknown"]),
   );
-  const productMap = new Map(
-    (productsRes.data ?? []).map((p) => [p.id, p.name]),
-  );
+  const productMap = new Map((productsRes.data ?? []).map((p) => [p.id, p]));
+
+  const shopMap = new Map((shopsRes.data ?? []).map((s) => [s.id, s.name]));
+
+  const roomMap = new Map((roomsRes.data ?? []).map((r) => [r.id, r.name]));
 
   const events: ActivityEvent[] = [];
 
@@ -193,6 +237,9 @@ export async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
       staffName: profileMap.get(s.user_id) ?? "Unknown",
       label: "Recorded a sale",
       detail: formatCurrency(s.total_amount),
+      extraDetail: s.payment_method
+        ? `Paid via ${s.payment_method}`
+        : undefined,
       created_at: s.created_at,
       severity: "info",
     });
@@ -201,16 +248,41 @@ export async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
   // Stock adjustment and transfer events
   for (const m of adjustmentsRes.data ?? []) {
     const sign = m.type === "IN" ? "+" : "-";
-    const productName = productMap.get(m.product_id) ?? "product";
+    const productInfo = productMap.get(m.product_id);
+    const productName = productInfo?.name ?? "product";
+    const currentRoomName =
+      roomMap.get(productInfo?.room_id ?? "") ?? "Unknown Room";
     const isTransfer = m.reason === "transfer";
+
+    let actionLabel = isTransfer
+      ? `Transferred stock: ${sign}${m.delta} units`
+      : `Adjusted stock: ${sign}${m.delta} units`;
+
+    if (isTransfer && m.device_id) {
+      if (m.device_id.startsWith("transfer_to:")) {
+        const parts = m.device_id.replace("transfer_to:", "").split(":");
+        const sName = shopMap.get(parts[0]);
+        const rName = parts[1] ? roomMap.get(parts[1]) : null;
+        if (sName) {
+          actionLabel = `Transferred ${m.delta} units from Current Shop (${currentRoomName}) to ${sName}${rName ? ` (${rName})` : ""}`;
+        }
+      } else if (m.device_id.startsWith("transfer_from:")) {
+        const parts = m.device_id.replace("transfer_from:", "").split(":");
+        const sName = shopMap.get(parts[0]);
+        const rName = parts[1] ? roomMap.get(parts[1]) : null;
+        if (sName) {
+          actionLabel = `Received ${m.delta} units from ${sName}${rName ? ` (${rName})` : ""} to Current Shop (${currentRoomName})`;
+        }
+      }
+    }
+
     events.push({
       id: `mov-${m.id}`,
-      type: "STOCK_ADJUST",
+      type: isTransfer ? "TRANSFER" : "STOCK_ADJUST",
       staffName: profileMap.get(m.user_id) ?? "Unknown",
-      label: isTransfer 
-        ? `Transferred stock: ${sign}${m.delta} units` 
-        : `Adjusted stock: ${sign}${m.delta} units`,
+      label: actionLabel,
       detail: productName,
+      extraDetail: !isTransfer && m.reason ? `Reason: ${m.reason}` : undefined,
       created_at: m.created_at,
       severity: "info",
     });

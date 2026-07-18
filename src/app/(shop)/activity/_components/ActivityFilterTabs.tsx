@@ -3,6 +3,7 @@
 const FILTER_OPTIONS = [
   { value: "all", label: "All activity" },
   { value: "SALE", label: "Sales" },
+  { value: "TRANSFER", label: "Transfers" },
   { value: "inventory", label: "Inventory" },
   { value: "STOCK_ADJUST", label: "Stock adjustments" },
   { value: "MEMBER_CHANGE", label: "Team changes" },

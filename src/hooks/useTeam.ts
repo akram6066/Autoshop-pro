@@ -116,10 +116,16 @@ export function useInvites() {
   return useQuery({
     queryKey: ["shop-invites"],
     queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user?.email) return [];
+
       const { data, error } = await supabase
         .from("shop_invites")
         .select("*, shop:shops(name)")
-        .eq("status", "pending");
+        .eq("status", "pending")
+        .eq("email", user.email);
       if (error) throw error;
       return data;
     },

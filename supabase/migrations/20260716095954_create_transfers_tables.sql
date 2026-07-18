@@ -125,4 +125,4 @@ CREATE INDEX idx_transfer_items_transfer_id ON public.transfer_items(transfer_id
 CREATE TRIGGER set_timestamp_transfers
 BEFORE UPDATE ON public.transfers
 FOR EACH ROW
-EXECUTE FUNCTION trigger_set_timestamp();
+EXECUTE FUNCTION public.set_updated_at();
