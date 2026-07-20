@@ -16,12 +16,16 @@ export interface SaleSummary {
   created_at: string;
   staff_name: string;
   status?: string;
+  amount_paid: number;
+  delivery_address: string | null;
 }
 
 interface SaleItem {
   id: string;
   quantity: number;
   unit_price: number;
+  original_price: number | null;
+  override_reason: string | null;
   products: { name: string; sku: string | null } | null;
 }
 
@@ -71,6 +75,10 @@ export function SaleDetailModal({
               id: item.id,
               quantity: item.quantity,
               unit_price: item.unit_price,
+              original_price: (item as unknown as Record<string, unknown>)
+                .original_price as number | null,
+              override_reason: (item as unknown as Record<string, unknown>)
+                .override_reason as string | null,
               products: product
                 ? { name: product.name, sku: product.sku }
                 : null,
@@ -82,7 +90,9 @@ export function SaleDetailModal({
       try {
         const { data, error } = await supabase
           .from("sale_items")
-          .select("id, quantity, unit_price, products(name, sku)")
+          .select(
+            "id, quantity, unit_price, original_price, override_reason, products(name, sku)",
+          )
           .eq("sale_id", sale.id);
         if (error) throw error;
         return (data ?? []) as unknown as SaleItem[];
@@ -103,6 +113,10 @@ export function SaleDetailModal({
               id: item.id,
               quantity: item.quantity,
               unit_price: item.unit_price,
+              original_price: (item as unknown as Record<string, unknown>)
+                .original_price as number | null,
+              override_reason: (item as unknown as Record<string, unknown>)
+                .override_reason as string | null,
               products: product
                 ? { name: product.name, sku: product.sku }
                 : null,
@@ -221,6 +235,28 @@ export function SaleDetailModal({
             </span>
 
             <PaymentBadge method={sale.payment_method} />
+
+            {sale.delivery_address && (
+              <span
+                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md"
+                style={{
+                  background: "var(--color-surface-2)",
+                  color: "var(--color-ink-secondary)",
+                  fontSize: 12,
+                }}
+              >
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24">
+                  <path
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M3 10l7-7m0 0l7 7m-7-7v18"
+                  />
+                </svg>
+                Delivery: {sale.delivery_address}
+              </span>
+            )}
           </div>
 
           {/* ── Items ── */}
@@ -291,6 +327,21 @@ export function SaleDetailModal({
                             {item.products.sku}
                           </p>
                         )}
+                        {item.original_price != null &&
+                          item.original_price !== item.unit_price && (
+                            <div className="mt-1 flex flex-col gap-0.5">
+                              <span className="text-[10px] uppercase font-bold text-orange-500 tracking-wider">
+                                Price Changed
+                              </span>
+                              <p className="text-xs text-orange-600/90 leading-tight">
+                                From {formatCurrency(item.original_price)} to{" "}
+                                {formatCurrency(item.unit_price)}
+                                {item.override_reason
+                                  ? ` • ${item.override_reason}`
+                                  : ""}
+                              </p>
+                            </div>
+                          )}
                       </td>
                       <td
                         className="py-3 text-center text-sm"
@@ -326,23 +377,52 @@ export function SaleDetailModal({
             }}
           >
             {/* Total row */}
-            <div className="flex items-center justify-between mb-4">
-              <span
-                className="text-sm font-medium"
-                style={{ color: "var(--color-ink-secondary)" }}
-              >
-                Total
-              </span>
-              <span
-                className="text-lg font-bold"
-                style={{
-                  color: "var(--color-ink-primary)",
-                  textDecoration: isVoided ? "line-through" : "none",
-                  opacity: isVoided ? 0.5 : 1,
-                }}
-              >
-                {formatCurrency(sale.total_amount)}
-              </span>
+            <div className="flex flex-col gap-2 mb-4">
+              <div className="flex items-center justify-between">
+                <span
+                  className="text-sm font-medium"
+                  style={{ color: "var(--color-ink-secondary)" }}
+                >
+                  Total
+                </span>
+                <span
+                  className="text-lg font-bold"
+                  style={{
+                    color: "var(--color-ink-primary)",
+                    textDecoration: isVoided ? "line-through" : "none",
+                    opacity: isVoided ? 0.5 : 1,
+                  }}
+                >
+                  {formatCurrency(sale.total_amount)}
+                </span>
+              </div>
+
+              {sale.amount_paid != null &&
+                sale.amount_paid < sale.total_amount && (
+                  <>
+                    <div className="flex items-center justify-between text-sm">
+                      <span style={{ color: "var(--color-ink-tertiary)" }}>
+                        Amount Paid
+                      </span>
+                      <span style={{ color: "var(--color-ink-secondary)" }}>
+                        {formatCurrency(sale.amount_paid)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span style={{ color: "var(--color-danger)" }}>
+                        Credit/Unpaid
+                      </span>
+                      <span
+                        style={{
+                          color: "var(--color-danger)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {formatCurrency(sale.total_amount - sale.amount_paid)}
+                      </span>
+                    </div>
+                  </>
+                )}
             </div>
 
             {/* Void section — owner only, not if already voided */}
@@ -441,5 +521,3 @@ export function SaleDetailModal({
     </>
   );
 }
-
-

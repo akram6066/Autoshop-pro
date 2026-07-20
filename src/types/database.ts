@@ -386,6 +386,8 @@ export interface Database {
           product_id: string;
           quantity: number;
           unit_price: number;
+          original_price: number | null;
+          override_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -393,6 +395,8 @@ export interface Database {
           product_id: string;
           quantity: number;
           unit_price: number;
+          original_price?: number | null;
+          override_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -400,6 +404,8 @@ export interface Database {
           product_id?: string;
           quantity?: number;
           unit_price?: number;
+          original_price?: number | null;
+          override_reason?: string | null;
         };
         Relationships: [];
       };
@@ -703,6 +709,9 @@ export interface Database {
           created_at: string;
           staff_name: string;
           total_count: number;
+          status: string;
+          amount_paid: number;
+          delivery_address: string | null;
         }[];
       };
       get_shop_team: {

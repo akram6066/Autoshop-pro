@@ -30,6 +30,8 @@ interface SaleRow {
   staff_name: string;
   total_count: number;
   status: string;
+  amount_paid: number;
+  delivery_address: string | null;
 }
 
 const PAGE_SIZE = 25;
@@ -60,6 +62,8 @@ async function fetchLocalSales(
       staff_name: currentProfile?.full_name || "Offline Sale",
       total_count: sales.length,
       status: (s as Sale & { status?: string }).status ?? "completed",
+      amount_paid: s.amount_paid,
+      delivery_address: s.delivery_address,
     })),
     count: sales.length,
   };
@@ -108,6 +112,8 @@ export default function SalesPage() {
           staff_name: currentProfile?.full_name || "Offline Sale",
           total_count: 0,
           status: "pending",
+          amount_paid: s.amount_paid,
+          delivery_address: s.delivery_address,
         }));
 
         // Sort unsynced rows newest first
@@ -432,5 +438,3 @@ export default function SalesPage() {
     </div>
   );
 }
-
-

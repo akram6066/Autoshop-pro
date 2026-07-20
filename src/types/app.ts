@@ -135,6 +135,8 @@ export interface SaleItem {
   product_id: string;
   quantity: number;
   unit_price: number;
+  original_price: number | null;
+  override_reason: string | null;
 }
 
 export interface StockMovement {

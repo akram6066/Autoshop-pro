@@ -215,6 +215,8 @@ export function useRecordSale() {
         variant_id: i.variantId ?? null,
         quantity: i.quantity,
         unit_price: i.unit_price,
+        original_price: i.product.price,
+        override_reason: i.overrideReason ?? null,
       }));
 
       // Attempt to call record_sale RPC (atomic: sale + items + movements)
