@@ -179,6 +179,17 @@ export function useRecordSale() {
       const now = createdAt ?? new Date().toISOString();
       const saleId = crypto.randomUUID();
       const deviceId = getDeviceId();
+
+      const d = new Date();
+      const yy = d.getFullYear().toString().slice(-2);
+      const mm = (d.getMonth() + 1).toString().padStart(2, "0");
+      const dd = d.getDate().toString().padStart(2, "0");
+      const random4 = Math.floor(Math.random() * 65536)
+        .toString(16)
+        .toUpperCase()
+        .padStart(4, "0");
+      const invoiceNumber = `INV-${yy}${mm}${dd}-${random4}`;
+
       const itemsTotal = items.reduce(
         (sum, i) => sum + i.quantity * i.unit_price,
         0,
@@ -206,6 +217,7 @@ export function useRecordSale() {
         customer_id: customerId ?? null,
         amount_paid: computedAmountPaid,
         created_at: now,
+        invoice_number: invoiceNumber,
       };
 
       const itemsPayload = items.map((i) => ({

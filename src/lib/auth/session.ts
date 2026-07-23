@@ -12,7 +12,8 @@ interface ShopMemberRow {
     name: string;
     address: string | null;
     created_at: string;
-    plan?: string;
+    plan: string;
+    tax_rate: number;
   } | null;
 }
 

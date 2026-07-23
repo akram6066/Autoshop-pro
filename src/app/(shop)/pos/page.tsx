@@ -278,6 +278,7 @@ export default function POSPage() {
               : paymentMethod === "partial"
                 ? amountPaid
                 : undefined,
+          items,
         },
       });
       clear();

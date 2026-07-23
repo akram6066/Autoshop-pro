@@ -81,10 +81,16 @@ export function NotificationBell({ shopId }: NotificationBellProps) {
               </div>
             ) : (
               <div className="divide-y divide-[var(--color-border-subtle)]">
-                {notifications.slice(0, 5).map((n) => (
-                  <div
+                {notifications.slice(0, 10).map((n) => (
+                  <button
                     key={n.id}
-                    className={`p-4 hover:bg-[var(--color-surface-2)] transition-colors group ${!n.is_read ? "bg-[var(--color-brand-50)] dark:bg-brand-500/5" : ""}`}
+                    type="button"
+                    onClick={() => {
+                      if (!n.is_read) {
+                        markRead.mutate(n.id);
+                      }
+                    }}
+                    className={`w-full text-left p-4 hover:bg-[var(--color-surface-2)] transition-colors group ${!n.is_read ? "bg-[var(--color-brand-50)] dark:bg-brand-500/5 cursor-pointer" : ""}`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -107,18 +113,8 @@ export function NotificationBell({ shopId }: NotificationBellProps) {
                           {timeAgo(n.created_at)}
                         </p>
                       </div>
-                      {!n.is_read && (
-                        <button
-                          onClick={() => markRead.mutate(n.id)}
-                          disabled={markRead.isPending}
-                          className="p-1.5 text-[var(--color-ink-tertiary)] hover:text-[var(--color-ink-primary)] hover:bg-[var(--color-surface-0)] rounded-md transition-colors opacity-0 group-hover:opacity-100"
-                          title="Mark as read"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                      )}
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}

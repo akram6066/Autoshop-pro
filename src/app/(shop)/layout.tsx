@@ -1,10 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useCallback,
+  useState,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import { RouteErrorBoundary } from "@/components/ErrorBoundary";
 import { createClient } from "@/lib/supabase/client";
-import { useAuthStore, selectRole, selectShopId, selectIsPaidPlan } from "@/stores/authStore";
+import {
+  useAuthStore,
+  selectRole,
+  selectShopId,
+  selectIsPaidPlan,
+} from "@/stores/authStore";
 import { seedLocalCache, clearLocalDb } from "@/lib/db/instance";
 import { listenForCrossTabSync, closeChannel } from "@/lib/sync/queue";
 import { ShopHeader } from "@/components/shop/ShopHeader";
@@ -26,6 +37,7 @@ interface MembershipRow {
     address: string | null;
     created_at: string;
     plan: string;
+    tax_rate: number;
   };
 }
 
@@ -61,7 +73,24 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
+
       if (userError || !user) {
+        const isNetworkError =
+          userError?.message?.toLowerCase().includes("failed to fetch") ||
+          userError?.message?.toLowerCase().includes("networkerror") ||
+          (typeof navigator !== "undefined" && !navigator.onLine);
+
+        if (isNetworkError) {
+          const currentShopId = useAuthStore.getState().shopId;
+          if (currentShopId) {
+            console.warn(
+              "[ShopLayout] Network error verifying user. Falling back to offline state.",
+            );
+            initialised.current = true;
+            return;
+          }
+        }
+
         const isStaleToken =
           userError?.message?.includes("refresh_token_not_found") ||
           userError?.message?.includes("Invalid Refresh Token");
@@ -230,26 +259,26 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex bg-[var(--color-surface-1)] text-[var(--color-ink-primary)] selection:bg-brand-500/30 selection:text-brand-200">
-      <Sidebar 
-        role={role} 
-        isPaidPlan={isPaidPlan} 
-        isOpen={sidebarOpen} 
-        onToggle={() => setSidebarOpen(!sidebarOpen)} 
+      <Sidebar
+        role={role}
+        isPaidPlan={isPaidPlan}
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
       />
-      
-      <div 
+
+      <div
         className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
           sidebarOpen ? "lg:pl-64" : "lg:pl-0"
         }`}
       >
-        <ShopHeader 
-          role={role} 
-          shopId={shopId} 
+        <ShopHeader
+          role={role}
+          shopId={shopId}
           sidebarOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-          onSignOut={handleSignOut} 
+          onSignOut={handleSignOut}
         />
-        
+
         <div className="z-30 sticky top-20">
           <TrialBanner />
           <PendingInviteBanner />

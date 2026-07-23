@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE public.shops
+ADD COLUMN IF NOT EXISTS tax_rate numeric(5, 2) NOT NULL DEFAULT 0.00;
+
+COMMIT;

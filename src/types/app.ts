@@ -17,7 +17,8 @@ export interface Shop {
   name: string;
   address: string | null;
   created_at: string;
-  plan?: string;
+  plan: string;
+  tax_rate: number;
 }
 
 export interface TeamMember {
@@ -108,6 +109,7 @@ export interface Sale {
   synced: boolean;
   created_at: string;
   status?: "completed" | "voided";
+  invoice_number?: string;
 }
 
 export interface Customer {

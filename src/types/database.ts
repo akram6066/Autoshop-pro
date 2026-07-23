@@ -18,6 +18,7 @@ export interface Database {
           address: string | null;
           created_at: string;
           plan: string;
+          tax_rate: number;
         };
         Insert: {
           id?: string;
@@ -25,6 +26,7 @@ export interface Database {
           address?: string | null;
           created_at?: string;
           plan?: string;
+          tax_rate?: number;
         };
         Update: {
           id?: string;
@@ -32,6 +34,7 @@ export interface Database {
           address?: string | null;
           created_at?: string;
           plan?: string;
+          tax_rate?: number;
         };
         Relationships: [];
       };
@@ -352,6 +355,7 @@ export interface Database {
           amount_paid: number;
           synced: boolean;
           created_at: string;
+          invoice_number: string | null;
         };
         Insert: {
           id?: string;
@@ -364,6 +368,7 @@ export interface Database {
           amount_paid?: number;
           synced?: boolean;
           created_at?: string;
+          invoice_number?: string | null;
         };
         Update: {
           id?: string;
@@ -376,6 +381,7 @@ export interface Database {
           amount_paid?: number;
           synced?: boolean;
           created_at?: string;
+          invoice_number?: string | null;
         };
         Relationships: [];
       };

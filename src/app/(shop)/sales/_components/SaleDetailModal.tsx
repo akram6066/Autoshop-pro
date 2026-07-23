@@ -8,6 +8,8 @@ import type { PaymentMethod } from "@/types/app";
 import { PaymentBadge } from "./PaymentBadge";
 import { useVoidSale } from "@/hooks/useSales";
 import { friendlyError } from "@/lib/api/errors";
+import { useAuthStore } from "@/stores/authStore";
+import { ReceiptPrint } from "./ReceiptPrint";
 
 export interface SaleSummary {
   id: string;
@@ -18,6 +20,7 @@ export interface SaleSummary {
   status?: string;
   amount_paid: number;
   delivery_address: string | null;
+  invoice_number?: string | null;
 }
 
 interface SaleItem {
@@ -43,6 +46,8 @@ export function SaleDetailModal({
   onVoided: () => void;
 }) {
   const supabase = createClient();
+  const shop = useAuthStore((s) => s.shop);
+  const taxRate = shop?.tax_rate ?? 0;
   const { mutateAsync: voidSale, isPending: isVoiding } = useVoidSale();
   const [confirmingVoid, setConfirmingVoid] = useState(false);
   const [voidError, setVoidError] = useState("");
@@ -166,7 +171,7 @@ export function SaleDetailModal({
                 className="text-xs font-mono mb-0.5"
                 style={{ color: "var(--color-ink-tertiary)" }}
               >
-                #{sale.id.slice(0, 8).toUpperCase()}
+                {sale.invoice_number || `#${sale.id.slice(0, 8).toUpperCase()}`}
               </p>
               <div className="flex items-center gap-2">
                 <h2
@@ -188,15 +193,25 @@ export function SaleDetailModal({
                 )}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-icon"
-              aria-label="Close"
-              style={{ marginTop: 2 }}
-            >
-              ✕
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="btn-secondary"
+                aria-label="Print Receipt"
+              >
+                Print Receipt
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn-icon"
+                aria-label="Close"
+                style={{ marginTop: 2 }}
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           {/* ── Meta row ── */}
@@ -378,12 +393,49 @@ export function SaleDetailModal({
           >
             {/* Total row */}
             <div className="flex flex-col gap-2 mb-4">
-              <div className="flex items-center justify-between">
+              {taxRate > 0 && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span
+                      className="text-sm font-medium"
+                      style={{ color: "var(--color-ink-secondary)" }}
+                    >
+                      Subtotal
+                    </span>
+                    <span
+                      className="text-sm"
+                      style={{ color: "var(--color-ink-primary)" }}
+                    >
+                      {formatCurrency(sale.total_amount / (1 + taxRate))}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span
+                      className="text-sm font-medium"
+                      style={{ color: "var(--color-ink-secondary)" }}
+                    >
+                      Tax ({(taxRate * 100).toFixed(0)}%)
+                    </span>
+                    <span
+                      className="text-sm"
+                      style={{ color: "var(--color-ink-primary)" }}
+                    >
+                      {formatCurrency(
+                        sale.total_amount - sale.total_amount / (1 + taxRate),
+                      )}
+                    </span>
+                  </div>
+                </>
+              )}
+              <div
+                className="flex items-center justify-between mt-1 pt-2 border-t border-dashed"
+                style={{ borderColor: "var(--color-surface-3)" }}
+              >
                 <span
-                  className="text-sm font-medium"
-                  style={{ color: "var(--color-ink-secondary)" }}
+                  className="text-base font-bold"
+                  style={{ color: "var(--color-ink-primary)" }}
                 >
-                  Total
+                  TOTAL
                 </span>
                 <span
                   className="text-lg font-bold"
@@ -518,6 +570,9 @@ export function SaleDetailModal({
           </div>
         </div>
       </div>
+
+      {/* Hidden Printable Receipt */}
+      <ReceiptPrint sale={sale} items={items} shop={shop} taxRate={taxRate} />
     </>
   );
 }

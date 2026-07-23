@@ -24,17 +24,6 @@ import { LowStockTable } from "./_components/LowStockTable";
 import { PendingOrdersTable } from "./_components/PendingOrdersTable";
 import type { PendingOrder } from "./_components/PendingOrdersTable";
 
-function countUniqueProductNames(
-  products: Array<{ id: string; name: string | null }>,
-) {
-  return new Set(
-    products.map((product) => {
-      const nameKey = product.name?.trim().replace(/\s+/g, " ").toLowerCase();
-      return nameKey || product.id;
-    }),
-  ).size;
-}
-
 function countInventoryUnits(
   products: Array<Pick<Product, "id" | "quantity">>,
   variants: Array<Pick<ProductVariant, "product_id" | "quantity">>,
@@ -166,10 +155,14 @@ function DashboardContent() {
             .from("product_variants")
             .select("product_id, quantity")
             .in("product_id", productIds);
-          
+
           return [
-            id, 
-            countInventoryUnits(products, (variants ?? []) as any)
+            id,
+            countInventoryUnits(
+              products,
+              (variants as Pick<ProductVariant, "product_id" | "quantity">[]) ??
+                [],
+            ),
           ] as const;
         }),
       );
@@ -307,8 +300,7 @@ function DashboardContent() {
     localPOs === undefined ||
     localProductCounts === undefined ||
     subLoading ||
-    (isOnline &&
-      (salesLoading || lowStockLoading || posLoading));
+    (isOnline && (salesLoading || lowStockLoading || posLoading));
 
   if (isDataLoading) {
     return <DashboardSkeleton />;
@@ -373,10 +365,16 @@ function DashboardContent() {
           </p>
         </div>
         <div className="flex gap-3 flex-shrink-0">
-          <Link href="/inventory/new" className="px-4 py-2 bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-ink-primary)] font-medium rounded-xl border border-[var(--color-border-subtle)] transition-colors shadow-sm">
+          <Link
+            href="/inventory/new"
+            className="px-4 py-2 bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-ink-primary)] font-medium rounded-xl border border-[var(--color-border-subtle)] transition-colors shadow-sm"
+          >
             Add Product
           </Link>
-          <Link href="/pos" className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl transition-colors shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+          <Link
+            href="/pos"
+            className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl transition-colors shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+          >
             New Sale
           </Link>
         </div>
@@ -440,9 +438,12 @@ function DashboardContent() {
               />
             </svg>
           </div>
-          <h3 className="text-xl font-bold text-[var(--color-ink-primary)] mb-2 tracking-tight">All clear</h3>
+          <h3 className="text-xl font-bold text-[var(--color-ink-primary)] mb-2 tracking-tight">
+            All clear
+          </h3>
           <p className="text-[var(--color-ink-secondary)] font-medium max-w-sm mx-auto">
-            No low stock alerts. Head over to the POS to record your first sale of the day.
+            No low stock alerts. Head over to the POS to record your first sale
+            of the day.
           </p>
         </div>
       )}
@@ -457,5 +458,3 @@ export default function DashboardPage() {
     </Suspense>
   );
 }
-
-

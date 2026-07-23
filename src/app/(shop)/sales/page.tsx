@@ -32,6 +32,7 @@ interface SaleRow {
   status: string;
   amount_paid: number;
   delivery_address: string | null;
+  invoice_number?: string | null;
 }
 
 const PAGE_SIZE = 25;
@@ -233,7 +234,7 @@ export default function SalesPage() {
               <table className="table-auto-shop">
                 <thead>
                   <tr>
-                    <th>Sale ID</th>
+                    <th>Invoice #</th>
                     <th>Date & Time</th>
                     <th>Staff</th>
                     <th>Payment</th>
@@ -264,7 +265,8 @@ export default function SalesPage() {
                           }}
                         >
                           <div className="flex items-center gap-1.5">
-                            #{sale.id.slice(0, 8).toUpperCase()}
+                            {sale.invoice_number ||
+                              `#${sale.id.slice(0, 8).toUpperCase()}`}
                             {voided && (
                               <span
                                 className="text-xs font-bold px-1.5 py-0.5 rounded"
@@ -372,9 +374,19 @@ export default function SalesPage() {
                     <div className="flex items-center gap-2 pl-8">
                       <span
                         className="text-xs"
+                        style={{
+                          color: "var(--color-ink-tertiary)",
+                          fontFamily: "var(--font-mono)",
+                        }}
+                      >
+                        {sale.invoice_number ||
+                          `#${sale.id.slice(0, 8).toUpperCase()}`}
+                      </span>
+                      <span
+                        className="text-xs"
                         style={{ color: "var(--color-ink-tertiary)" }}
                       >
-                        {formatDate(sale.created_at)}
+                        • {formatDate(sale.created_at)}
                       </span>
                       <PaymentBadge method={sale.payment_method ?? "cash"} />
                     </div>

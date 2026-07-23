@@ -1,5 +1,11 @@
 import { formatCurrency } from "@/lib/utils";
-import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/app";
+import {
+  PAYMENT_METHOD_LABELS,
+  type PaymentMethod,
+  type CartItem,
+} from "@/types/app";
+import { useAuthStore } from "@/stores/authStore";
+import { ReceiptPrint } from "@/app/(shop)/sales/_components/ReceiptPrint";
 
 export interface ReceiptData {
   saleId: string;
@@ -9,6 +15,8 @@ export interface ReceiptData {
   deliveryFee?: number;
   customerName?: string;
   amountPaid?: number;
+  invoice_number?: string;
+  items: CartItem[];
 }
 
 export function SaleReceipt({
@@ -18,8 +26,25 @@ export function SaleReceipt({
   receipt: ReceiptData;
   onDismiss: () => void;
 }) {
+  const shop = useAuthStore((s) => s.shop);
+  const profile = useAuthStore((s) => s.profile);
+  const taxRate = shop?.tax_rate ?? 0;
+  const staffName = profile?.full_name || "Staff";
   const debt =
     receipt.amountPaid !== undefined ? receipt.total - receipt.amountPaid : 0;
+
+  // Map CartItems to SaleItems format for the ReceiptPrint component
+  const receiptItems = receipt.items.map((item, index) => ({
+    id: item.cartKey || String(index),
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+    original_price: item.product?.price ?? null,
+    override_reason: item.overrideReason ?? null,
+    products: {
+      name: item.product?.name ?? "Unknown",
+      sku: item.product?.sku ?? null,
+    },
+  }));
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
@@ -52,7 +77,8 @@ export function SaleReceipt({
             fontFamily: "var(--font-mono)",
           }}
         >
-          #{receipt.saleId.slice(0, 8).toUpperCase()}
+          {receipt.invoice_number ||
+            `#${receipt.saleId.slice(0, 8).toUpperCase()}`}
         </p>
         <div className="mt-1 mb-6 flex flex-col gap-0.5">
           <p className="text-xs" style={{ color: "var(--color-ink-tertiary)" }}>
@@ -95,14 +121,40 @@ export function SaleReceipt({
               </>
             )}
         </div>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="btn btn-primary w-full"
-        >
-          New sale
-        </button>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="btn btn-secondary flex-1"
+          >
+            Print receipt
+          </button>
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="btn btn-primary flex-1"
+          >
+            New sale
+          </button>
+        </div>
       </div>
+
+      {/* Hidden Printable Receipt */}
+      <ReceiptPrint
+        sale={{
+          id: receipt.saleId,
+          invoice_number: receipt.invoice_number,
+          total_amount: receipt.total,
+          payment_method: receipt.paymentMethod,
+          created_at: new Date().toISOString(),
+          staff_name: staffName,
+          amount_paid: receipt.amountPaid ?? receipt.total,
+          delivery_address: receipt.deliveryAddress ?? null,
+        }}
+        items={receiptItems}
+        shop={shop}
+        taxRate={taxRate}
+      />
     </div>
   );
 }
