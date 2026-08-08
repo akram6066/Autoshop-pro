@@ -151,15 +151,20 @@ export function SaleDetailModal({
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-40"
-        style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(2px)" }}
+        style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(2px)" }}
         onClick={onClose}
       />
 
       {/* Modal */}
       <div className="fixed inset-x-4 top-1/2 z-50 mx-auto max-w-lg -translate-y-1/2">
         <div
-          className="card overflow-hidden flex flex-col"
-          style={{ maxHeight: "88vh" }}
+          className="overflow-hidden flex flex-col rounded-2xl"
+          style={{
+            maxHeight: "88vh",
+            background: "var(--color-popup-bg, #ffffff)",
+            border: "1px solid var(--color-border)",
+            boxShadow: "var(--color-popup-shadow, 0 8px 32px rgba(0,0,0,0.18))",
+          }}
         >
           {/* ── Header ── */}
           <div
@@ -197,7 +202,7 @@ export function SaleDetailModal({
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="btn-secondary"
+                className="btn btn-secondary"
                 aria-label="Print Receipt"
               >
                 Print Receipt
@@ -205,7 +210,7 @@ export function SaleDetailModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="btn-icon"
+                className="btn btn-icon"
                 aria-label="Close"
                 style={{ marginTop: 2 }}
               >

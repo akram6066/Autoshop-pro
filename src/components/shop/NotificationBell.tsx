@@ -56,80 +56,130 @@ export function NotificationBell({ shopId }: NotificationBellProps) {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-50 animate-fade-in-up bg-[var(--color-surface-0)] border border-[var(--color-border)] overflow-hidden flex flex-col">
-          <div className="px-4 py-3 border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-1)] flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-[var(--color-ink-primary)]">
-              Notifications
-            </h3>
-            {unreadCount > 0 && (
-              <button
-                onClick={() => markAllRead.mutate(shopId)}
-                className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 font-medium flex items-center gap-1"
-                disabled={markAllRead.isPending}
-              >
-                <CheckCheck className="w-3 h-3" />
-                Mark all read
-              </button>
-            )}
-          </div>
+        <>
+          {/* Backdrop — only on mobile */}
+          <div
+            className="sm:hidden fixed inset-0 z-40 bg-black/50"
+            onClick={() => setOpen(false)}
+          />
 
-          <div className="max-h-[50vh] overflow-y-auto overscroll-contain">
-            {notifications.length === 0 ? (
-              <div className="p-8 text-center flex flex-col items-center justify-center text-[var(--color-ink-tertiary)]">
-                <Bell className="w-8 h-8 mb-2 opacity-20" />
-                <p className="text-sm">No new notifications</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-[var(--color-border-subtle)]">
-                {notifications.slice(0, 10).map((n) => (
+          {/* Panel */}
+          <div
+            className="
+            fixed inset-x-4 top-24 z-50
+            sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-3 sm:w-96
+            rounded-xl
+            animate-fade-in-up
+            overflow-hidden flex flex-col
+          "
+            style={{
+              background: "var(--color-popup-bg, #ffffff)",
+              border: "1px solid var(--color-border)",
+              boxShadow:
+                "var(--color-popup-shadow, 0 8px 32px rgba(0,0,0,0.18))",
+            }}
+          >
+            <div
+              className="px-4 py-3 border-b border-[var(--color-border-subtle)] flex items-center justify-between"
+              style={{ background: "var(--color-popup-header, #f8f9fc)" }}
+            >
+              <h3 className="text-sm font-semibold text-[var(--color-ink-primary)]">
+                Notifications
+              </h3>
+              <div className="flex items-center gap-3">
+                {unreadCount > 0 && (
                   <button
-                    key={n.id}
-                    type="button"
-                    onClick={() => {
-                      if (!n.is_read) {
-                        markRead.mutate(n.id);
-                      }
-                    }}
-                    className={`w-full text-left p-4 hover:bg-[var(--color-surface-2)] transition-colors group ${!n.is_read ? "bg-[var(--color-brand-50)] dark:bg-brand-500/5 cursor-pointer" : ""}`}
+                    onClick={() => markAllRead.mutate(shopId)}
+                    className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 font-medium flex items-center gap-1"
+                    disabled={markAllRead.isPending}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          {!n.is_read && (
-                            <span className="w-2 h-2 rounded-full bg-brand-500"></span>
-                          )}
+                    <CheckCheck className="w-3 h-3" />
+                    Mark all read
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="text-[var(--color-ink-tertiary)] hover:text-[var(--color-ink-primary)] p-1 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors"
+                  aria-label="Close"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto overscroll-contain">
+              {notifications.length === 0 ? (
+                <div className="p-8 text-center flex flex-col items-center justify-center text-[var(--color-ink-tertiary)]">
+                  <Bell className="w-8 h-8 mb-2 opacity-20" />
+                  <p className="text-sm">No new notifications</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-[var(--color-border-subtle)]">
+                  {notifications.slice(0, 10).map((n) => (
+                    <button
+                      key={n.id}
+                      type="button"
+                      onClick={() => {
+                        if (!n.is_read) markRead.mutate(n.id);
+                      }}
+                      className={`w-full text-left p-4 hover:bg-[var(--color-surface-2)] transition-colors ${!n.is_read ? "bg-[var(--color-brand-50)] dark:bg-brand-500/5 cursor-pointer" : ""}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            {!n.is_read && (
+                              <span className="w-2 h-2 rounded-full bg-brand-500 flex-shrink-0" />
+                            )}
+                            <p
+                              className={`text-sm font-medium truncate ${!n.is_read ? "text-[var(--color-ink-primary)]" : "text-[var(--color-ink-secondary)]"}`}
+                            >
+                              {n.title}
+                            </p>
+                          </div>
                           <p
-                            className={`text-sm font-medium ${!n.is_read ? "text-[var(--color-ink-primary)]" : "text-[var(--color-ink-secondary)]"}`}
+                            className={`text-sm mt-1 leading-snug ${!n.is_read ? "text-[var(--color-ink-secondary)]" : "text-[var(--color-ink-tertiary)]"}`}
                           >
-                            {n.title}
+                            {n.message}
+                          </p>
+                          <p className="text-xs text-[var(--color-ink-tertiary)] mt-2 font-mono">
+                            {timeAgo(n.created_at)}
                           </p>
                         </div>
-                        <p
-                          className={`text-sm mt-1 leading-snug ${!n.is_read ? "text-[var(--color-ink-secondary)]" : "text-[var(--color-ink-tertiary)]"}`}
-                        >
-                          {n.message}
-                        </p>
-                        <p className="text-xs text-[var(--color-ink-tertiary)] mt-2 font-mono">
-                          {timeAgo(n.created_at)}
-                        </p>
                       </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          <div className="p-2 border-t border-[var(--color-border-subtle)] bg-[var(--color-surface-1)]">
-            <Link
-              href="/notifications"
-              onClick={() => setOpen(false)}
-              className="block w-full text-center py-2 text-sm font-medium text-brand-600 dark:text-brand-400 hover:bg-[var(--color-brand-50)] dark:hover:bg-brand-500/10 rounded-lg transition-colors"
+            <div
+              className="p-2 border-t border-[var(--color-border-subtle)]"
+              style={{ background: "var(--color-popup-header, #f8f9fc)" }}
             >
-              View all notifications
-            </Link>
+              <Link
+                href="/notifications"
+                onClick={() => setOpen(false)}
+                className="block w-full text-center py-2 text-sm font-medium text-brand-600 dark:text-brand-400 hover:bg-[var(--color-brand-50)] dark:hover:bg-brand-500/10 rounded-lg transition-colors"
+              >
+                View all notifications
+              </Link>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

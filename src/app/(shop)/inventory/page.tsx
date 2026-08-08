@@ -111,7 +111,7 @@ export default function InventoryPage() {
       )}
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-6">
         <div>
           <h1
             className="text-2xl font-semibold mb-1"
@@ -128,7 +128,7 @@ export default function InventoryPage() {
             )}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
             type="button"
             onClick={() => {
@@ -180,6 +180,7 @@ export default function InventoryPage() {
             }}
             className="btn btn-secondary"
             disabled={filtered.length === 0}
+            title="Export Excel/CSV"
           >
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
               <path
@@ -190,7 +191,7 @@ export default function InventoryPage() {
                 strokeLinejoin="round"
               />
             </svg>
-            Export Excel/CSV
+            <span className="hidden sm:inline">Export CSV</span>
           </button>
           <Link href="/inventory/new" className="btn btn-primary">
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
@@ -201,7 +202,8 @@ export default function InventoryPage() {
                 strokeLinecap="round"
               />
             </svg>
-            Add product
+            <span className="hidden sm:inline">Add product</span>
+            <span className="sm:hidden">Add</span>
           </Link>
         </div>
       </div>
@@ -322,5 +324,3 @@ export default function InventoryPage() {
     </div>
   );
 }
-
-

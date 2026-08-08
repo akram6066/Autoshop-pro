@@ -19,7 +19,7 @@ export function DeleteProductModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
       style={{
-        background: "rgba(0,0,0,0.45)",
+        background: "rgba(0,0,0,0.6)",
         backdropFilter: "blur(4px)",
       }}
       onClick={onClose}
@@ -28,8 +28,12 @@ export function DeleteProductModal({
       aria-labelledby="delete-product-title"
     >
       <div
-        className="card p-6 w-full max-w-sm animate-fade-in-up"
-        style={{ background: "var(--color-surface-0)" }}
+        className="w-full max-w-sm p-6 animate-fade-in-up rounded-2xl"
+        style={{
+          background: "var(--color-popup-bg, #ffffff)",
+          border: "1px solid var(--color-border)",
+          boxShadow: "var(--color-popup-shadow, 0 8px 32px rgba(0,0,0,0.18))",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <h3

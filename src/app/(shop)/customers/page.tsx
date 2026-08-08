@@ -46,7 +46,7 @@ export default function CustomersPage() {
       )}
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-6">
         <div>
           <h1
             className="text-2xl font-semibold mb-1"
@@ -64,7 +64,10 @@ export default function CustomersPage() {
             )}
           </p>
         </div>
-        <Link href="/customers/new" className="btn btn-primary btn-sm">
+        <Link
+          href="/customers/new"
+          className="btn btn-primary btn-sm self-start"
+        >
           + Add customer
         </Link>
       </div>

@@ -129,10 +129,10 @@ export function ShopSwitcher() {
         <div
           className="absolute top-full right-0 mt-1 z-50 animate-scale-in"
           style={{
-            background: "var(--color-surface-0)",
+            background: "var(--color-popup-bg, #ffffff)",
             border: "1px solid var(--color-border)",
             borderRadius: "var(--radius-lg)",
-            boxShadow: "var(--shadow-dropdown)",
+            boxShadow: "var(--color-popup-shadow, 0 8px 32px rgba(0,0,0,0.14))",
             minWidth: 220,
           }}
         >
@@ -146,19 +146,16 @@ export function ShopSwitcher() {
                 type="button"
                 disabled={isActive || !!switchingId}
                 onClick={() => handleSwitch(s)}
-                className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-2.5 transition-colors"
+                className={`w-full text-left px-3 py-2.5 text-sm flex items-center gap-2.5 transition-colors ${
+                  !isActive && !switchingId
+                    ? "hover:bg-[var(--color-surface-2)]"
+                    : ""
+                }`}
                 style={{
                   color: "var(--color-ink-primary)",
                   background: "transparent",
                   opacity: !isActive && switchingId && !isSwitching ? 0.4 : 1,
                   cursor: isActive ? "default" : "pointer",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive && !switchingId)
-                    e.currentTarget.style.background = "var(--color-surface-2)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
                 }}
               >
                 {/* Active checkmark / spinner column */}
@@ -239,18 +236,10 @@ export function ShopSwitcher() {
           <Link
             href="/settings"
             onClick={() => setOpen(false)}
-            className="flex items-center px-3 py-2.5 text-sm transition-colors"
+            className="flex items-center px-3 py-2.5 text-sm transition-colors hover:bg-[var(--color-surface-2)]"
             style={{
               color: "var(--color-ink-secondary)",
               background: "transparent",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.background =
-                "var(--color-surface-2)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.background =
-                "transparent";
             }}
           >
             Manage shops

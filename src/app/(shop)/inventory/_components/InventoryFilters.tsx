@@ -29,60 +29,63 @@ export function InventoryFilters({
   categories,
 }: InventoryFiltersProps) {
   return (
-    <div className="flex flex-wrap gap-3 mb-5">
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-5">
       {/* Search */}
       <SearchBar
         value={search}
         onChange={onSearchChange}
         placeholder="Search products..."
-        className="flex-1 min-w-48"
+        className="w-full sm:flex-1 sm:min-w-64"
       />
 
-      {/* Room filter */}
-      <select
-        className="input"
-        style={{ width: "auto", minWidth: 140 }}
-        value={roomFilter}
-        onChange={(e) => onRoomFilterChange(e.target.value)}
-      >
-        <option value="all">All rooms</option>
-        {rooms.map((r) => (
-          <option key={r.id} value={r.id}>
-            {r.name}
-          </option>
-        ))}
-      </select>
+      {/* Filters row on mobile, grouped on desktop */}
+      <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+        {/* Room filter */}
+        <select
+          className="input flex-1 sm:w-auto"
+          style={{ minWidth: 120 }}
+          value={roomFilter}
+          onChange={(e) => onRoomFilterChange(e.target.value)}
+        >
+          <option value="all">All rooms</option>
+          {rooms.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.name}
+            </option>
+          ))}
+        </select>
 
-      {/* Category filter */}
-      <select
-        className="input"
-        style={{ width: "auto", minWidth: 130 }}
-        value={categoryFilter}
-        onChange={(e) =>
-          onCategoryFilterChange(e.target.value as Category | "all")
-        }
-      >
-        <option value="all">All categories</option>
-        {categories.map((c) => (
-          <option key={c.id} value={c.name}>
-            {c.name}
-          </option>
-        ))}
-      </select>
+        {/* Category filter */}
+        <select
+          className="input flex-1 sm:w-auto"
+          style={{ minWidth: 140 }}
+          value={categoryFilter}
+          onChange={(e) =>
+            onCategoryFilterChange(e.target.value as Category | "all")
+          }
+        >
+          <option value="all">All categories</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.name}>
+              {c.name}
+            </option>
+          ))}
+        </select>
 
-      {/* Sort */}
-      <select
-        className="input"
-        style={{ width: "auto", minWidth: 120 }}
-        value={sortBy}
-        onChange={(e) =>
-          onSortByChange(e.target.value as "name" | "qty" | "price")
-        }
-      >
-        <option value="name">Name A–Z</option>
-        <option value="qty">Qty ↑</option>
-        <option value="price">Price ↓</option>
-      </select>
+        {/* Sort */}
+        <select
+          className="input flex-1 sm:w-auto"
+          style={{ minWidth: 110 }}
+          value={sortBy}
+          onChange={(e) =>
+            onSortByChange(e.target.value as "name" | "qty" | "price")
+          }
+        >
+          <option value="name">Name A–Z</option>
+          <option value="qty">Qty ↑</option>
+          <option value="price">Price ↓</option>
+        </select>
+      </div>
     </div>
   );
 }

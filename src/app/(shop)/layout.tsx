@@ -52,7 +52,16 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
   const setPlanName = useAuthStore((s) => s.setPlanName);
   const reset = useAuthStore((s) => s.reset);
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Start closed on mobile so the lg:pl-64 padding never causes white space
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // On desktop, open the sidebar by default once we know the viewport size
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSidebarOpen(true);
+    }
+  }, []);
 
   const initialised = useRef(false);
   const initInFlight = useRef(false);
@@ -258,7 +267,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
   const isPaidPlan = useAuthStore(selectIsPaidPlan);
 
   return (
-    <div className="min-h-screen flex bg-[var(--color-surface-1)] text-[var(--color-ink-primary)] selection:bg-brand-500/30 selection:text-brand-200">
+    <div className="min-h-screen flex overflow-x-hidden bg-[var(--color-surface-1)] text-[var(--color-ink-primary)] selection:bg-brand-500/30 selection:text-brand-200">
       <Sidebar
         role={role}
         isPaidPlan={isPaidPlan}

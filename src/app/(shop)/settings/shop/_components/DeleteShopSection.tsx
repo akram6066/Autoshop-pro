@@ -128,7 +128,7 @@ export function DeleteShopSection({
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           style={{
-            backgroundColor: "rgba(0,0,0,0.5)",
+            backgroundColor: "rgba(0,0,0,0.6)",
             backdropFilter: "blur(4px)",
           }}
           onClick={(e) => {
@@ -141,9 +141,10 @@ export function DeleteShopSection({
           <div
             className="rounded-2xl w-full max-w-md animate-fade-in-up"
             style={{
-              background: "var(--color-surface-0)",
+              background: "var(--color-popup-bg, #ffffff)",
               border: "1px solid var(--color-border)",
-              boxShadow: "var(--shadow-raised)",
+              boxShadow:
+                "var(--color-popup-shadow, 0 8px 32px rgba(0,0,0,0.18))",
               overflow: "hidden",
             }}
           >
@@ -201,14 +202,17 @@ export function DeleteShopSection({
               {/* Shop name callout */}
               <div
                 style={{
-                  background: "#fef2f2",
-                  border: "1px solid #fecaca",
+                  background: "var(--color-danger-light)",
+                  border: "1px solid var(--color-danger-light)",
                   borderRadius: 10,
                   padding: "12px 16px",
                   marginBottom: 16,
                 }}
               >
-                <p className="text-sm" style={{ color: "#991b1b" }}>
+                <p
+                  className="text-sm"
+                  style={{ color: "var(--color-danger-text)" }}
+                >
                   You are deleting:
                 </p>
                 <p
@@ -229,8 +233,8 @@ export function DeleteShopSection({
               {otherShops.length > 0 && (
                 <div
                   style={{
-                    background: "#f0fdf4",
-                    border: "1px solid #bbf7d0",
+                    background: "var(--color-success-light)",
+                    border: "1px solid var(--color-success-light)",
                     borderRadius: 10,
                     padding: "12px 16px",
                     marginBottom: 16,
@@ -274,7 +278,7 @@ export function DeleteShopSection({
                       <li
                         key={s.id}
                         className="text-sm font-medium"
-                        style={{ color: "#166534" }}
+                        style={{ color: "var(--color-success-text)" }}
                       >
                         · {s.name}
                       </li>

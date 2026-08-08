@@ -56,7 +56,8 @@ export function SubscriptionBanner({
       className="animate-fade-in-up"
       style={{
         display: "flex",
-        alignItems: "center",
+        alignItems: "flex-start",
+        flexWrap: "wrap",
         gap: 12,
         padding: "12px 16px",
         borderRadius: 10,

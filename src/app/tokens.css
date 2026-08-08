@@ -17,11 +17,17 @@
   --color-brand-800: #1a32a8;
   --color-brand-900: #112070; /* UNUSED */
 
-  /* ─── Surfaces (light) - Luxury Pearl & Glass ─── */
-  --color-surface-0: rgba(255, 255, 255, 0.75); /* cards / modals (frosted) */
-  --color-surface-1: oklch(97.5% 0.004 85); /* soft pearl background */
-  --color-surface-2: rgba(255, 255, 255, 0.9); /* hover / raised */
+  /* ─── Surfaces (light) ─── */
+  --color-surface-0: #ffffff; /* fully opaque — popups, modals, cards */
+  --color-surface-1: oklch(97.5% 0.004 85); /* soft pearl page background */
+  --color-surface-2: #f5f6fa; /* hover / raised */
   --color-surface-3: #ffffff; /* solid selected */
+
+  /* ─── Popup / dropdown surfaces — always fully opaque ─── */
+  --color-popup-bg: #ffffff;
+  --color-popup-header: #f8f9fc;
+  --color-popup-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.08);
 
   /* ─── Ink / text (light) - Sophisticated Slate ─── */
   --color-ink-primary: oklch(12% 0.015 255);
@@ -116,11 +122,17 @@
 
 /* ─── Dark mode overrides ─── */
 .dark {
-  /* Surfaces — transparent and glassmorphic for luxury dark mode */
-  --color-surface-0: rgba(10, 10, 10, 0.6);
-  --color-surface-1: transparent;
-  --color-surface-2: rgba(255, 255, 255, 0.04);
-  --color-surface-3: rgba(255, 255, 255, 0.08);
+  /* Surfaces — solid dark backgrounds (glassmorphism via backdrop-filter on .card) */
+  --color-surface-0: #0f0f11; /* fully opaque dark — popups, modals, cards */
+  --color-surface-1: #0a0a0c; /* page background */
+  --color-surface-2: rgba(255, 255, 255, 0.05); /* hover / raised */
+  --color-surface-3: rgba(255, 255, 255, 0.09); /* selected */
+
+  /* ─── Popup / dropdown surfaces — always fully opaque ─── */
+  --color-popup-bg: #17171a;
+  --color-popup-header: #111114;
+  --color-popup-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.5);
 
   /* Ink — near-white primary, soft secondary / tertiary */
   --color-ink-primary: oklch(92% 0.004 250);

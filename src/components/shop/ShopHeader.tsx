@@ -59,12 +59,38 @@ export function ShopHeader({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Lock body scroll when mobile nav is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
+
+  // Close mobile nav on route change
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMobileOpen(false);
+  }, [pathname]);
+
   const visibleNav = NAV.filter(
     (n) => (!n.ownerOnly || role === "owner") && (!n.paidOnly || isPaidPlan),
   );
 
   return (
-    <header className="sticky top-0 z-40 bg-[var(--color-surface-0)]/80 backdrop-blur-xl border-b border-[var(--color-border-subtle)]">
+    <header
+      className="sticky top-0 z-40 border-b border-[var(--color-border-subtle)]"
+      style={{
+        background: "var(--color-popup-bg, #ffffff)",
+        /* No backdrop-filter on the header — it creates a stacking context
+           that clips child fixed-position popups and makes them appear
+           transparent/blurred. Use a solid opaque background instead. */
+      }}
+    >
       <div className="flex items-center justify-between px-4 sm:px-6 h-20">
         {/* Left Side (Hamburger / Logo / Desktop Toggle) */}
         <div className="flex items-center gap-4">
@@ -143,12 +169,12 @@ export function ShopHeader({
         </div>
 
         {/* Right side Tools */}
-        <div className="flex items-center gap-4 flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
           <ThemeToggle />
           <NotificationBell shopId={shopId} />
           <SyncBadge shopId={shopId} />
 
-          <div className="hidden sm:block h-6 w-px bg-[var(--color-border)] mx-2"></div>
+          <div className="hidden sm:block h-6 w-px bg-[var(--color-border)] mx-1"></div>
 
           <div className="hidden sm:block">
             <ShopSwitcher />
@@ -185,8 +211,19 @@ export function ShopHeader({
             </button>
 
             {userMenuOpen && (
-              <div className="absolute right-0 mt-3 w-56 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-50 animate-fade-in-up bg-[var(--color-surface-0)] border border-[var(--color-border)] overflow-hidden">
-                <div className="px-4 py-3 border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-1)]">
+              <div
+                className="absolute right-0 mt-3 w-56 rounded-xl z-50 animate-fade-in-up overflow-hidden"
+                style={{
+                  background: "var(--color-popup-bg, #ffffff)",
+                  border: "1px solid var(--color-border)",
+                  boxShadow:
+                    "var(--color-popup-shadow, 0 8px 32px rgba(0,0,0,0.18))",
+                }}
+              >
+                <div
+                  className="px-4 py-3 border-b border-[var(--color-border-subtle)]"
+                  style={{ background: "var(--color-popup-header, #f8f9fc)" }}
+                >
                   <p className="text-sm font-medium text-[var(--color-ink-primary)] truncate">
                     {profile?.full_name?.trim() || "No Name Set"}
                   </p>
@@ -232,9 +269,9 @@ export function ShopHeader({
         </div>
       </div>
 
-      {/* Mobile Drawer (Only visible on small screens when hamburger is clicked) */}
+      {/* Mobile nav — original simple dropdown under header, scroll-locked */}
       {mobileOpen && (
-        <nav className="lg:hidden border-t border-[var(--color-border-subtle)] bg-[var(--color-surface-0)]">
+        <nav className="lg:hidden border-t border-[var(--color-border-subtle)] bg-[var(--color-surface-0)] max-h-[calc(100vh-5rem)] overflow-y-auto">
           <div className="px-4 py-4 flex flex-col gap-2">
             {visibleNav.map((item) => {
               const active = pathname.startsWith(item.href);
@@ -271,7 +308,10 @@ export function ShopHeader({
 
             <button
               type="button"
-              onClick={onSignOut}
+              onClick={() => {
+                setMobileOpen(false);
+                onSignOut();
+              }}
               className="flex items-center gap-3 px-4 py-3 mt-2 rounded-xl text-sm font-medium text-danger hover:bg-danger/10 transition-colors"
             >
               <svg

@@ -111,7 +111,7 @@ export default function ReportsPage() {
   return (
     <div>
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-6">
         <div>
           <h1
             className="text-2xl font-semibold mb-1"
@@ -129,7 +129,7 @@ export default function ReportsPage() {
           <button
             type="button"
             onClick={exportCSV}
-            className="btn btn-secondary btn-sm"
+            className="btn btn-secondary btn-sm self-start"
             disabled={summary.length === 0}
           >
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
@@ -303,5 +303,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-

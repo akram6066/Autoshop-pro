@@ -67,11 +67,16 @@ export function CollectDebtModal({ customer, shopId, userId, onClose }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.5)" }}
+      style={{ background: "rgba(0,0,0,0.6)" }}
       onClick={() => !isPending && !succeeded && onClose()}
     >
       <div
-        className="card w-full max-w-sm p-6"
+        className="w-full max-w-sm p-6 rounded-2xl"
+        style={{
+          background: "var(--color-popup-bg, #ffffff)",
+          border: "1px solid var(--color-border)",
+          boxShadow: "var(--color-popup-shadow, 0 8px 32px rgba(0,0,0,0.18))",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -262,12 +267,12 @@ export function CollectDebtModal({ customer, shopId, userId, onClose }: Props) {
               <button
                 type="submit"
                 disabled={isPending || !isValid}
-                className="btn btn-sm flex-1"
+                className={`btn btn-sm flex-1 ${!isOverpayment ? "btn-primary" : ""}`}
                 style={{
                   background: isOverpayment
                     ? "var(--color-warning)"
-                    : "var(--color-brand-600)",
-                  color: "#fff",
+                    : undefined,
+                  color: isOverpayment ? "#fff" : undefined,
                   opacity: isPending || !isValid ? 0.6 : 1,
                 }}
               >

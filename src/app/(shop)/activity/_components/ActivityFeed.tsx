@@ -191,9 +191,16 @@ function ActivityDetailModal({
   const style = EVENT_STYLES[event.type];
   return (
     <>
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/60 z-40" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-        <div className="card w-full max-w-md p-6 pointer-events-auto shadow-2xl">
+        <div
+          className="w-full max-w-md p-6 pointer-events-auto rounded-2xl"
+          style={{
+            background: "var(--color-popup-bg, #ffffff)",
+            border: "1px solid var(--color-border)",
+            boxShadow: "var(--color-popup-shadow, 0 8px 32px rgba(0,0,0,0.18))",
+          }}
+        >
           <div className="flex justify-between items-start mb-5">
             <h2 className="text-lg font-semibold text-[var(--color-ink-primary)]">
               Activity Details

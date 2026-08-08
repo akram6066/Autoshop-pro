@@ -30,13 +30,20 @@ export function VariantPickerModal({
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-40"
-        style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(2px)" }}
+        style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(2px)" }}
         onClick={onClose}
       />
 
       {/* Modal */}
       <div className="fixed inset-x-4 top-1/2 z-50 mx-auto max-w-sm -translate-y-1/2">
-        <div className="card overflow-hidden">
+        <div
+          className="overflow-hidden rounded-2xl"
+          style={{
+            background: "var(--color-popup-bg, #ffffff)",
+            border: "1px solid var(--color-border)",
+            boxShadow: "var(--color-popup-shadow, 0 8px 32px rgba(0,0,0,0.18))",
+          }}
+        >
           {/* Header */}
           <div
             className="flex items-center justify-between p-4"
@@ -79,7 +86,7 @@ export function VariantPickerModal({
                     onSelect(v);
                     onClose();
                   }}
-                  className="text-left rounded-xl p-3 transition-colors"
+                  className="text-left rounded-xl px-4 py-3 transition-colors"
                   style={{
                     border: `1px solid ${inStock ? "var(--color-border-input)" : "var(--color-surface-2)"}`,
                     background: inStock
@@ -130,5 +137,3 @@ export function VariantPickerModal({
     </>
   );
 }
-
-

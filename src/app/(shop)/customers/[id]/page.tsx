@@ -77,11 +77,16 @@ function DeleteDialog({
       aria-modal="true"
       aria-label="Confirm customer deletion"
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.45)" }}
+      style={{ background: "rgba(0,0,0,0.6)" }}
       onClick={onCancel}
     >
       <div
-        className="card w-full max-w-sm p-6"
+        className="w-full max-w-sm p-6 rounded-2xl"
+        style={{
+          background: "var(--color-popup-bg, #ffffff)",
+          border: "1px solid var(--color-border)",
+          boxShadow: "var(--color-popup-shadow, 0 8px 32px rgba(0,0,0,0.18))",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <h2

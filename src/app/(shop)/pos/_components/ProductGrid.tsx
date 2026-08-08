@@ -74,12 +74,12 @@ export function ProductGrid({
 
   return (
     <div className="flex-1 flex flex-col min-w-0 pb-24 sm:pb-0">
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 mb-4">
         <SearchBar
           value={search}
           onChange={setSearch}
           placeholder="Search products..."
-          className="flex-1"
+          className="w-full sm:flex-1"
           autoFocus
         />
         <div className="flex flex-wrap gap-1">
@@ -168,5 +168,3 @@ export function ProductGrid({
     </div>
   );
 }
-
-

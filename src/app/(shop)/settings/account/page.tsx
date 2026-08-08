@@ -310,16 +310,17 @@ export default function AccountPage() {
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in"
           style={{
-            backgroundColor: "rgba(0,0,0,0.4)",
+            backgroundColor: "rgba(0,0,0,0.6)",
             backdropFilter: "blur(4px)",
           }}
         >
           <div
-            className="rounded-xl w-full max-w-md overflow-hidden animate-fade-in-up p-6"
+            className="rounded-2xl w-full max-w-md overflow-hidden animate-fade-in-up p-6"
             style={{
-              backgroundColor: "var(--color-surface-0)",
+              background: "var(--color-popup-bg, #ffffff)",
               border: "1px solid var(--color-border)",
-              boxShadow: "var(--shadow-raised)",
+              boxShadow:
+                "var(--color-popup-shadow, 0 8px 32px rgba(0,0,0,0.18))",
             }}
           >
             <h3

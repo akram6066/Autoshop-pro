@@ -6,8 +6,6 @@ import { useAuthStore, selectShopId, selectShops } from "@/stores/authStore";
 import { useTransferProduct } from "@/hooks/useProducts";
 import { useRooms } from "@/hooks/useRooms";
 import { useShopVariants } from "@/hooks/useVariants";
-import { createClient } from "@/lib/supabase/client";
-import { useQuery } from "@tanstack/react-query";
 
 function CustomSelect({
   value,
@@ -73,8 +71,11 @@ function CustomSelect({
         </div>
         {isOpen && (
           <div
-            className="absolute top-full left-0 right-0 mt-1 rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-surface-0)] shadow-lg max-h-60 overflow-y-auto"
-            style={{ zIndex: 60 }}
+            className="absolute top-full left-0 right-0 mt-1 rounded-md border border-[var(--color-border-subtle)] shadow-lg max-h-60 overflow-y-auto"
+            style={{
+              zIndex: 60,
+              background: "var(--color-popup-bg, #ffffff)",
+            }}
           >
             {options.length === 0 ? (
               <div className="px-3 py-3 text-sm text-[var(--color-ink-tertiary)] text-center">
@@ -119,13 +120,16 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
   const [destRoomId, setDestRoomId] = useState<string>("");
   const [variantId, setVariantId] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1);
-  const [transferDate, setTransferDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
+  const [transferDate, setTransferDate] = useState<string>(
+    () => new Date().toISOString().split("T")[0],
+  );
 
   // Fetch rooms for the selected destination shop
   const { data: rooms = [], isLoading: isRoomsLoading } = useRooms(destShopId);
 
   // Fetch variants for the selected product (in current shop)
-  const { data: variants = [], isLoading: isVariantsLoading } = useShopVariants(currentShopId);
+  const { data: variants = [], isLoading: isVariantsLoading } =
+    useShopVariants(currentShopId);
   const productVariants = variants.filter((v) => v.product_id === product?.id);
 
   // Auto-select first room when rooms load
@@ -177,20 +181,28 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
             onClose();
           }
         },
-      }
+      },
     );
   };
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/60 z-40" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-        <div className="card w-full max-w-md p-6 pointer-events-auto shadow-2xl">
+        <div
+          className="w-full max-w-md p-6 pointer-events-auto rounded-2xl"
+          style={{
+            background: "var(--color-popup-bg, #ffffff)",
+            border: "1px solid var(--color-border)",
+            boxShadow: "var(--color-popup-shadow, 0 8px 32px rgba(0,0,0,0.18))",
+          }}
+        >
           <h2 className="text-xl font-semibold mb-1 text-[var(--color-ink-primary)]">
             Transfer Stock
           </h2>
           <p className="text-sm text-[var(--color-ink-tertiary)] mb-6">
-            Move inventory for <strong>{product.name}</strong> to another room or branch.
+            Move inventory for <strong>{product.name}</strong> to another room
+            or branch.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -202,7 +214,11 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
                 <CustomSelect
                   value={variantId}
                   onChange={setVariantId}
-                  placeholder={isVariantsLoading ? "Loading variants..." : "Select a size/variant"}
+                  placeholder={
+                    isVariantsLoading
+                      ? "Loading variants..."
+                      : "Select a size/variant"
+                  }
                   disabled={isVariantsLoading}
                   options={productVariants.map((v) => ({
                     value: v.id,
@@ -240,8 +256,8 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
                   isRoomsLoading
                     ? "Loading rooms..."
                     : rooms.length === 0
-                    ? "No rooms available"
-                    : "Choose destination room"
+                      ? "No rooms available"
+                      : "Choose destination room"
                 }
                 disabled={isRoomsLoading || rooms.length === 0}
                 options={rooms.map((r) => ({
