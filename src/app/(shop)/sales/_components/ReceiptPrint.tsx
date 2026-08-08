@@ -30,7 +30,7 @@ export function ReceiptPrint({
   return (
     <div
       id="printable-receipt"
-      className="p-1 bg-white text-black text-sm"
+      className="px-4 py-6 bg-white text-black text-sm"
       style={{
         fontFamily: "monospace",
         width: "100%",
