@@ -124,11 +124,11 @@ export function CartRow({
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-shrink-0">
           <button
             type="button"
             onClick={() => onQtyChange(item.quantity - 1)}
-            className="w-10 h-10 rounded-md flex items-center justify-center text-sm font-medium transition-colors"
+            className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-medium transition-colors"
             style={{
               background: "var(--color-surface-2)",
               color: "var(--color-ink-secondary)",
@@ -138,7 +138,7 @@ export function CartRow({
             −
           </button>
           <span
-            className="w-12 text-center text-sm font-medium"
+            className="w-8 text-center text-sm font-medium"
             style={{ color: "var(--color-ink-primary)" }}
           >
             {item.quantity}
@@ -147,7 +147,7 @@ export function CartRow({
             type="button"
             onClick={() => onQtyChange(item.quantity + 1)}
             disabled={item.quantity >= item.maxQuantity}
-            className="w-10 h-10 rounded-md flex items-center justify-center text-sm font-medium transition-colors"
+            className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-medium transition-colors"
             style={{
               background: "var(--color-surface-2)",
               color: "var(--color-ink-secondary)",
@@ -159,7 +159,7 @@ export function CartRow({
         </div>
 
         <span
-          className="text-sm font-semibold w-20 text-right"
+          className="text-sm font-semibold min-w-[4rem] text-right flex-shrink-0"
           style={{ color: "var(--color-ink-primary)" }}
         >
           {formatCurrency(item.quantity * item.unit_price)}
