@@ -37,20 +37,32 @@ interface SaleRow {
 
 const PAGE_SIZE = 25;
 
+type DateFilter = "all" | "today" | "week" | "month" | "year" | "custom";
+
 // ─── Local fallback fetch ────────────────────────────────────────────────────
 
 async function fetchLocalSales(
   shopId: string,
   page: number,
+  p_start_date?: string,
+  p_end_date?: string,
 ): Promise<{
   rows: SaleRow[];
   count: number;
 }> {
-  // Fetch enough records to cover the requested page + buffer
-  const limit = (page + 1) * PAGE_SIZE + 10;
+  const limit = 5000;
   const sales = await getLocalSales(shopId, limit);
+
+  let filtered = sales;
+  if (p_start_date) {
+    filtered = filtered.filter((s) => s.created_at >= p_start_date);
+  }
+  if (p_end_date) {
+    filtered = filtered.filter((s) => s.created_at <= p_end_date);
+  }
+
   const offset = page * PAGE_SIZE;
-  const paginated = sales.slice(offset, offset + PAGE_SIZE);
+  const paginated = filtered.slice(offset, offset + PAGE_SIZE);
 
   const currentProfile = useAuthStore.getState().profile;
 
@@ -66,7 +78,7 @@ async function fetchLocalSales(
       amount_paid: s.amount_paid,
       delivery_address: s.delivery_address,
     })),
-    count: sales.length,
+    count: filtered.length,
   };
 }
 
@@ -78,11 +90,68 @@ export default function SalesPage() {
   const [page, setPage] = useState(0);
   const [selectedSale, setSelectedSale] = useState<SaleSummary | null>(null);
 
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
+  const [customDates, setCustomDates] = useState({ start: "", end: "" });
+
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["sales-history", shopId, page],
+    queryKey: [
+      "sales-history",
+      shopId,
+      page,
+      dateFilter,
+      customDates.start,
+      customDates.end,
+    ],
     queryFn: async () => {
       if (!shopId) return { rows: [] as SaleRow[], count: 0 };
       const supabase = createClient();
+
+      let p_start_date: string | undefined = undefined;
+      let p_end_date: string | undefined = undefined;
+
+      if (dateFilter !== "all") {
+        const now = new Date();
+        const start = new Date(now);
+        const end = new Date(now);
+
+        if (dateFilter === "today") {
+          start.setHours(0, 0, 0, 0);
+          end.setHours(23, 59, 59, 999);
+          p_start_date = start.toISOString();
+          p_end_date = end.toISOString();
+        } else if (dateFilter === "week") {
+          const day = start.getDay();
+          const diff = start.getDate() - day + (day === 0 ? -6 : 1);
+          start.setDate(diff);
+          start.setHours(0, 0, 0, 0);
+          end.setHours(23, 59, 59, 999);
+          p_start_date = start.toISOString();
+          p_end_date = end.toISOString();
+        } else if (dateFilter === "month") {
+          start.setDate(1);
+          start.setHours(0, 0, 0, 0);
+          end.setHours(23, 59, 59, 999);
+          p_start_date = start.toISOString();
+          p_end_date = end.toISOString();
+        } else if (dateFilter === "year") {
+          start.setMonth(0, 1);
+          start.setHours(0, 0, 0, 0);
+          end.setHours(23, 59, 59, 999);
+          p_start_date = start.toISOString();
+          p_end_date = end.toISOString();
+        } else if (dateFilter === "custom") {
+          if (customDates.start) {
+            const cStart = new Date(customDates.start);
+            cStart.setHours(0, 0, 0, 0);
+            p_start_date = cStart.toISOString();
+          }
+          if (customDates.end) {
+            const cEnd = new Date(customDates.end);
+            cEnd.setHours(23, 59, 59, 999);
+            p_end_date = cEnd.toISOString();
+          }
+        }
+      }
 
       try {
         const { data: rows, error } = await supabase.rpc(
@@ -91,17 +160,26 @@ export default function SalesPage() {
             p_shop_id: shopId,
             p_offset: page * PAGE_SIZE,
             p_limit: PAGE_SIZE,
-          },
+            ...(p_start_date && { p_start_date }),
+            ...(p_end_date && { p_end_date }),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
         );
 
         if (error) throw error;
 
         const db = getDb();
-        const localSales = await db.sales
+        const localSalesRaw = await db.sales
           .where("shop_id")
           .equals(shopId)
           .filter((s) => !s.synced)
           .toArray();
+
+        const localSales = localSalesRaw.filter((s) => {
+          if (p_start_date && s.created_at < p_start_date) return false;
+          if (p_end_date && s.created_at > p_end_date) return false;
+          return true;
+        });
 
         const currentProfile = useAuthStore.getState().profile;
 
@@ -147,7 +225,7 @@ export default function SalesPage() {
           "[SalesPage] Supabase fetch failed, using IndexedDB:",
           err,
         );
-        return fetchLocalSales(shopId, page);
+        return fetchLocalSales(shopId, page, p_start_date, p_end_date);
       }
     },
     enabled: !!shopId,
@@ -161,17 +239,72 @@ export default function SalesPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1
-            className="text-2xl font-semibold mb-1"
-            style={{ color: "var(--color-ink-primary)" }}
-          >
-            Sales history
-          </h1>
-          <p className="text-sm" style={{ color: "var(--color-ink-tertiary)" }}>
-            {total} total transactions
-          </p>
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1
+              className="text-2xl font-semibold mb-1"
+              style={{ color: "var(--color-ink-primary)" }}
+            >
+              Sales history
+            </h1>
+            <p
+              className="text-sm"
+              style={{ color: "var(--color-ink-tertiary)" }}
+            >
+              {total} total transactions
+            </p>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-2">
+          {(["all", "today", "week", "month", "year", "custom"] as const).map(
+            (f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => {
+                  setDateFilter(f);
+                  setPage(0);
+                }}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  dateFilter === f
+                    ? "bg-[var(--color-brand-100)] text-[var(--color-brand-700)] shadow-[0_1px_2px_rgba(0,0,0,0.05)] border border-[var(--color-brand-300)]"
+                    : "bg-[var(--color-surface-1)] text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-2)] border border-[var(--color-border)]"
+                }`}
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </button>
+            ),
+          )}
+
+          {dateFilter === "custom" && (
+            <div className="flex items-center gap-2 ml-2 animate-fade-in">
+              <input
+                type="date"
+                value={customDates.start}
+                onChange={(e) => {
+                  setCustomDates((prev) => ({
+                    ...prev,
+                    start: e.target.value,
+                  }));
+                  setPage(0);
+                }}
+                className="input-field py-1.5 text-sm w-36"
+              />
+              <span className="text-[var(--color-ink-tertiary)]">to</span>
+              <input
+                type="date"
+                value={customDates.end}
+                onChange={(e) => {
+                  setCustomDates((prev) => ({ ...prev, end: e.target.value }));
+                  setPage(0);
+                }}
+                className="input-field py-1.5 text-sm w-36"
+              />
+            </div>
+          )}
         </div>
       </div>
 
