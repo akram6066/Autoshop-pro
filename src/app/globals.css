@@ -627,6 +627,10 @@ body {
 }
 
 /* %% Print Receipt Styles %% */
+@page {
+  margin: 0;
+}
+
 @media print {
   /* Hide everything by default */
   body * {
@@ -644,9 +648,9 @@ body {
     position: absolute;
     left: 0;
     top: 0;
-    width: 80mm; /* Standard thermal receipt width */
+    width: 100%; /* Let the component handle max-width */
     margin: 0;
-    padding: 5mm; /* Give some breathing room from the paper edge */
+    padding: 0;
     box-shadow: none;
     border: none;
   }

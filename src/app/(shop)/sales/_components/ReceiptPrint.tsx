@@ -24,17 +24,19 @@ export function ReceiptPrint({
   shop,
   taxRate,
 }: ReceiptPrintProps) {
-  // Financial math (Tax Inclusive)
+  // Financial math
   const total = sale.total_amount;
-  const subtotal = total / (1 + taxRate);
-  const tax = total - subtotal;
-  const hasTax = taxRate > 0;
 
   return (
     <div
       id="printable-receipt"
-      className="p-4 bg-white text-black text-sm"
-      style={{ fontFamily: "monospace", width: "80mm", margin: "0 auto" }}
+      className="p-1 bg-white text-black text-sm"
+      style={{
+        fontFamily: "monospace",
+        width: "100%",
+        maxWidth: "80mm",
+        margin: "0 auto",
+      }}
     >
       {/* Header */}
       <div className="text-center mb-6">
@@ -44,7 +46,6 @@ export function ReceiptPrint({
         {shop?.address && (
           <p className="text-xs whitespace-pre-wrap">{shop.address}</p>
         )}
-        {hasTax && <p className="text-xs mt-1">VAT/Tax ID: __________</p>}
       </div>
 
       {/* Meta */}
@@ -105,18 +106,6 @@ export function ReceiptPrint({
 
       {/* Totals */}
       <div className="mb-6 text-sm">
-        {hasTax && (
-          <>
-            <div className="flex justify-between mb-1 text-xs">
-              <span>Subtotal</span>
-              <span>{formatCurrency(subtotal)}</span>
-            </div>
-            <div className="flex justify-between mb-2 text-xs">
-              <span>Tax ({(taxRate * 100).toFixed(0)}%)</span>
-              <span>{formatCurrency(tax)}</span>
-            </div>
-          </>
-        )}
         <div className="flex justify-between font-bold text-base mb-2">
           <span>TOTAL</span>
           <span>{formatCurrency(total)}</span>
