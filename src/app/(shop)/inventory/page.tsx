@@ -100,6 +100,19 @@ export default function InventoryPage() {
       ]
     : [];
 
+  const totalPieces = useMemo(() => {
+    let sum = 0;
+    for (const p of products) {
+      const variants = variantsByProduct.get(p.id);
+      if (variants && variants.length > 0) {
+        sum += variants.reduce((acc, v) => acc + (Number(v.quantity) || 0), 0);
+      } else {
+        sum += Number(p.quantity) || 0;
+      }
+    }
+    return sum;
+  }, [products, variantsByProduct]);
+
   return (
     <div>
       {/* Product limit warning */}
@@ -120,7 +133,7 @@ export default function InventoryPage() {
             Inventory
           </h1>
           <p className="text-sm" style={{ color: "var(--color-ink-tertiary)" }}>
-            {products.length} products
+            {totalPieces} total pieces
             {lowStockCount > 0 && (
               <span className="badge badge-warning ml-2">
                 {lowStockCount} low stock
