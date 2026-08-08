@@ -629,6 +629,7 @@ body {
 /* %% Print Receipt Styles %% */
 @page {
   margin: 0;
+  size: 80mm auto;
 }
 
 @media print {
@@ -648,9 +649,10 @@ body {
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%; /* Let the component handle max-width */
-    margin: 0;
-    padding: 0;
+    width: 100%;
+    max-width: 80mm;
+    margin: 0 auto;
+    padding: 4mm; /* Add padding back to prevent text clipping at the edges */
     box-shadow: none;
     border: none;
   }
