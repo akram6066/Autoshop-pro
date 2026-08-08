@@ -235,13 +235,20 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
               <CustomSelect
                 value={destShopId}
                 onChange={setDestShopId}
-                placeholder="Choose destination shop"
-                options={shops.map((s) => ({
-                  value: s.id,
-                  label: `${s.name}${
-                    s.id === currentShopId ? " (Current Shop)" : ""
-                  }`,
-                }))}
+                placeholder={
+                  shops.filter((s) => s.id !== currentShopId).length === 0
+                    ? "No other shops available"
+                    : "Choose destination shop"
+                }
+                disabled={
+                  shops.filter((s) => s.id !== currentShopId).length === 0
+                }
+                options={shops
+                  .filter((s) => s.id !== currentShopId)
+                  .map((s) => ({
+                    value: s.id,
+                    label: s.name,
+                  }))}
               />
             </div>
 
