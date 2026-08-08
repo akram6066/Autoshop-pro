@@ -114,9 +114,12 @@ interface TransferModalProps {
 export function TransferModal({ product, onClose }: TransferModalProps) {
   const currentShopId = useAuthStore(selectShopId);
   const shops = useAuthStore(selectShops);
+  const otherShops = shops.filter((s) => s.id !== currentShopId);
   const { mutate: transferProduct, isPending } = useTransferProduct();
 
-  const [destShopId, setDestShopId] = useState<string>(currentShopId || "");
+  const [destShopId, setDestShopId] = useState<string>(
+    otherShops.length > 0 ? otherShops[0].id : "",
+  );
   const [destRoomId, setDestRoomId] = useState<string>("");
   const [variantId, setVariantId] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1);
@@ -260,13 +263,15 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
                 value={destRoomId}
                 onChange={setDestRoomId}
                 placeholder={
-                  isRoomsLoading
-                    ? "Loading rooms..."
-                    : rooms.length === 0
-                      ? "No rooms available"
-                      : "Choose destination room"
+                  !destShopId
+                    ? "Select a destination shop first"
+                    : isRoomsLoading
+                      ? "Loading rooms..."
+                      : rooms.length === 0
+                        ? "No rooms in this shop. Add one in settings."
+                        : "Choose destination room"
                 }
-                disabled={isRoomsLoading || rooms.length === 0}
+                disabled={isRoomsLoading || rooms.length === 0 || !destShopId}
                 options={rooms.map((r) => ({
                   value: r.id,
                   label: r.name,
