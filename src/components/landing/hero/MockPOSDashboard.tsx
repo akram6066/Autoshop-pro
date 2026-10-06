@@ -8,9 +8,8 @@ import {
   Minus,
   CreditCard,
   Receipt,
-  Barcode,
 } from "lucide-react";
-import { AreaChart, Area, ResponsiveContainer, YAxis, Tooltip } from "recharts";
+import { AreaChart, Area, ResponsiveContainer, Tooltip } from "recharts";
 
 const chartData = [
   { name: "8am", revenue: 400 },

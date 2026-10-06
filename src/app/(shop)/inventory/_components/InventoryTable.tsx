@@ -9,18 +9,22 @@ import { StockBadge, VariantStockBadge } from "./StockBadges";
 interface InventoryTableProps {
   paginated: Product[];
   variantsByProduct: Map<string, ProductVariant[]>;
+  /** Stock held in the selected location per product; null when viewing all. */
+  locationQty: Map<string, number> | null;
   page: number;
   totalPages: number;
   filtered: Product[];
   PAGE_SIZE: number;
   onSetPage: (p: number) => void;
-  onDeleteClick: (p: { id: string; name: string }) => void;
-  onTransferClick: (p: { id: string; name: string }) => void;
+  onDeleteClick: (p: { id: string; name: string; size?: string | null; sku?: string | null }) => void;
+  onTransferClick: (p: { id: string; name: string; size?: string | null; sku?: string | null; room_id: string | null }) => void;
+  onRestockClick: (p: { id: string; name: string; size?: string | null; sku?: string | null; currentQty: number }) => void;
 }
 
 export function InventoryTable({
   paginated,
   variantsByProduct,
+  locationQty,
   page,
   totalPages,
   filtered,
@@ -28,6 +32,7 @@ export function InventoryTable({
   onSetPage,
   onDeleteClick,
   onTransferClick,
+  onRestockClick,
 }: InventoryTableProps) {
   return (
     <div className="hidden sm:block card overflow-x-auto">
@@ -48,9 +53,11 @@ export function InventoryTable({
           {paginated.map((product) => {
             const pVariants = variantsByProduct.get(product.id);
             const hasVariants = !!pVariants?.length;
-            const totalQty = hasVariants
-              ? pVariants!.reduce((s, v) => s + v.quantity, 0)
-              : product.quantity;
+            const totalQty = locationQty
+              ? (locationQty.get(product.id) ?? 0)
+              : hasVariants
+                ? pVariants!.reduce((s, v) => s + v.quantity, 0)
+                : product.quantity;
             return (
               <tr key={product.id}>
                 <td>
@@ -114,7 +121,7 @@ export function InventoryTable({
                     <VariantStockBadge variants={pVariants!} />
                   ) : (
                     <StockBadge
-                      qty={product.quantity}
+                      qty={totalQty}
                       minStock={product.min_stock}
                     />
                   )}
@@ -124,7 +131,7 @@ export function InventoryTable({
                     <button
                       type="button"
                       onClick={() =>
-                        onTransferClick({ id: product.id, name: product.name })
+                        onTransferClick({ id: product.id, name: product.name, size: product.size, sku: product.sku, room_id: product.room_id })
                       }
                       className="btn btn-ghost btn-sm btn-icon"
                       title="Transfer Stock"
@@ -144,7 +151,21 @@ export function InventoryTable({
                         />
                       </svg>
                     </button>
-                    <Link
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onRestockClick({ id: product.id, name: product.name, size: product.size, sku: product.sku, currentQty: totalQty })
+                      }
+                      className="btn btn-ghost btn-sm btn-icon"
+                      title="Restock"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></button><Link
                       href={`/inventory/${product.id}`}
                       className="btn btn-ghost btn-sm btn-icon"
                       title="Edit Product"
@@ -173,7 +194,7 @@ export function InventoryTable({
                     <button
                       type="button"
                       onClick={() =>
-                        onDeleteClick({ id: product.id, name: product.name })
+                        onDeleteClick({ id: product.id, name: product.name, size: product.size, sku: product.sku })
                       }
                       className="btn btn-ghost btn-sm btn-icon"
                       style={{ color: "var(--color-danger)" }}
@@ -238,3 +259,10 @@ export function InventoryTable({
     </div>
   );
 }
+
+
+
+
+
+
+

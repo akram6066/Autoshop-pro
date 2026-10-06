@@ -186,7 +186,7 @@ export async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
     allProductIds.size > 0
       ? await supabase
           .from("products")
-          .select("id, name, room_id")
+          .select("id, name, room_id, sku, size")
           .in("id", [...allProductIds])
       : { data: [] };
 
@@ -221,6 +221,13 @@ export async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
   const profileMap = new Map(
     (profilesRes.data ?? []).map((p) => [p.id, p.full_name ?? "Unknown"]),
   );
+  function formatProductName(name: string, size?: string | null, sku?: string | null): string {
+    let res = name;
+    if (size) res += ` - ${size}`;
+    if (sku) res += ` (SKU: ${sku})`;
+    return res;
+  }
+
   const productMap = new Map((productsRes.data ?? []).map((p) => [p.id, p]));
 
   const shopMap = new Map((shopsRes.data ?? []).map((s) => [s.id, s.name]));
@@ -249,7 +256,7 @@ export async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
   for (const m of adjustmentsRes.data ?? []) {
     const sign = m.type === "IN" ? "+" : "-";
     const productInfo = productMap.get(m.product_id);
-    const productName = productInfo?.name ?? "product";
+    const productName = productInfo ? formatProductName(productInfo.name, productInfo.size, productInfo.sku) : "product";
     const currentRoomName =
       roomMap.get(productInfo?.room_id ?? "") ?? "Unknown Room";
     const isTransfer = m.reason === "transfer";
@@ -299,7 +306,7 @@ export async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
         type: "PRODUCT_ADDED",
         staffName,
         label: "Added product",
-        detail: String(payload.name ?? ""),
+        detail: formatProductName(String(payload.name ?? ""), String(payload.size || ""), String(payload.sku || "")),
         created_at: a.created_at,
         severity: "info",
       });
@@ -322,7 +329,7 @@ export async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
         type: "PRODUCT_DELETED",
         staffName,
         label: "Deleted product",
-        detail: String(payload.name ?? ""),
+        detail: formatProductName(String(payload.name ?? ""), String(payload.size || ""), String(payload.sku || "")),
         created_at: a.created_at,
         severity: "warning",
       });
@@ -371,3 +378,5 @@ export async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
     )
     .slice(0, 100);
 }
+
+

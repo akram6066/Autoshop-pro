@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore, selectShop, selectShops } from "@/stores/authStore";
+import { Plus } from "lucide-react";
 
 export function ShopSwitcher() {
   const shops = useAuthStore(selectShops);
@@ -234,6 +235,15 @@ export function ShopSwitcher() {
             }}
           />
           <Link
+            href="/settings/shop?new=1"
+            onClick={() => setOpen(false)}
+            className="flex items-center px-3 py-2.5 text-sm transition-colors hover:bg-[var(--color-surface-2)] text-brand-600 dark:text-brand-400 font-medium"
+            style={{ background: "transparent" }}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create new shop
+          </Link>
+          <Link
             href="/settings"
             onClick={() => setOpen(false)}
             className="flex items-center px-3 py-2.5 text-sm transition-colors hover:bg-[var(--color-surface-2)]"
@@ -249,3 +259,6 @@ export function ShopSwitcher() {
     </div>
   );
 }
+
+
+

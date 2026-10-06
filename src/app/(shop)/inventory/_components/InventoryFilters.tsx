@@ -47,7 +47,7 @@ export function InventoryFilters({
           value={roomFilter}
           onChange={(e) => onRoomFilterChange(e.target.value)}
         >
-          <option value="all">All rooms</option>
+          <option value="all">All locations</option>
           {rooms.map((r) => (
             <option key={r.id} value={r.id}>
               {r.name}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import Container from "./Container";
 import { PlanCard } from "./PlanCard";
 import type { PricingPlan } from "@/lib/pricing";

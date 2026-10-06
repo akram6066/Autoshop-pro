@@ -4,6 +4,7 @@ import { adminDb } from "@/lib/admin/db";
 import { Section } from "../_components/Section";
 import { ShopForm } from "../_components/ShopForm";
 import { DeleteShopSection } from "./_components/DeleteShopSection";
+import { MyShopsSection } from "../_components/MyShopsSection";
 
 export default async function ShopPage() {
   const supabase = await createServerSupabaseClient();
@@ -101,14 +102,21 @@ export default async function ShopPage() {
       </Section>
 
       {isOwner && shopId && (
-        <DeleteShopSection
+        <>
+        <MyShopsSection />
+
+      <DeleteShopSection
           shopId={shopId}
           shopName={shopName}
           productCount={productCount}
           salesCount={salesCount}
           otherShops={otherShops}
         />
+        </>
       )}
     </>
   );
 }
+
+
+

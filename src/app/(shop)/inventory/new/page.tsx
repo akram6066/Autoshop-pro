@@ -103,7 +103,7 @@ export default function NewProductPage() {
 
   const effectiveRoomId = roomId || rooms[0]?.id || "";
   const effectiveCategory = category || categories[0]?.name || "";
-  const isPending = isCreatingProduct || isCreatingVariants;
+  const isPending = isCreatingProduct;
 
   async function handleImport(rows: ImportRow[]) {
     if (!shopId || !effectiveRoomId) return;
@@ -224,62 +224,65 @@ export default function NewProductPage() {
 
     setError("");
 
+    if (useVariants) {
+      const filled = variants.filter((v) => v.size.trim());
+      let saved = 0;
+      let hasOffline = false;
+
+      for (const v of filled) {
+        const finalSku = v.sku.trim() || generateSku(name, v.size);
+        const result = await createProduct({
+          shopId,
+          data: {
+            room_id: effectiveRoomId,
+            name: name.trim(),
+            sku: finalSku,
+            category: effectiveCategory,
+            quantity: v.quantity,
+            min_stock: v.min_stock,
+            price: v.price,
+            size: v.size.trim() || null,
+          },
+        });
+
+        if (result.status !== "error") saved++;
+        if (result.status === "offline") hasOffline = true;
+      }
+
+      if (hasOffline) {
+        toast.warning("Saved offline — will sync when reconnected.");
+      } else {
+        toast.success(`Successfully added ${saved} sizes as separate products.`);
+      }
+      router.push("/inventory");
+      return;
+    }
+
+    // Single product creation
     const effectiveSku = sku.trim() || generateSku(name, size);
     const result = await createProduct({
       shopId,
       data: {
         room_id: effectiveRoomId,
         name: name.trim(),
-        sku: useVariants ? "" : effectiveSku,
+        sku: effectiveSku,
         category: effectiveCategory,
-        quantity: useVariants ? 0 : quantity,
-        min_stock: useVariants ? 0 : minStock,
-        price: useVariants ? 0 : price,
-        size: useVariants ? null : size.trim() || null,
+        quantity: quantity,
+        min_stock: minStock,
+        price: price,
+        size: size.trim() || null,
       },
     });
 
     if (result.status === "error") {
-      setError(
-        friendlyError(
-          result.error,
-          "Failed to save product. Please try again.",
-        ),
-      );
+      setError(friendlyError(result.error, "Failed to save product. Please try again."));
       return;
-    }
-    if (useVariants) {
-      const productId = (result.data as { id: string } | undefined)?.id;
-
-      if (productId) {
-        const filled = variants.filter((v) => v.size.trim());
-        try {
-          const variantResult = await createVariants({
-            productId,
-            variants: filled.map((v) => ({
-              size: v.size.trim(),
-              sku: v.sku.trim() || undefined,
-              price: v.price,
-              quantity: v.quantity,
-              min_stock: v.min_stock,
-            })),
-          });
-          if (variantResult.offline || result.status === "offline") {
-            toast.warning("Saved offline — will sync when reconnected.");
-            router.push("/inventory");
-            return;
-          }
-        } catch (err) {
-          setError(
-            `Product saved, but variants failed: ${friendlyError(err, "please try adding them again.")}`,
-          );
-          return;
-        }
-      }
     }
 
     if (result.status === "offline") {
       toast.warning("Saved offline — will sync when reconnected.");
+    } else {
+      toast.success("Successfully added product.");
     }
     router.push("/inventory");
   }
@@ -440,7 +443,7 @@ export default function NewProductPage() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Room</label>
+                <label className="block text-sm font-medium mb-1.5">Location</label>
                 <select
                   className="input"
                   value={effectiveRoomId}
@@ -448,7 +451,7 @@ export default function NewProductPage() {
                   required
                 >
                   {rooms.length === 0 && (
-                    <option value="">No rooms — create in Settings</option>
+                    <option value="">No locations — create in Settings</option>
                   )}
                   {rooms.map((r) => (
                     <option key={r.id} value={r.id}>
@@ -564,5 +567,9 @@ export default function NewProductPage() {
     </div>
   );
 }
+
+
+
+
 
 

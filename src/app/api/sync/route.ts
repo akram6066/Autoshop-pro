@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { logRequest, logger } from "@/lib/api/logger";
 import { syncPayloadSchema } from "@/lib/validations/api";
+import {
+  toTransferRpcArgs,
+  transferStockPayloadSchema,
+} from "@/lib/validations/transfers";
 import { withAuth } from "@/lib/api/with-auth";
 import { friendlyError } from "@/lib/api/errors";
 import type { Json, Database } from "@/types/database";
@@ -130,6 +134,20 @@ export const POST = withAuth(
           );
           if (insertError)
             error = friendlyError(insertError, "Variants could not be saved");
+        } else if (cmd.command === "TRANSFER_STOCK") {
+          const parsed = transferStockPayloadSchema.safeParse(p);
+          if (!parsed.success) {
+            error = "Transfer payload is invalid";
+          } else {
+            const { error: rpcError } = await withTimeout(
+              supabase.rpc(
+                "transfer_stock",
+                toTransferRpcArgs(parsed.data.transfer),
+              ),
+            );
+            if (rpcError)
+              error = friendlyError(rpcError, "Stock transfer failed");
+          }
         } else {
           error = `Unknown command: ${cmd.command}`;
         }

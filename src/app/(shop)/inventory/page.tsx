@@ -8,6 +8,7 @@ import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
 import { useRooms } from "@/hooks/useRooms";
 import { useCategories } from "@/hooks/useCategories";
 import { useShopVariants } from "@/hooks/useVariants";
+import { useInventoryLevels, useLevelIndex } from "@/hooks/useInventoryLevels";
 import { useDebounce } from "@/hooks/useDebounce";
 import type { Category, ProductVariant } from "@/types/app";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -17,6 +18,7 @@ import { InventoryTable } from "./_components/InventoryTable";
 import { InventoryMobileList } from "./_components/InventoryMobileList";
 import { DeleteProductModal } from "./_components/DeleteProductModal";
 import { TransferModal } from "./_components/TransferModal";
+import { RestockModal } from "./_components/RestockModal";
 
 export default function InventoryPage() {
   const shopId = useAuthStore(selectShopId);
@@ -28,6 +30,9 @@ export default function InventoryPage() {
   const { data: categories = [] } = useCategories(shopId);
   const { data: allVariants = [], isLoading: isLoadingVariants } =
     useShopVariants(shopId);
+
+  const { data: levels = [] } = useInventoryLevels(shopId);
+  const levelIndex = useLevelIndex(levels);
 
   const isLoading = isLoadingProducts || isLoadingVariants;
 
@@ -44,6 +49,13 @@ export default function InventoryPage() {
   const [transferringProduct, setTransferringProduct] = useState<{
     id: string;
     name: string;
+    room_id: string | null;
+  } | null>(null);
+
+  const [restockingProduct, setRestockingProduct] = useState<{
+    id: string;
+    name: string;
+    currentQty: number;
   } | null>(null);
 
   const PAGE_SIZE = 100;
@@ -61,7 +73,12 @@ export default function InventoryPage() {
   const filtered = useMemo(() => {
     const q = debouncedSearch.toLowerCase().trim();
     let result = products.filter((p) => {
-      const matchRoom = roomFilter === "all" || p.room_id === roomFilter;
+      // A product belongs to a location when it holds stock there. Products with
+      // no stock anywhere still show under their primary (legacy) location.
+      const matchRoom =
+        roomFilter === "all" ||
+        levelIndex.hasStockInRoom(p.id, roomFilter) ||
+        (!levelIndex.hasAnyStock(p.id) && p.room_id === roomFilter);
       const matchCat =
         categoryFilter === "all" || p.category === categoryFilter;
       const matchQ =
@@ -78,7 +95,15 @@ export default function InventoryPage() {
     });
 
     return result;
-  }, [products, debouncedSearch, roomFilter, categoryFilter, sortBy]);
+  }, [products, debouncedSearch, roomFilter, categoryFilter, sortBy, levelIndex]);
+
+  // When a location is selected, show the stock held THERE, not the shop total.
+  const locationQty = useMemo(() => {
+    if (roomFilter === "all") return null;
+    return new Map(
+      products.map((p) => [p.id, levelIndex.quantityInRoom(p.id, roomFilter)]),
+    );
+  }, [products, roomFilter, levelIndex]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -284,6 +309,7 @@ export default function InventoryPage() {
           <InventoryMobileList
             paginated={paginated}
             variantsByProduct={variantsByProduct}
+            locationQty={locationQty}
             page={page}
             totalPages={totalPages}
             filtered={filtered}
@@ -291,10 +317,12 @@ export default function InventoryPage() {
             onSetPage={setPage}
             onDeleteClick={setDeletingProduct}
             onTransferClick={setTransferringProduct}
+            onRestockClick={setRestockingProduct}
           />
           <InventoryTable
             paginated={paginated}
             variantsByProduct={variantsByProduct}
+            locationQty={locationQty}
             page={page}
             totalPages={totalPages}
             filtered={filtered}
@@ -302,6 +330,7 @@ export default function InventoryPage() {
             onSetPage={setPage}
             onDeleteClick={setDeletingProduct}
             onTransferClick={setTransferringProduct}
+            onRestockClick={setRestockingProduct}
           />
         </>
       )}
@@ -330,10 +359,25 @@ export default function InventoryPage() {
         }}
       />
 
-      <TransferModal
-        product={transferringProduct}
-        onClose={() => setTransferringProduct(null)}
-      />
+      {restockingProduct && (
+        <RestockModal
+          key={`restock-${restockingProduct.id}`}
+          product={restockingProduct}
+          onClose={() => setRestockingProduct(null)}
+        />
+      )}
+
+      {transferringProduct && (
+        <TransferModal
+          key={transferringProduct.id}
+          product={transferringProduct}
+          onClose={() => setTransferringProduct(null)}
+        />
+      )}
     </div>
   );
 }
+
+
+
+

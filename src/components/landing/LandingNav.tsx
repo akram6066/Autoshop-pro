@@ -55,7 +55,7 @@ function MagneticButton({ children, href, className }: { children: React.ReactNo
 }
 
 function LandingNav() {
-  const pathname = usePathname();
+  // const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const { scrollY } = useScroll();
   const [hidden, setHidden] = useState(false);

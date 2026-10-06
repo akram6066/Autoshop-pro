@@ -96,7 +96,7 @@ const SETTINGS_GROUPS: SettingsGroup[] = [
     items: [
       { href: "/settings/shop", label: "Shop Details", description: "Name, address, and global settings", Icon: ShopIcon },
       { href: "/settings/categories", label: "Categories", description: "Manage product categories", Icon: CategoryIcon },
-      { href: "/settings/rooms", label: "Rooms", description: "Manage storage and showroom locations", Icon: RoomIcon },
+      { href: "/settings/rooms", label: "Locations", description: "Manage storage and showroom locations", Icon: RoomIcon },
     ],
   },
   {

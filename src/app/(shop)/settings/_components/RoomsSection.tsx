@@ -42,7 +42,7 @@ export function RoomsSection() {
       .eq("room_id", roomId);
     if ((count ?? 0) > 0) {
       setMsg(
-        `Cannot delete — ${count} product(s) in this room. Move them first.`,
+        `Cannot delete — ${count} product(s) in this location. Move them first.`,
       );
       return;
     }
@@ -59,7 +59,7 @@ export function RoomsSection() {
           className="text-sm mb-4"
           style={{ color: "var(--color-ink-tertiary)" }}
         >
-          No rooms yet.
+          No locations yet.
         </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-6 mb-4">
@@ -93,7 +93,7 @@ export function RoomsSection() {
         <input
           className="input w-full sm:flex-1"
           type="text"
-          placeholder="New room name…"
+          placeholder="New location name…"
           value={newRoomName}
           onChange={(e) => setNewRoomName(e.target.value)}
         />
@@ -102,7 +102,7 @@ export function RoomsSection() {
           className="btn btn-secondary w-full sm:w-auto"
           disabled={!newRoomName.trim()}
         >
-          Add room
+          Add location
         </button>
       </form>
       {msg && (

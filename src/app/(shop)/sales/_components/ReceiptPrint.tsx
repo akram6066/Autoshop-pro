@@ -22,7 +22,7 @@ export function ReceiptPrint({
   sale,
   items,
   shop,
-  taxRate,
+
 }: ReceiptPrintProps) {
   // Financial math
   const total = sale.total_amount;

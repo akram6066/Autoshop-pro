@@ -23,18 +23,18 @@ export default function SetupRoomsStep({
 }: Props) {
   return (
     <form onSubmit={onSubmit} className="p-8 sm:p-10">
-      <h2 className="text-2xl font-display font-medium mb-2">Storage rooms</h2>
+      <h2 className="text-2xl font-display font-medium mb-2">Locations</h2>
       <p
         className="text-base mb-6"
         style={{ color: "var(--color-ink-secondary)" }}
       >
-        Rooms help you organise where parts are stored. Add as many as you need.
+        Locations help you organise where parts are stored. Add as many as you need.
       </p>
 
       <div className="space-y-2 mb-4">
         {rooms.length === 0 && (
           <p className="text-sm" style={{ color: "var(--color-ink-ghost)" }}>
-            No rooms added yet. Add at least one below.
+            No locations added yet. Add at least one below.
           </p>
         )}
         {rooms.map((name) => (
@@ -70,7 +70,7 @@ export default function SetupRoomsStep({
         <input
           className="input flex-1 text-base py-3"
           type="text"
-          placeholder="Room name…"
+          placeholder="Location name…"
           value={newRoom}
           onChange={(e) => onNewRoomChange(e.target.value)}
           onKeyDown={(e) => {
@@ -98,7 +98,7 @@ export default function SetupRoomsStep({
       >
         {isPending
           ? "Setting up…"
-          : `Continue with ${rooms.length} room${rooms.length !== 1 ? "s" : ""} →`}
+          : `Continue with ${rooms.length} location${rooms.length !== 1 ? "s" : ""} →`}
       </button>
     </form>
   );

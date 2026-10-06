@@ -15,15 +15,23 @@ import { useAuthStore } from "@/stores/authStore";
 import type { Product } from "@/types/app";
 import type { Json } from "@/types/database";
 import type { MutationResult } from "@/types/mutations";
+import { inventoryLevelKeys } from "@/hooks/useInventoryLevels";
+import {
+  transferPreviewSchema,
+  transferStockSchema,
+  toTransferRpcArgs,
+  type TransferPreview,
+  type TransferStockInput,
+} from "@/lib/validations/transfers";
 
-// ─── Query Keys ───────────────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Query Keys Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 export const productKeys = {
   all: (shopId: string) => ["products", shopId] as const,
   detail: (shopId: string, id: string) => ["products", shopId, id] as const,
 };
 
-// ─── Fetch (network-first, IndexedDB fallback) ────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Fetch (network-first, IndexedDB fallback) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 async function fetchProducts(shopId: string): Promise<Product[]> {
   const supabase = createClient();
@@ -37,7 +45,7 @@ async function fetchProducts(shopId: string): Promise<Product[]> {
   }
 }
 
-// ─── Hooks ────────────────────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Hooks Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 export function useProducts(shopId: string | null): UseQueryResult<Product[]> {
   return useQuery({
@@ -55,7 +63,7 @@ export function useProduct(shopId: string | null, productId: string | null) {
   return products?.find((p) => p.id === productId) ?? null;
 }
 
-// ─── Mutations ────────────────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Mutations Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 interface CreateProductInput {
   shopId: string;
@@ -245,7 +253,111 @@ export function useUpdateProduct() {
   });
 }
 
-export function useDeleteProduct() {
+
+export type RestockProductInput = {
+  shopId: string;
+  productId: string;
+  quantityAdded: number;
+  reason?: "restock" | "adjustment";
+};
+
+export function useRestockProduct() {
+  const qc = useQueryClient();
+  const supabase = createClient();
+  const userId = useAuthStore((s) => s.user?.id ?? "");
+
+  return useMutation({
+    mutationFn: async ({
+      shopId,
+      productId,
+      quantityAdded,
+      reason = "restock",
+    }: RestockProductInput): Promise<MutationResult<{ shopId: string }>> => {
+      if (quantityAdded <= 0) {
+        return { status: "error", error: new Error("Quantity must be greater than 0") };
+      }
+
+      const now = new Date().toISOString();
+      const movementPayload = {
+        id: crypto.randomUUID(),
+        shop_id: shopId,
+        product_id: productId,
+        type: "IN",
+        delta: quantityAdded,
+        snapshot_qty: 0,
+        seq: Date.now(),
+        device_id: getDeviceId(),
+        reason,
+        user_id: userId,
+        synced: false, // We'll set this below
+        conflict_flag: false,
+        created_at: now,
+      };
+
+      let rpcError: unknown = null;
+      let isNetworkError = false;
+      try {
+        const { error } = await supabase.rpc("record_stock_movement", {
+          p_movement: movementPayload as unknown as Json,
+        });
+        if (error) {
+          rpcError = error;
+        }
+      } catch (err) {
+        console.warn(
+          "[useProducts] record_stock_movement RPC failed, falling back to offline:",
+          err,
+        );
+        rpcError = err || new Error("Failed to connect to Supabase");
+        isNetworkError = true;
+      }
+
+      try {
+        if (rpcError && !isNetworkError) {
+          throw rpcError;
+        }
+
+        const isOffline = !!rpcError;
+        movementPayload.synced = !isOffline;
+
+        if (isOffline) {
+          await enqueue(shopId, "RECORD_STOCK_MOVEMENT", {
+            movement: movementPayload,
+          });
+        } else {
+          // If online, record the movement locally so it's in history,
+          // though the server already processed it, it's good for offline viewing of history.
+          // The sync engine doesn't automatically pull movements yet unless requested.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await getDb().stock_movements.put(movementPayload as any);
+        }
+
+        // Update local product quantity
+        await getDb()
+          .products.where("id")
+          .equals(productId)
+          .modify((p) => {
+            p.quantity = Math.max(0, p.quantity + quantityAdded);
+            p.updated_at = now;
+          });
+
+        return isOffline
+          ? { status: "offline", data: { shopId } }
+          : { status: "success", data: { shopId } };
+      } catch (err) {
+        return {
+          status: "error",
+          error: err instanceof Error ? err : new Error("Failed to restock product"),
+        };
+      }
+    },
+    onSuccess: (result, { shopId }) => {
+      if (result.status !== "error") {
+        qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
+      }
+    },
+  });
+}export function useDeleteProduct() {
   const qc = useQueryClient();
   const supabase = createClient();
 
@@ -334,56 +446,118 @@ export function useDeleteProduct() {
   });
 }
 
-export interface TransferProductInput {
-  sourceProductId: string;
-  variantId?: string;
-  destShopId: string;
-  destRoomId: string;
-  quantity: number;
-  transferDate?: string;
+// â”€â”€â”€ Transfers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+/** True when the failure is connectivity (queue it), not a business rule (show it). */
+function isNetworkFailure(err: unknown): boolean {
+  if (typeof navigator !== "undefined" && !navigator.onLine) return true;
+  const message = err instanceof Error ? err.message : String(err ?? "");
+  return /failed to fetch|networkerror|network request failed|load failed/i.test(
+    message,
+  );
 }
 
-export function useTransferProduct() {
+export type TransferStockResult = { destProductId: string | null };
+
+/**
+ * Move stock between locations and/or shops.
+ *
+ *  - Validated with Zod before anything is sent.
+ *  - `transferId` is the idempotency key: retries and queue replays are safe.
+ *  - On a network failure the transfer is queued (`TRANSFER_STOCK`) and
+ *    replayed in order by the sync engine; business errors are never queued.
+ */
+export function useTransferStock() {
   const qc = useQueryClient();
   const supabase = createClient();
   const currentShopId = useAuthStore((s) => s.shopId);
 
   return useMutation({
-    mutationFn: async ({
-      sourceProductId,
-      variantId,
-      destShopId,
-      destRoomId,
-      quantity,
-      transferDate,
-    }: TransferProductInput): Promise<MutationResult<{ destProductId: string }>> => {
-      try {
-        const { data, error } = await supabase.rpc("execute_inventory_transfer", {
-          p_source_product_id: sourceProductId,
-          p_variant_id: variantId || null,
-          p_dest_shop_id: destShopId,
-          p_dest_room_id: destRoomId,
-          p_quantity: quantity,
-          p_transfer_date: transferDate || null,
-        });
-
-        if (error) {
-          throw new Error(error.message);
-        }
-
-        return { status: "success", data: { destProductId: data as string } };
-      } catch (err) {
+    mutationFn: async (
+      raw: TransferStockInput,
+    ): Promise<MutationResult<TransferStockResult>> => {
+      const parsed = transferStockSchema.safeParse(raw);
+      if (!parsed.success) {
         return {
           status: "error",
-          error:
-            err instanceof Error ? err : new Error("Failed to transfer product"),
+          error: new Error(
+            parsed.error.issues[0]?.message ?? "Invalid transfer details",
+          ),
         };
+      }
+      const input = parsed.data;
+
+      try {
+        const { data, error } = await supabase.rpc(
+          "transfer_stock",
+          toTransferRpcArgs(input),
+        );
+        if (error) throw new Error(error.message);
+        return { status: "success", data: { destProductId: data } };
+      } catch (err) {
+        if (!currentShopId || !isNetworkFailure(err)) {
+          return {
+            status: "error",
+            error:
+              err instanceof Error
+                ? err
+                : new Error("Failed to transfer stock"),
+          };
+        }
+        try {
+          await enqueue(currentShopId, "TRANSFER_STOCK", {
+            transfer: input,
+          });
+          return { status: "offline", data: { destProductId: null } };
+        } catch (queueErr) {
+          return {
+            status: "error",
+            error:
+              queueErr instanceof Error
+                ? queueErr
+                : new Error("Could not save the transfer for later"),
+          };
+        }
       }
     },
     onSuccess: (result) => {
       if (result.status !== "error" && currentShopId) {
         qc.invalidateQueries({ queryKey: productKeys.all(currentShopId) });
+        qc.invalidateQueries({
+          queryKey: inventoryLevelKeys.all(currentShopId),
+        });
       }
     },
   });
 }
+
+export interface TransferPreviewParams {
+  sourceProductId: string;
+  variantId: string | null;
+  fromRoomId: string | null;
+  destShopId: string;
+  destRoomId: string;
+}
+
+/** Read-only "what will happen" check shown before the user confirms. */
+export function useTransferPreview(params: TransferPreviewParams | null) {
+  const supabase = createClient();
+  return useQuery({
+    queryKey: ["transfer-preview", params],
+    enabled: !!params,
+    staleTime: 0,
+    queryFn: async (): Promise<TransferPreview> => {
+      const p = params!;
+      const { data, error } = await supabase.rpc("preview_stock_transfer", {
+        p_source_product_id: p.sourceProductId,
+        p_variant_id: p.variantId,
+        p_from_room_id: p.fromRoomId,
+        p_dest_shop_id: p.destShopId,
+        p_dest_room_id: p.destRoomId,
+      });
+      if (error) throw new Error(error.message);
+      return transferPreviewSchema.parse(data);
+    },
+  });
+}
+

@@ -43,7 +43,7 @@ export function useCustomers(shopId: string | null) {
           m.seedCustomers(shopId!, data as Customer[]).catch(console.warn),
         );
         return data as Customer[];
-      } catch (_err) {
+      } catch {
         const { getDb, seedCustomers } = await import("@/lib/db/instance");
         // Read local customers and apply any pending offline commands
         const local = await getDb()
@@ -90,7 +90,7 @@ export function useCustomer(shopId: string | null, customerId: string) {
         });
 
         return data as Customer;
-      } catch (_err) {
+      } catch {
         const { getDb, seedCustomers } = await import("@/lib/db/instance");
         const local = await getDb()
           .customers.where("shop_id")
@@ -351,3 +351,4 @@ export function useDeleteCustomer() {
 }
 
 export type { CustomerSaleRow, CustomerPaymentRow };
+

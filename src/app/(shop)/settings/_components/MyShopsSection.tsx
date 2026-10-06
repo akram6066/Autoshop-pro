@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -13,8 +14,11 @@ import {
 import type { Shop, ShopWithRole } from "@/types/app";
 import { Section } from "./Section";
 import type { SubInfo } from "./PlanUsageSection";
+import { useSubscription } from "@/hooks/useSubscription";
 
-export function MyShopsSection({ sub }: { sub: SubInfo | null }) {
+export function MyShopsSection({ sub: externalSub }: { sub?: SubInfo | null }) {
+  const { sub: internalSub } = useSubscription();
+  const sub = externalSub !== undefined ? externalSub : internalSub;
   const shopId = useAuthStore(selectShopId);
   const shop = useAuthStore(selectShop);
   const shops = useAuthStore(selectShops);
@@ -30,6 +34,14 @@ export function MyShopsSection({ sub }: { sub: SubInfo | null }) {
   const ownerShops = shops.filter((s) => s.role === "owner");
   const maxShops = sub?.plan.maxShops ?? 1;
   const atLimit = ownerShops.length >= maxShops;
+
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('new') === '1' && !atLimit) {
+      setTimeout(() => setShowForm(true), 0);
+    }
+  }, [searchParams, atLimit]);
+
   const isLoaded = shopId !== null;
 
   function resetForm() {
@@ -235,5 +247,12 @@ export function MyShopsSection({ sub }: { sub: SubInfo | null }) {
     </Section>
   );
 }
+
+
+
+
+
+
+
 
 

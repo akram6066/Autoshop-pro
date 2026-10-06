@@ -12,6 +12,8 @@ import type {
   POItem,
   Customer,
   CustomerPayment,
+  InventoryLevel,
+  StockTransfer,
 } from "@/types/app";
 
 // ─── AutoShop Database ────────────────────────────────────────────────────────
@@ -29,6 +31,8 @@ export class AutoShopDatabase extends Dexie {
   po_items!: Table<POItem>;
   customers!: Table<Customer>;
   customer_payments!: Table<CustomerPayment>;
+  inventory_levels!: Table<InventoryLevel>;
+  stock_transfers!: Table<StockTransfer>;
 
   constructor() {
     super("AutoShopDB");
@@ -131,6 +135,24 @@ export class AutoShopDatabase extends Dexie {
     this.version(6).stores({
       shops: "id",
       rooms: "id, shop_id",
+      products: "id, shop_id, room_id, category, sku, updated_at",
+      product_variants: "id, product_id",
+      sales: "id, shop_id, user_id, created_at, synced",
+      sale_items: "id, sale_id, product_id",
+      stock_movements: "id, shop_id, product_id, seq, synced, created_at",
+      sync_queue: "id, shop_id, command, status, created_at, [shop_id+status]",
+      purchase_orders: "id, shop_id, status, synced, created_at",
+      po_items: "id, po_id, product_id",
+      customers: "id, shop_id",
+      customer_payments: "id, shop_id, customer_id",
+    });
+
+    // V7 — Flexible Locations & Transfers
+    this.version(7).stores({
+      shops: "id",
+      rooms: "id, shop_id",
+      inventory_levels: "id, shop_id, room_id, product_id, variant_id",
+      stock_transfers: "id, from_shop_id, to_shop_id",
       products: "id, shop_id, room_id, category, sku, updated_at",
       product_variants: "id, product_id",
       sales: "id, shop_id, user_id, created_at, synced",

@@ -47,11 +47,46 @@ export interface CategoryItem {
   created_at: string;
 }
 
-export interface Room {
+export interface Location {
   id: string;
   shop_id: string;
   name: string;
   created_at: string;
+}
+
+// Keep Room alias for backwards compatibility during transition
+export type Room = Location;
+
+export interface InventoryLevel {
+  id: string;
+  shop_id: string;
+  room_id: string; // foreign key to Location
+  product_id: string;
+  variant_id: string | null;
+  quantity: number;
+  min_stock: number;
+  updated_at: string;
+}
+
+export interface StockTransfer {
+  id: string;
+  from_shop_id: string;
+  to_shop_id: string;
+  from_room_id: string | null;
+  to_room_id: string | null;
+  user_id: string;
+  transfer_date: string;
+  reason: string;
+  status: string;
+  created_at: string;
+}
+
+export interface StockTransferItem {
+  id: string;
+  transfer_id: string;
+  product_id: string;
+  variant_id: string | null;
+  quantity: number;
 }
 
 export interface Profile {
@@ -66,11 +101,11 @@ export interface Profile {
 export interface Product {
   id: string;
   shop_id: string;
-  room_id: string;
+  room_id: string | null; // Made nullable for multi-location products
   name: string;
   sku: string;
   category: string;
-  quantity: number;
+  quantity: number; // Legacy aggregate quantity
   min_stock: number;
   price: number;
   size: string | null;
@@ -83,7 +118,7 @@ export interface ProductVariant {
   size: string;
   sku: string | null;
   price: number;
-  quantity: number;
+  quantity: number; // Legacy aggregate quantity
   min_stock: number;
   created_at: string;
 }
@@ -164,6 +199,8 @@ export type SyncCommandType =
   | "MANAGE_PRODUCT"
   | "MANAGE_CUSTOMER"
   | "CREATE_VARIANTS"
+  | "TRANSFER_STOCK"
+  | "TRANSFER_LOCATION"
   | "LEGACY_INSERT"
   | "LEGACY_UPDATE"
   | "LEGACY_DELETE";
@@ -227,6 +264,7 @@ export interface LowStockProduct {
   id: string;
   name: string;
   sku: string;
+  size?: string | null;
   quantity: number;
   min_stock: number;
   room_id: string;
@@ -264,3 +302,5 @@ export const CATEGORY_LABELS: Record<string, string> = new Proxy(
   { tire: "Tire", battery: "Battery", rim: "Rim" } as Record<string, string>,
   { get: (target, prop: string) => target[prop] ?? prop },
 );
+
+

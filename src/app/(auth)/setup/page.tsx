@@ -21,7 +21,7 @@ type Step = "shop" | "rooms" | "categories" | "done";
 
 const STEPS = [
   { key: "shop", label: "Shop details", num: 1 },
-  { key: "rooms", label: "Storage rooms", num: 2 },
+  { key: "rooms", label: "Locations", num: 2 },
   { key: "categories", label: "Categories", num: 3 },
   { key: "done", label: "Ready", num: 4 },
 ] as const;
@@ -338,7 +338,7 @@ function SetupContent() {
     const name = newRoom.trim();
     if (!name) return;
     if (rooms.includes(name)) {
-      setRoomsError("Room already exists");
+      setRoomsError("Location already exists");
       return;
     }
     setRooms((prev) => [...prev, name]);

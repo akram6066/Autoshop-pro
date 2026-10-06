@@ -601,6 +601,59 @@ export interface Database {
           },
         ];
       };
+      inventory_levels: {
+        Row: {
+          id: string;
+          shop_id: string;
+          room_id: string;
+          product_id: string;
+          variant_id: string | null;
+          quantity: number;
+          min_stock: number;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      stock_transfers: {
+        Row: {
+          id: string;
+          from_shop_id: string;
+          to_shop_id: string;
+          from_room_id: string | null;
+          to_room_id: string | null;
+          user_id: string;
+          transfer_date: string;
+          reason: string;
+          status: string;
+          created_at: string;
+          from_shop_name: string | null;
+          to_shop_name: string | null;
+          from_room_name: string | null;
+          to_room_name: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      stock_transfer_items: {
+        Row: {
+          id: string;
+          transfer_id: string;
+          product_id: string | null;
+          variant_id: string | null;
+          dest_product_id: string | null;
+          dest_variant_id: string | null;
+          quantity: number;
+          product_name: string | null;
+          variant_size: string | null;
+          sku: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       shop_notifications: {
         Row: {
           id: string;
@@ -811,8 +864,33 @@ export interface Database {
           p_dest_shop_id: string;
           p_dest_room_id: string;
           p_quantity: number;
+          p_transfer_date?: string | null;
         };
         Returns: string;
+      };
+      transfer_stock: {
+        Args: {
+          p_transfer_id: string;
+          p_source_product_id: string;
+          p_variant_id: string | null;
+          p_from_room_id: string | null;
+          p_dest_shop_id: string;
+          p_dest_room_id: string;
+          p_quantity: number;
+          p_reason?: string | null;
+          p_transfer_date?: string | null;
+        };
+        Returns: string;
+      };
+      preview_stock_transfer: {
+        Args: {
+          p_source_product_id: string;
+          p_variant_id: string | null;
+          p_from_room_id: string | null;
+          p_dest_shop_id: string;
+          p_dest_room_id: string;
+        };
+        Returns: Json;
       };
     };
     Enums: {

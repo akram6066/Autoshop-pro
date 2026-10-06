@@ -13,8 +13,10 @@ interface InventoryMobileListProps {
   filtered: Product[];
   PAGE_SIZE: number;
   onSetPage: (p: number) => void;
-  onDeleteClick: (p: { id: string; name: string }) => void;
-  onTransferClick: (p: { id: string; name: string }) => void;
+  onDeleteClick: (p: { id: string; name: string; size?: string | null; sku?: string | null }) => void;
+  onTransferClick: (p: { id: string; name: string; room_id: string | null }) => void;
+  onRestockClick?: (p: { id: string; name: string; size?: string | null; sku?: string | null; currentQty: number }) => void;
+  locationQty?: Map<string, number> | null;
 }
 
 export function InventoryMobileList({
@@ -27,6 +29,7 @@ export function InventoryMobileList({
   onSetPage,
   onDeleteClick,
   onTransferClick,
+  onRestockClick,
 }: InventoryMobileListProps) {
   return (
     <div className="sm:hidden space-y-2">
@@ -104,7 +107,7 @@ export function InventoryMobileList({
                 <button
                   type="button"
                   onClick={() =>
-                    onTransferClick({ id: product.id, name: product.name })
+                    onTransferClick({ id: product.id, name: product.name, room_id: product.room_id })
                   }
                   className="btn btn-ghost btn-sm btn-icon"
                   title="Transfer Stock"
@@ -119,6 +122,18 @@ export function InventoryMobileList({
                     />
                   </svg>
                 </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onRestockClick?.({ id: product.id, name: product.name, size: product.size, sku: product.sku, currentQty: totalQty })
+                    }
+                    className="btn btn-ghost btn-sm btn-icon"
+                    title="Restock"
+                  >
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+                      <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
                 <Link
                   href={`/inventory/${product.id}`}
                   className="btn btn-ghost btn-sm btn-icon"
@@ -143,7 +158,7 @@ export function InventoryMobileList({
                 <button
                   type="button"
                   onClick={() =>
-                    onDeleteClick({ id: product.id, name: product.name })
+                    onDeleteClick({ id: product.id, name: product.name, size: product.size, sku: product.sku })
                   }
                   className="btn btn-ghost btn-sm btn-icon"
                   style={{ color: "var(--color-danger)" }}
@@ -197,3 +212,14 @@ export function InventoryMobileList({
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+

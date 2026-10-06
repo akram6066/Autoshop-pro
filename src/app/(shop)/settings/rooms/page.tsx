@@ -3,7 +3,7 @@ import { RoomsSection } from "../_components/RoomsSection";
 
 export default function RoomsPage() {
   return (
-    <Section title="Storage rooms">
+    <Section title="Locations">
       <RoomsSection />
     </Section>
   );

@@ -206,10 +206,10 @@ function EditForm({
           </div>
         )}
         <div>
-          <label className="block text-sm font-medium mb-1.5">Room</label>
+          <label className="block text-sm font-medium mb-1.5">Location</label>
           <select
             className="input"
-            value={roomId}
+            value={roomId || ""}
             onChange={(e) => setRoomId(e.target.value)}
           >
             {rooms.map((r) => (
@@ -734,7 +734,7 @@ export default function ProductDetailPage({
               ...(hasVariants
                 ? []
                 : [{ label: "Size", value: product.size || "—" }]),
-              { label: "Room", value: roomMap[product.room_id] ?? "—" },
+              { label: "Location", value: product.room_id ? roomMap[product.room_id] : "—" },
               {
                 label: "Last updated",
                 value: formatDateTime(product.updated_at),
