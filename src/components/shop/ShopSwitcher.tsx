@@ -259,6 +259,3 @@ export function ShopSwitcher() {
     </div>
   );
 }
-
-
-

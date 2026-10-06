@@ -253,7 +253,6 @@ export function useUpdateProduct() {
   });
 }
 
-
 export type RestockProductInput = {
   shopId: string;
   productId: string;
@@ -274,7 +273,10 @@ export function useRestockProduct() {
       reason = "restock",
     }: RestockProductInput): Promise<MutationResult<{ shopId: string }>> => {
       if (quantityAdded <= 0) {
-        return { status: "error", error: new Error("Quantity must be greater than 0") };
+        return {
+          status: "error",
+          error: new Error("Quantity must be greater than 0"),
+        };
       }
 
       const now = new Date().toISOString();
@@ -347,7 +349,8 @@ export function useRestockProduct() {
       } catch (err) {
         return {
           status: "error",
-          error: err instanceof Error ? err : new Error("Failed to restock product"),
+          error:
+            err instanceof Error ? err : new Error("Failed to restock product"),
         };
       }
     },
@@ -357,7 +360,8 @@ export function useRestockProduct() {
       }
     },
   });
-}export function useDeleteProduct() {
+}
+export function useDeleteProduct() {
   const qc = useQueryClient();
   const supabase = createClient();
 
@@ -560,4 +564,3 @@ export function useTransferPreview(params: TransferPreviewParams | null) {
     },
   });
 }
-

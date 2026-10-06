@@ -33,7 +33,9 @@ export function FinderResultCard({
             color: "var(--color-brand-600)",
           }}
         >
-          {((product.room_id ? roomMap[product.room_id] : null) ?? "?").slice(0, 2).toUpperCase()}
+          {((product.room_id ? roomMap[product.room_id] : null) ?? "?")
+            .slice(0, 2)
+            .toUpperCase()}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -80,7 +82,8 @@ export function FinderResultCard({
                     fontWeight: 500,
                   }}
                 >
-                  {(product.room_id ? roomMap[product.room_id] : null) ?? "Unknown room"}
+                  {(product.room_id ? roomMap[product.room_id] : null) ??
+                    "Unknown room"}
                 </span>
               </div>
               <span
@@ -109,7 +112,8 @@ export function FinderResultCard({
               <span
                 style={{ color: "var(--color-ink-secondary)", fontWeight: 500 }}
               >
-                {(product.room_id ? roomMap[product.room_id] : null) ?? "Unknown room"}
+                {(product.room_id ? roomMap[product.room_id] : null) ??
+                  "Unknown room"}
               </span>
             </div>
           )}

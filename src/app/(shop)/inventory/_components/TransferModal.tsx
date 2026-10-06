@@ -139,7 +139,13 @@ function Field({
 }
 
 interface TransferModalProps {
-  product: { id: string; name: string; size?: string | null; sku?: string | null; room_id: string | null };
+  product: {
+    id: string;
+    name: string;
+    size?: string | null;
+    sku?: string | null;
+    room_id: string | null;
+  };
   onClose: () => void;
 }
 
@@ -263,7 +269,10 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+        onClick={onClose}
+      />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 pointer-events-none">
         <div
           className="w-full max-w-3xl flex flex-col pointer-events-auto rounded-2xl max-h-full"
@@ -280,7 +289,10 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
                 Transfer Stock
               </h2>
               <p className="text-sm mt-1 text-[var(--color-ink-tertiary)] flex items-center gap-2">
-                Transferring <strong className="text-[var(--color-ink-secondary)] font-medium bg-[var(--color-surface-2)] px-2 py-0.5 rounded-md border border-[var(--color-border-subtle)]">{product.name}</strong>
+                Transferring{" "}
+                <strong className="text-[var(--color-ink-secondary)] font-medium bg-[var(--color-surface-2)] px-2 py-0.5 rounded-md border border-[var(--color-border-subtle)]">
+                  {product.name}
+                </strong>
               </p>
             </div>
             <button
@@ -288,21 +300,40 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
               className="p-2 -mr-2 text-[var(--color-ink-ghost)] hover:text-[var(--color-ink-primary)] hover:bg-[var(--color-surface-2)] rounded-full transition-colors"
               aria-label="Close"
             >
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              <svg
+                width="20"
+                height="20"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
 
           {/* Form Content */}
           <div className="p-6 overflow-y-auto">
-            <form id="transfer-form" onSubmit={handleSubmit} className="space-y-8">
+            <form
+              id="transfer-form"
+              onSubmit={handleSubmit}
+              className="space-y-8"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
                 {/* FROM COLUMN */}
                 <div className="space-y-5">
                   <div className="flex items-center gap-2 pb-2 border-b border-[var(--color-border-subtle)]">
-                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--color-brand-100)] text-[var(--color-brand-700)] dark:bg-[var(--color-brand-900)] dark:text-[var(--color-brand-300)] text-xs font-semibold">1</span>
-                    <h3 className="font-semibold text-[var(--color-ink-secondary)] tracking-tight">Source</h3>
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--color-brand-100)] text-[var(--color-brand-700)] dark:bg-[var(--color-brand-900)] dark:text-[var(--color-brand-300)] text-xs font-semibold">
+                      1
+                    </span>
+                    <h3 className="font-semibold text-[var(--color-ink-secondary)] tracking-tight">
+                      Source
+                    </h3>
                   </div>
 
                   {productVariants.length > 0 && (
@@ -310,7 +341,11 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
                       <CustomSelect
                         value={effectiveVariantId ?? ""}
                         onChange={setVariantId}
-                        placeholder={isVariantsLoading ? "Loading variants…" : "Select a size"}
+                        placeholder={
+                          isVariantsLoading
+                            ? "Loading variants…"
+                            : "Select a size"
+                        }
                         disabled={isVariantsLoading}
                         options={productVariants.map((v) => ({
                           value: v.id,
@@ -331,7 +366,9 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
                     <CustomSelect
                       value={effectiveFromRoomId}
                       onChange={setFromRoomId}
-                      placeholder={isLevelsLoading ? "Loading…" : "No stock available"}
+                      placeholder={
+                        isLevelsLoading ? "Loading…" : "No stock available"
+                      }
                       disabled={isLevelsLoading || sources.length === 0}
                       options={sources.map((s) => ({
                         value: s.roomId,
@@ -341,7 +378,12 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
                   </Field>
 
                   <div className="grid grid-cols-2 gap-4 pt-2">
-                    <Field label="Quantity" hint={effectiveFromRoomId ? `Max ${available}` : undefined}>
+                    <Field
+                      label="Quantity"
+                      hint={
+                        effectiveFromRoomId ? `Max ${available}` : undefined
+                      }
+                    >
                       <input
                         type="number"
                         min={1}
@@ -370,19 +412,30 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
                 {/* TO COLUMN */}
                 <div className="space-y-5">
                   <div className="flex items-center gap-2 pb-2 border-b border-[var(--color-border-subtle)]">
-                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--color-brand-100)] text-[var(--color-brand-700)] dark:bg-[var(--color-brand-900)] dark:text-[var(--color-brand-300)] text-xs font-semibold">2</span>
-                    <h3 className="font-semibold text-[var(--color-ink-secondary)] tracking-tight">Destination</h3>
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--color-brand-100)] text-[var(--color-brand-700)] dark:bg-[var(--color-brand-900)] dark:text-[var(--color-brand-300)] text-xs font-semibold">
+                      2
+                    </span>
+                    <h3 className="font-semibold text-[var(--color-ink-secondary)] tracking-tight">
+                      Destination
+                    </h3>
                   </div>
 
                   <Field label="To Shop">
                     <CustomSelect
                       value={destShopId}
                       onChange={setDestShopId}
-                      placeholder={shops.length === 0 ? "No shops available" : "Choose a shop"}
+                      placeholder={
+                        shops.length === 0
+                          ? "No shops available"
+                          : "Choose a shop"
+                      }
                       disabled={shops.length === 0}
                       options={shops.map((s) => ({
                         value: s.id,
-                        label: s.id === currentShopId ? `${s.name} (This Shop)` : s.name,
+                        label:
+                          s.id === currentShopId
+                            ? `${s.name} (This Shop)`
+                            : s.name,
                       }))}
                     />
                   </Field>
@@ -390,7 +443,9 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
                   <Field
                     label="To Location"
                     hint={
-                      destShopId && !isDestRoomsLoading && destOptions.length === 0
+                      destShopId &&
+                      !isDestRoomsLoading &&
+                      destOptions.length === 0
                         ? "No other locations here. Add one in Settings."
                         : undefined
                     }
@@ -405,7 +460,11 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
                             ? "Loading locations…"
                             : "Choose a location"
                       }
-                      disabled={!destShopId || isDestRoomsLoading || destOptions.length === 0}
+                      disabled={
+                        !destShopId ||
+                        isDestRoomsLoading ||
+                        destOptions.length === 0
+                      }
                       options={destOptions.map((r) => ({
                         value: r.id,
                         label: r.name,
@@ -438,20 +497,48 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
               }}
             >
               <div className="mt-0.5 text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)] shrink-0">
-                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  width="20"
+                  height="20"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
               <div className="text-sm text-[var(--color-ink-secondary)] space-y-1">
                 <p className="font-semibold text-[var(--color-ink-primary)]">
-                  {isSameShop ? "Internal Location Transfer" : "Cross-Shop Transfer"}
+                  {isSameShop
+                    ? "Internal Location Transfer"
+                    : "Cross-Shop Transfer"}
                 </p>
                 <p>{summary}</p>
                 {!isSameShop && isPreviewLoading && (
                   <p className="text-xs flex items-center gap-1.5 opacity-70">
-                    <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin h-3 w-3"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Checking destination...
                   </p>
@@ -473,8 +560,12 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
                   </ul>
                 )}
                 {structureConflict && (
-                  <p className="text-xs font-medium pt-1" style={{ color: "var(--color-danger-600, #dc2626)" }}>
-                    Conflict: Product exists in destination with a different variant structure. Auto-transfer blocked.
+                  <p
+                    className="text-xs font-medium pt-1"
+                    style={{ color: "var(--color-danger-600, #dc2626)" }}
+                  >
+                    Conflict: Product exists in destination with a different
+                    variant structure. Auto-transfer blocked.
                   </p>
                 )}
               </div>
@@ -499,17 +590,43 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
             >
               {isPending ? (
                 <>
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Processing...
                 </>
               ) : (
                 <>
                   Confirm Transfer
-                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  <svg
+                    width="16"
+                    height="16"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    />
                   </svg>
                 </>
               )}
@@ -520,4 +637,3 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
     </>
   );
 }
-

@@ -20,7 +20,9 @@ type LevelRow = Pick<
  */
 export function useInventoryLevels(shopId: string | null) {
   return useQuery({
-    queryKey: shopId ? inventoryLevelKeys.all(shopId) : ["inventory-levels-disabled"],
+    queryKey: shopId
+      ? inventoryLevelKeys.all(shopId)
+      : ["inventory-levels-disabled"],
     queryFn: async (): Promise<LevelRow[]> => {
       const { data, error } = await createClient()
         .from("inventory_levels")

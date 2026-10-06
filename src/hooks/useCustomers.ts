@@ -351,4 +351,3 @@ export function useDeleteCustomer() {
 }
 
 export type { CustomerSaleRow, CustomerPaymentRow };
-

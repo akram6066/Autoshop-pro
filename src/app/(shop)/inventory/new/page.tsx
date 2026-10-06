@@ -252,7 +252,9 @@ export default function NewProductPage() {
       if (hasOffline) {
         toast.warning("Saved offline — will sync when reconnected.");
       } else {
-        toast.success(`Successfully added ${saved} sizes as separate products.`);
+        toast.success(
+          `Successfully added ${saved} sizes as separate products.`,
+        );
       }
       router.push("/inventory");
       return;
@@ -275,7 +277,12 @@ export default function NewProductPage() {
     });
 
     if (result.status === "error") {
-      setError(friendlyError(result.error, "Failed to save product. Please try again."));
+      setError(
+        friendlyError(
+          result.error,
+          "Failed to save product. Please try again.",
+        ),
+      );
       return;
     }
 
@@ -336,7 +343,8 @@ export default function NewProductPage() {
                 fontSize: "0.8125rem",
                 fontWeight: 600,
                 cursor: "pointer",
-                background: tab === t ? "var(--color-surface-3)" : "transparent",
+                background:
+                  tab === t ? "var(--color-surface-3)" : "transparent",
                 color:
                   tab === t
                     ? "var(--color-ink-primary)"
@@ -443,7 +451,9 @@ export default function NewProductPage() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Location</label>
+                <label className="block text-sm font-medium mb-1.5">
+                  Location
+                </label>
                 <select
                   className="input"
                   value={effectiveRoomId}
@@ -567,9 +577,3 @@ export default function NewProductPage() {
     </div>
   );
 }
-
-
-
-
-
-

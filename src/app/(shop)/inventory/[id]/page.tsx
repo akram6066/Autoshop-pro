@@ -734,7 +734,10 @@ export default function ProductDetailPage({
               ...(hasVariants
                 ? []
                 : [{ label: "Size", value: product.size || "—" }]),
-              { label: "Location", value: product.room_id ? roomMap[product.room_id] : "—" },
+              {
+                label: "Location",
+                value: product.room_id ? roomMap[product.room_id] : "—",
+              },
               {
                 label: "Last updated",
                 value: formatDateTime(product.updated_at),

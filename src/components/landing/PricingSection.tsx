@@ -24,7 +24,7 @@ export function PricingSection({ plans }: PricingSectionProps) {
     >
       {/* Gradient border line at top */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent"></div>
-      
+
       {/* Ambient glow */}
       <div className="absolute top-[30%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-brand-600/5 blur-[120px] rounded-full pointer-events-none"></div>
 
@@ -105,7 +105,11 @@ export function PricingSection({ plans }: PricingSectionProps) {
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.7, delay: i * 0.12, ease: [0.16, 1, 0.3, 1] }}
+              transition={{
+                duration: 0.7,
+                delay: i * 0.12,
+                ease: [0.16, 1, 0.3, 1],
+              }}
             >
               <PlanCard plan={plan} isAnnual={isAnnual} />
             </motion.div>

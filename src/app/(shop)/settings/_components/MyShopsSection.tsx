@@ -37,7 +37,7 @@ export function MyShopsSection({ sub: externalSub }: { sub?: SubInfo | null }) {
 
   const searchParams = useSearchParams();
   useEffect(() => {
-    if (searchParams.get('new') === '1' && !atLimit) {
+    if (searchParams.get("new") === "1" && !atLimit) {
       setTimeout(() => setShowForm(true), 0);
     }
   }, [searchParams, atLimit]);
@@ -247,12 +247,3 @@ export function MyShopsSection({ sub: externalSub }: { sub?: SubInfo | null }) {
     </Section>
   );
 }
-
-
-
-
-
-
-
-
-

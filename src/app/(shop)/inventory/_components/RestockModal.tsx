@@ -5,12 +5,17 @@ import { toast } from "sonner";
 import { useAuthStore } from "@/stores/authStore";
 import { useRestockProduct } from "@/hooks/useProducts";
 
-
 export function RestockModal({
   product,
   onClose,
 }: {
-  product: { id: string; name: string; size?: string | null; sku?: string | null; currentQty: number };
+  product: {
+    id: string;
+    name: string;
+    size?: string | null;
+    sku?: string | null;
+    currentQty: number;
+  };
   onClose: () => void;
 }) {
   const shopId = useAuthStore((s) => s.shopId);
@@ -64,8 +69,13 @@ export function RestockModal({
           className="text-sm mb-4"
           style={{ color: "var(--color-ink-secondary)" }}
         >
-          Add stock to <strong>{product.name}{product.size ? ` - ${product.size}` : ""}{product.sku ? ` (SKU: ${product.sku})` : ""}</strong>. Current quantity:{" "}
-          <strong>{product.currentQty}</strong>
+          Add stock to{" "}
+          <strong>
+            {product.name}
+            {product.size ? ` - ${product.size}` : ""}
+            {product.sku ? ` (SKU: ${product.sku})` : ""}
+          </strong>
+          . Current quantity: <strong>{product.currentQty}</strong>
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -82,9 +92,7 @@ export function RestockModal({
               autoFocus
               value={quantity}
               onChange={(e) =>
-                setQuantity(
-                  e.target.value === "" ? "" : Number(e.target.value)
-                )
+                setQuantity(e.target.value === "" ? "" : Number(e.target.value))
               }
               placeholder="e.g. 10"
             />
@@ -112,4 +120,3 @@ export function RestockModal({
     </div>
   );
 }
-

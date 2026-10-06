@@ -18,12 +18,7 @@ interface ReceiptPrintProps {
   taxRate: number; // 0 to 1 (e.g. 0.16)
 }
 
-export function ReceiptPrint({
-  sale,
-  items,
-  shop,
-
-}: ReceiptPrintProps) {
+export function ReceiptPrint({ sale, items, shop }: ReceiptPrintProps) {
   // Financial math
   const total = sale.total_amount;
 

@@ -28,7 +28,8 @@ export default function SetupRoomsStep({
         className="text-base mb-6"
         style={{ color: "var(--color-ink-secondary)" }}
       >
-        Locations help you organise where parts are stored. Add as many as you need.
+        Locations help you organise where parts are stored. Add as many as you
+        need.
       </p>
 
       <div className="space-y-2 mb-4">
@@ -80,7 +81,11 @@ export default function SetupRoomsStep({
             }
           }}
         />
-        <button type="button" onClick={onAddRoom} className="btn btn-secondary px-6 font-medium">
+        <button
+          type="button"
+          onClick={onAddRoom}
+          className="btn btn-secondary px-6 font-medium"
+        >
           Add
         </button>
       </div>

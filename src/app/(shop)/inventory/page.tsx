@@ -95,7 +95,14 @@ export default function InventoryPage() {
     });
 
     return result;
-  }, [products, debouncedSearch, roomFilter, categoryFilter, sortBy, levelIndex]);
+  }, [
+    products,
+    debouncedSearch,
+    roomFilter,
+    categoryFilter,
+    sortBy,
+    levelIndex,
+  ]);
 
   // When a location is selected, show the stock held THERE, not the shop total.
   const locationQty = useMemo(() => {
@@ -377,7 +384,3 @@ export default function InventoryPage() {
     </div>
   );
 }
-
-
-
-

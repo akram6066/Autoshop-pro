@@ -4,17 +4,33 @@ import { useEffect, useRef } from "react";
 import { motion, useInView, useSpring, useTransform } from "framer-motion";
 import Container from "./Container";
 
-function CountUp({ to, duration = 2, prefix = "", suffix = "", decimals = 0 }: { to: number, duration?: number, prefix?: string, suffix?: string, decimals?: number }) {
+function CountUp({
+  to,
+  duration = 2,
+  prefix = "",
+  suffix = "",
+  decimals = 0,
+}: {
+  to: number;
+  duration?: number;
+  prefix?: string;
+  suffix?: string;
+  decimals?: number;
+}) {
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
-  
+
   const spring = useSpring(0, {
     duration: duration * 1000,
     bounce: 0,
   });
 
   const display = useTransform(spring, (current) => {
-    return prefix + current.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ",") + suffix;
+    return (
+      prefix +
+      current.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ",") +
+      suffix
+    );
   });
 
   useEffect(() => {
@@ -61,18 +77,29 @@ export default function MetricsSection() {
       <Container className="relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16 divide-y md:divide-y-0 md:divide-x divide-zinc-800/80">
           {metrics.map((m, i) => (
-            <motion.div 
-              key={m.label} 
+            <motion.div
+              key={m.label}
               className={`flex flex-col items-center text-center ${i !== 0 ? "pt-12 md:pt-0" : ""}`}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.7, delay: i * 0.15, ease: [0.16, 1, 0.3, 1] }}
+              transition={{
+                duration: 0.7,
+                delay: i * 0.15,
+                ease: [0.16, 1, 0.3, 1],
+              }}
             >
               <div className="text-5xl lg:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-400 tracking-tight mb-4 tabular-nums">
-                <CountUp to={m.value} prefix={m.prefix} suffix={m.suffix} decimals={m.decimals} />
+                <CountUp
+                  to={m.value}
+                  prefix={m.prefix}
+                  suffix={m.suffix}
+                  decimals={m.decimals}
+                />
               </div>
-              <h3 className="text-lg font-bold text-zinc-200 mb-2">{m.label}</h3>
+              <h3 className="text-lg font-bold text-zinc-200 mb-2">
+                {m.label}
+              </h3>
               <p className="text-sm text-zinc-500 max-w-[240px] font-medium leading-relaxed">
                 {m.description}
               </p>

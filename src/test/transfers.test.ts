@@ -34,9 +34,9 @@ describe("transferStockSchema", () => {
   });
 
   it.each([0, -1, 1.5, Number.NaN])("rejects quantity %s", (quantity) => {
-    expect(transferStockSchema.safeParse({ ...valid(), quantity }).success).toBe(
-      false,
-    );
+    expect(
+      transferStockSchema.safeParse({ ...valid(), quantity }).success,
+    ).toBe(false);
   });
 
   it("allows primary-location (null fromRoomId) and no variant", () => {
@@ -96,9 +96,11 @@ describe("transferPreviewSchema", () => {
       dest_structure_conflict: false,
     };
     expect(transferPreviewSchema.safeParse(ok).success).toBe(true);
-    expect(transferPreviewSchema.safeParse({ ...ok, available: -1 }).success).toBe(
+    expect(
+      transferPreviewSchema.safeParse({ ...ok, available: -1 }).success,
+    ).toBe(false);
+    expect(transferPreviewSchema.safeParse({ available: 1 }).success).toBe(
       false,
     );
-    expect(transferPreviewSchema.safeParse({ available: 1 }).success).toBe(false);
   });
 });

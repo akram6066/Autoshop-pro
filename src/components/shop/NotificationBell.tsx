@@ -2,7 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Bell, CheckCheck, AlertCircle, AlertTriangle, ArrowRightLeft } from "lucide-react";
+import {
+  Bell,
+  CheckCheck,
+  AlertCircle,
+  AlertTriangle,
+  ArrowRightLeft,
+} from "lucide-react";
 import {
   useNotifications,
   useMarkNotificationRead,
@@ -144,8 +150,12 @@ export function NotificationBell({ shopId }: NotificationBellProps) {
                   <div className="w-16 h-16 bg-[var(--color-surface-1)] rounded-full flex items-center justify-center mb-3">
                     <Bell className="w-8 h-8 text-[var(--color-ink-tertiary)]" />
                   </div>
-                  <p className="text-[var(--color-ink-primary)] font-semibold text-sm">All caught up</p>
-                  <p className="text-xs text-[var(--color-ink-secondary)] mt-1">No new notifications to show</p>
+                  <p className="text-[var(--color-ink-primary)] font-semibold text-sm">
+                    All caught up
+                  </p>
+                  <p className="text-xs text-[var(--color-ink-secondary)] mt-1">
+                    No new notifications to show
+                  </p>
                 </div>
               ) : (
                 <div className="divide-y divide-[var(--color-border-subtle)]">
@@ -188,9 +198,7 @@ export function NotificationBell({ shopId }: NotificationBellProps) {
               )}
             </div>
 
-            <div
-              className="p-3 border-t border-[var(--color-border-subtle)] bg-[var(--color-surface-1)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]"
-            >
+            <div className="p-3 border-t border-[var(--color-border-subtle)] bg-[var(--color-surface-1)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
               <Link
                 href="/notifications"
                 onClick={() => setOpen(false)}

@@ -26,10 +26,10 @@ import Link from "next/link";
 // Helper to group notifications by date
 function groupNotificationsByDate(notifications: Record<string, unknown>[]) {
   const groups: Record<string, Record<string, unknown>[]> = {
-    "Today": [],
-    "Yesterday": [],
+    Today: [],
+    Yesterday: [],
     "This Week": [],
-    "Older": [],
+    Older: [],
   };
 
   const today = new Date();
@@ -105,8 +105,11 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
   const readCount = notifications.length - unreadCount;
-  
-  const groupedNotifications = useMemo(() => groupNotificationsByDate(notifications), [notifications]);
+
+  const groupedNotifications = useMemo(
+    () => groupNotificationsByDate(notifications),
+    [notifications],
+  );
 
   if (!shopId) return null;
 
@@ -162,7 +165,8 @@ export default function NotificationsPage() {
               You&apos;re all caught up!
             </h3>
             <p className="text-[var(--color-ink-secondary)] mt-2 max-w-sm">
-              We&apos;ll let you know when stock runs low or items are transferred to this shop.
+              We&apos;ll let you know when stock runs low or items are
+              transferred to this shop.
             </p>
             <Link href="/inventory" className="btn btn-primary mt-6">
               Go to Inventory
@@ -275,7 +279,9 @@ export default function NotificationsPage() {
           <div className="space-y-6 mt-4">
             <div className="flex items-center gap-3 mb-2">
               {getIconForTitle(selectedNotif.title || "")}
-              <span className="font-bold text-lg">{selectedNotif.title || "Notification"}</span>
+              <span className="font-bold text-lg">
+                {selectedNotif.title || "Notification"}
+              </span>
             </div>
             <div className="bg-[var(--color-surface-1)] p-5 rounded-xl border border-[var(--color-border-subtle)] shadow-inner">
               <p className="text-[var(--color-ink-primary)] leading-relaxed whitespace-pre-wrap text-[15px]">
@@ -284,15 +290,17 @@ export default function NotificationsPage() {
             </div>
 
             <div className="flex items-center justify-between text-sm bg-[var(--color-surface-0)] border border-[var(--color-border-subtle)] p-4 rounded-xl">
-              <span className="text-[var(--color-ink-secondary)]">Received on</span>
+              <span className="text-[var(--color-ink-secondary)]">
+                Received on
+              </span>
               <span className="font-semibold text-[var(--color-ink-primary)]">
                 {new Date(selectedNotif.created_at).toLocaleString(undefined, {
-                  weekday: 'short',
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
+                  weekday: "short",
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
                 })}
               </span>
             </div>
@@ -317,4 +325,3 @@ export default function NotificationsPage() {
     </div>
   );
 }
-

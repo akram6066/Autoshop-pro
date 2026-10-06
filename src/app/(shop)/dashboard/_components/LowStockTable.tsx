@@ -47,7 +47,9 @@ export function LowStockTable({ items }: LowStockTableProps) {
                 className="hover:bg-[var(--color-surface-2)] transition-colors"
               >
                 <td className="px-4 sm:px-6 py-3 sm:py-4 font-medium text-[var(--color-ink-primary)] max-w-[120px] sm:max-w-none truncate">
-                  {product.name}{product.size ? ` - ${product.size}` : ""}{product.sku ? ` (SKU: ${product.sku})` : ""}
+                  {product.name}
+                  {product.size ? ` - ${product.size}` : ""}
+                  {product.sku ? ` (SKU: ${product.sku})` : ""}
                 </td>
                 <td className="px-4 sm:px-6 py-3 sm:py-4 font-mono text-xs text-[var(--color-ink-secondary)] hidden sm:table-cell">
                   {product.sku || "—"}
@@ -68,4 +70,3 @@ export function LowStockTable({ items }: LowStockTableProps) {
     </div>
   );
 }
-

@@ -302,5 +302,3 @@ export const CATEGORY_LABELS: Record<string, string> = new Proxy(
   { tire: "Tire", battery: "Battery", rim: "Rim" } as Record<string, string>,
   { get: (target, prop: string) => target[prop] ?? prop },
 );
-
-

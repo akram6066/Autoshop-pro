@@ -4,7 +4,13 @@ import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useScroll, useMotionValueEvent, useMotionValue, useSpring } from "framer-motion";
+import {
+  motion,
+  useScroll,
+  useMotionValueEvent,
+  useMotionValue,
+  useSpring,
+} from "framer-motion";
 import { Menu, X, ArrowRight } from "lucide-react";
 import Container from "./Container";
 
@@ -16,7 +22,15 @@ const NAV_LINKS = [
   { href: "/contact", label: "Contact", id: "contact" },
 ];
 
-function MagneticButton({ children, href, className }: { children: React.ReactNode, href: string, className?: string }) {
+function MagneticButton({
+  children,
+  href,
+  className,
+}: {
+  children: React.ReactNode;
+  href: string;
+  className?: string;
+}) {
   const ref = useRef<HTMLAnchorElement>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -94,8 +108,8 @@ function LandingNav() {
         <Container>
           <div
             className={`flex items-center justify-between transition-all duration-500 rounded-2xl px-6 ${
-              scrolled 
-                ? "bg-[#0a0a0a]/70 backdrop-blur-2xl border border-zinc-800/80 shadow-[0_8px_32px_rgba(0,0,0,0.4)] shadow-inner h-16" 
+              scrolled
+                ? "bg-[#0a0a0a]/70 backdrop-blur-2xl border border-zinc-800/80 shadow-[0_8px_32px_rgba(0,0,0,0.4)] shadow-inner h-16"
                 : "bg-transparent h-20"
             }`}
           >
@@ -127,7 +141,10 @@ function LandingNav() {
 
             {/* Desktop CTAs */}
             <div className="hidden md:flex items-center gap-4">
-              <Link href="/login" className="text-sm font-medium text-zinc-200 hover:text-white transition-colors">
+              <Link
+                href="/login"
+                className="text-sm font-medium text-zinc-200 hover:text-white transition-colors"
+              >
                 Sign In
               </Link>
               <MagneticButton
@@ -135,7 +152,13 @@ function LandingNav() {
                 className="group relative overflow-hidden px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-white/10 border border-white/10 hover:border-brand-500/50 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.05)]"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-brand-600 to-brand-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <span className="relative z-10 flex items-center gap-2">Get Started <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></span>
+                <span className="relative z-10 flex items-center gap-2">
+                  Get Started{" "}
+                  <ArrowRight
+                    size={14}
+                    className="group-hover:translate-x-1 transition-transform"
+                  />
+                </span>
               </MagneticButton>
             </div>
 
@@ -152,7 +175,7 @@ function LandingNav() {
 
       {/* Mobile Menu */}
       {menuOpen && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -165,7 +188,11 @@ function LandingNav() {
                   key={l.href}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1, duration: 0.4, ease: "easeOut" }}
+                  transition={{
+                    delay: i * 0.1,
+                    duration: 0.4,
+                    ease: "easeOut",
+                  }}
                 >
                   <Link
                     href={l.href}
@@ -176,17 +203,25 @@ function LandingNav() {
                   </Link>
                 </motion.div>
               ))}
-              
-              <motion.div 
+
+              <motion.div
                 className="flex flex-col gap-4 mt-8"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5, duration: 0.4 }}
               >
-                <Link href="/login" onClick={() => setMenuOpen(false)} className="py-4 text-center text-zinc-300 font-medium border border-zinc-800 rounded-xl bg-zinc-900/50">
+                <Link
+                  href="/login"
+                  onClick={() => setMenuOpen(false)}
+                  className="py-4 text-center text-zinc-300 font-medium border border-zinc-800 rounded-xl bg-zinc-900/50"
+                >
                   Sign In
                 </Link>
-                <Link href="/signup" onClick={() => setMenuOpen(false)} className="py-4 text-center text-white font-semibold bg-gradient-to-r from-brand-600 to-brand-500 rounded-xl shadow-[0_0_30px_rgba(99,102,241,0.3)]">
+                <Link
+                  href="/signup"
+                  onClick={() => setMenuOpen(false)}
+                  className="py-4 text-center text-white font-semibold bg-gradient-to-r from-brand-600 to-brand-500 rounded-xl shadow-[0_0_30px_rgba(99,102,241,0.3)]"
+                >
                   Start Free Trial
                 </Link>
               </motion.div>
