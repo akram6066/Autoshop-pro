@@ -9,6 +9,7 @@ import {
   useDeleteAllReadNotifications,
 } from "@/hooks/useNotifications";
 import { useState, useMemo } from "react";
+import type { ShopNotification } from "@/hooks/useNotifications";
 import { Modal } from "@/components/ui/Modal";
 import {
   Bell,
@@ -24,8 +25,8 @@ import { timeAgo } from "@/app/(shop)/activity/_lib/fetchActivity";
 import Link from "next/link";
 
 // Helper to group notifications by date
-function groupNotificationsByDate(notifications: Record<string, unknown>[]) {
-  const groups: Record<string, Record<string, unknown>[]> = {
+function groupNotificationsByDate(notifications: ShopNotification[]) {
+  const groups: Record<string, ShopNotification[]> = {
     Today: [],
     Yesterday: [],
     "This Week": [],
@@ -325,3 +326,5 @@ export default function NotificationsPage() {
     </div>
   );
 }
+
+
