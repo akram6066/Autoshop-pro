@@ -47,8 +47,8 @@ export function SaleReceipt({
   }));
 
   return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="card p-8 text-center max-w-sm w-full animate-scale-in">
+    <div className="flex items-center justify-center min-h-[60vh] px-4">
+      <div className="card p-6 sm:p-8 text-center max-w-sm w-full animate-scale-in mx-auto shadow-xl">
         <div
           className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
           style={{ background: "var(--color-success-light)" }}
@@ -121,7 +121,7 @@ export function SaleReceipt({
               </>
             )}
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             type="button"
             onClick={() => window.print()}

@@ -61,6 +61,38 @@ export function formatRelative(iso: string): string {
   return formatDate(iso);
 }
 
+export function formatDayHeader(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const isToday =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday =
+    date.getFullYear() === yesterday.getFullYear() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getDate() === yesterday.getDate();
+
+  if (isToday) return "Today";
+  if (isYesterday) return "Yesterday";
+
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+  });
+}
+
+export function formatTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 // ─── Labels ───────────────────────────────────────────────────────────────────
 
 export function categoryLabel(cat: Category): string {
@@ -93,7 +125,7 @@ export function getDeviceId(): string {
 
 export function debounce<T extends (...args: unknown[]) => unknown>(
   fn: T,
-  delay: number
+  delay: number,
 ): (...args: Parameters<T>) => void {
   let timer: ReturnType<typeof setTimeout>;
   return (...args: Parameters<T>) => {
@@ -104,7 +136,11 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
 
 // ─── Sync Badge ───────────────────────────────────────────────────────────────
 
-export function syncBadgeClass(pending: number, failed: number, isOnline: boolean): string {
+export function syncBadgeClass(
+  pending: number,
+  failed: number,
+  isOnline: boolean,
+): string {
   if (!isOnline) return "badge-warning";
   if (failed > 0) return "badge-danger";
   if (pending > 0) return "badge-info";
@@ -120,7 +156,10 @@ export function truncate(str: string, maxLen: number): string {
 
 // ─── Stock status ─────────────────────────────────────────────────────────────
 
-export function stockStatus(qty: number, minStock: number): "ok" | "low" | "out" {
+export function stockStatus(
+  qty: number,
+  minStock: number,
+): "ok" | "low" | "out" {
   if (qty === 0) return "out";
   if (qty <= minStock) return "low";
   return "ok";

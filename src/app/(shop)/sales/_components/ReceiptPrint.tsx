@@ -25,7 +25,7 @@ export function ReceiptPrint({ sale, items, shop }: ReceiptPrintProps) {
   return (
     <div
       id="printable-receipt"
-      className="px-4 py-6 bg-white text-black text-sm"
+      className="hidden print:block px-4 py-6 bg-white text-black text-sm"
       style={{
         fontFamily: "monospace",
         width: "100%",

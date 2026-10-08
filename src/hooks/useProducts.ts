@@ -354,9 +354,12 @@ export function useRestockProduct() {
         };
       }
     },
-    onSuccess: (result, { shopId }) => {
+    onSuccess: (result, { shopId, productId }) => {
       if (result.status !== "error") {
         qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
+        qc.invalidateQueries({ queryKey: ["inventory-levels", shopId] });
+        qc.invalidateQueries({ queryKey: ["inventory-movements", productId] });
+        qc.invalidateQueries({ queryKey: ["product-timeline", productId] });
       }
     },
   });
@@ -530,6 +533,8 @@ export function useTransferStock() {
         qc.invalidateQueries({
           queryKey: inventoryLevelKeys.all(currentShopId),
         });
+        qc.invalidateQueries({ queryKey: ["inventory-movements"] });
+        qc.invalidateQueries({ queryKey: ["product-timeline"] });
       }
     },
   });

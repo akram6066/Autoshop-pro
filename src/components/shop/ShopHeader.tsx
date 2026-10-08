@@ -269,9 +269,9 @@ export function ShopHeader({
         </div>
       </div>
 
-      {/* Mobile nav — original simple dropdown under header, scroll-locked */}
+      {/* Mobile nav - absolute overlay with overscroll-contain */}
       {mobileOpen && (
-        <nav className="lg:hidden border-t border-[var(--color-border-subtle)] bg-[var(--color-surface-0)] max-h-[calc(100vh-5rem)] overflow-y-auto">
+        <nav className="lg:hidden absolute top-20 left-0 right-0 border-t border-[var(--color-border-subtle)] bg-[var(--color-surface-0)] h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain shadow-2xl z-50 no-scrollbar">
           <div className="px-4 py-4 flex flex-col gap-2">
             {visibleNav.map((item) => {
               const active = pathname.startsWith(item.href);

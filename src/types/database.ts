@@ -463,6 +463,66 @@ export interface Database {
         };
         Relationships: [];
       };
+      inventory_movements: {
+        Row: {
+          id: string;
+          shop_id: string;
+          product_id: string | null;
+          variant_id: string | null;
+          movement_type: string;
+          quantity: number;
+          quantity_before: number | null;
+          quantity_after: number | null;
+          from_location_id: string | null;
+          to_location_id: string | null;
+          reference_id: string | null;
+          reference_type: string | null;
+          performed_by: string | null;
+          created_at: string;
+          reason: string | null;
+          metadata: Json;
+          idempotency_key: string | null;
+        };
+        Insert: {
+          id?: string;
+          shop_id: string;
+          product_id?: string | null;
+          variant_id?: string | null;
+          movement_type: string;
+          quantity: number;
+          quantity_before?: number | null;
+          quantity_after?: number | null;
+          from_location_id?: string | null;
+          to_location_id?: string | null;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          performed_by?: string | null;
+          created_at?: string;
+          reason?: string | null;
+          metadata?: Json;
+          idempotency_key?: string | null;
+        };
+        Update: {
+          id?: string;
+          shop_id?: string;
+          product_id?: string | null;
+          variant_id?: string | null;
+          movement_type?: string;
+          quantity?: number;
+          quantity_before?: number | null;
+          quantity_after?: number | null;
+          from_location_id?: string | null;
+          to_location_id?: string | null;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          performed_by?: string | null;
+          created_at?: string;
+          reason?: string | null;
+          metadata?: Json;
+          idempotency_key?: string | null;
+        };
+        Relationships: [];
+      };
       sync_queue: {
         Row: {
           id: string;
@@ -823,6 +883,10 @@ export interface Database {
         Returns: string;
       };
       record_stock_movement: {
+        Args: { p_movement: Json };
+        Returns: string;
+      };
+      record_inventory_movement: {
         Args: { p_movement: Json };
         Returns: string;
       };

@@ -105,6 +105,23 @@ export const POST = withAuth(
               rpcError,
               "Stock movement could not be recorded",
             );
+        } else if (cmd.command === "RECORD_INVENTORY_MOVEMENT") {
+          const rawMovement = (p.movement || {}) as Record<string, unknown>;
+          const movementWithKey = {
+            ...rawMovement,
+            idempotency_key:
+              rawMovement.idempotency_key || p.idempotency_key || cmd.id,
+          };
+          const { error: rpcError } = await withTimeout(
+            supabase.rpc("record_inventory_movement", {
+              p_movement: movementWithKey as unknown as Json,
+            }),
+          );
+          if (rpcError)
+            error = friendlyError(
+              rpcError,
+              "Inventory movement could not be recorded",
+            );
         } else if (cmd.command === "MANAGE_PRODUCT") {
           const { error: rpcError } = await withTimeout(
             supabase.rpc("manage_product", {

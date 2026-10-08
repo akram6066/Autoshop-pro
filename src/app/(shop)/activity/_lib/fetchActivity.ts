@@ -146,7 +146,10 @@ export async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
         "MEMBER_ROLE_CHANGE",
         "MEMBER_REMOVED",
         "PRODUCT_ADDED",
+        "PRODUCT_CREATED",
         "PRODUCT_UPDATED",
+        "PRODUCT_ARCHIVED",
+        "PRODUCT_RESTORED",
         "PRODUCT_DELETED",
         "VARIANT_UPDATED",
         "VARIANT_DELETED",
@@ -306,12 +309,44 @@ export async function fetchActivity(shopId: string): Promise<ActivityEvent[]> {
     const payload = (a.payload ?? {}) as Record<string, unknown>;
     const staffName = profileMap.get(a.user_id ?? "") ?? "Unknown";
 
-    if (a.event_type === "PRODUCT_ADDED") {
+    if (
+      a.event_type === "PRODUCT_ADDED" ||
+      a.event_type === "PRODUCT_CREATED"
+    ) {
       events.push({
         id: `audit-${a.id}`,
         type: "PRODUCT_ADDED",
         staffName,
         label: "Added product",
+        detail: formatProductName(
+          String(payload.name ?? ""),
+          String(payload.size || ""),
+          String(payload.sku || ""),
+        ),
+        created_at: a.created_at,
+        severity: "info",
+      });
+    } else if (a.event_type === "PRODUCT_ARCHIVED") {
+      events.push({
+        id: `audit-${a.id}`,
+        type: "PRODUCT_DELETED",
+        staffName,
+        label: "Archived product",
+        detail: formatProductName(
+          String(payload.name ?? ""),
+          String(payload.size || ""),
+          String(payload.sku || ""),
+        ),
+        extraDetail: payload.reason ? `Reason: ${payload.reason}` : undefined,
+        created_at: a.created_at,
+        severity: "warning",
+      });
+    } else if (a.event_type === "PRODUCT_RESTORED") {
+      events.push({
+        id: `audit-${a.id}`,
+        type: "PRODUCT_ADDED",
+        staffName,
+        label: "Restored product",
         detail: formatProductName(
           String(payload.name ?? ""),
           String(payload.size || ""),

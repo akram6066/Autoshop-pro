@@ -109,6 +109,9 @@ export interface Product {
   min_stock: number;
   price: number;
   size: string | null;
+  is_archived?: boolean;
+  archived_at?: string | null;
+  archive_reason?: string | null;
   updated_at: string;
 }
 
@@ -192,10 +195,79 @@ export interface StockMovement {
   created_at: string;
 }
 
+export type InventoryMovementType =
+  | "RECEIVE"
+  | "RESTOCK"
+  | "SALE"
+  | "SALE_VOID"
+  | "TRANSFER_OUT"
+  | "TRANSFER_IN"
+  | "RETURN"
+  | "ADJUSTMENT_IN"
+  | "ADJUSTMENT_OUT"
+  | "DAMAGE"
+  | "LOSS"
+  | "FOUND"
+  | "INITIAL_STOCK";
+
+export type ProductAuditEventType =
+  | "PRODUCT_CREATED"
+  | "PRODUCT_UPDATED"
+  | "PRODUCT_ARCHIVED"
+  | "PRODUCT_RESTORED"
+  | "PRODUCT_DELETED";
+
+export interface InventoryMovement {
+  id: string;
+  shop_id: string;
+  product_id: string | null;
+  variant_id: string | null;
+  movement_type: InventoryMovementType;
+  quantity: number;
+  quantity_before: number | null;
+  quantity_after: number | null;
+  from_location_id: string | null;
+  to_location_id: string | null;
+  reference_id: string | null;
+  reference_type: string | null;
+  performed_by: string | null;
+  created_at: string;
+  reason: string | null;
+  metadata: Record<string, unknown>;
+  idempotency_key: string | null;
+  // Augmented UI fields
+  performed_by_name?: string;
+  from_location_name?: string;
+  to_location_name?: string;
+  product_name?: string;
+  sku?: string;
+  variant_size?: string;
+}
+
+export interface ProductAuditEvent {
+  id: string;
+  shop_id: string | null;
+  user_id: string | null;
+  event_type: ProductAuditEventType | string;
+  entity_type: string;
+  entity_id: string;
+  payload: {
+    name?: string;
+    sku?: string;
+    reason?: string;
+    changes?: Record<string, { before: unknown; after: unknown }>;
+    [key: string]: unknown;
+  };
+  severity: "info" | "warning" | "critical";
+  created_at: string;
+  user_name?: string;
+}
+
 export type SyncCommandType =
   | "RECORD_SALE"
   | "RECORD_CUSTOMER_PAYMENT"
   | "RECORD_STOCK_MOVEMENT"
+  | "RECORD_INVENTORY_MOVEMENT"
   | "MANAGE_PRODUCT"
   | "MANAGE_CUSTOMER"
   | "CREATE_VARIANTS"

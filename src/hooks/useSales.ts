@@ -403,6 +403,9 @@ export function useRecordSale() {
       qc.invalidateQueries({ queryKey: ["products", shopId] });
       qc.invalidateQueries({ queryKey: ["variants", "shop", shopId] });
       qc.invalidateQueries({ queryKey: ["customers", shopId] });
+      qc.invalidateQueries({ queryKey: ["inventory-levels", shopId] });
+      qc.invalidateQueries({ queryKey: ["inventory-movements"] });
+      qc.invalidateQueries({ queryKey: ["product-timeline"] });
     },
   });
 }
@@ -441,6 +444,9 @@ export function useVoidSale() {
       qc.invalidateQueries({ queryKey: ["products", shopId] });
       // Customer balances — void_sale restores customer balances
       qc.invalidateQueries({ queryKey: ["customers", shopId] });
+      qc.invalidateQueries({ queryKey: ["inventory-levels", shopId] });
+      qc.invalidateQueries({ queryKey: ["inventory-movements"] });
+      qc.invalidateQueries({ queryKey: ["product-timeline"] });
     },
   });
 }

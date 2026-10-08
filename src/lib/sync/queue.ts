@@ -146,6 +146,17 @@ async function _doFlush(shopId: string): Promise<void> {
                     },
                   }
                 : {}),
+              ...(c.command === "RECORD_INVENTORY_MOVEMENT" &&
+              c.payload.movement
+                ? {
+                    movement: {
+                      ...(c.payload.movement as Record<string, unknown>),
+                      idempotency_key:
+                        (c.payload.movement as Record<string, unknown>)
+                          .idempotency_key || c.id,
+                    },
+                  }
+                : {}),
             },
             created_at: c.created_at,
           })),
@@ -195,13 +206,25 @@ async function _doFlush(shopId: string): Promise<void> {
                   });
               }
             }
-          } else if (entry.command === "RECORD_STOCK_MOVEMENT") {
+          } else if (
+            entry.command === "RECORD_STOCK_MOVEMENT" ||
+            entry.command === "RECORD_INVENTORY_MOVEMENT"
+          ) {
             const movementPayload = entry.payload.movement as
               | Record<string, unknown>
               | undefined;
             const movementId = movementPayload?.id as string | undefined;
             if (movementId) {
-              await db.stock_movements.update(movementId, { synced: true });
+              const stockItem = await db.stock_movements.get(movementId);
+              if (stockItem) {
+                await db.stock_movements.update(movementId, { synced: true });
+              }
+              const invItem = await db.inventory_movements.get(movementId);
+              if (invItem) {
+                await db.inventory_movements.update(movementId, {
+                  synced: true,
+                } as never);
+              }
             }
           }
         } else {

@@ -14,6 +14,7 @@ import type {
   CustomerPayment,
   InventoryLevel,
   StockTransfer,
+  InventoryMovement,
 } from "@/types/app";
 
 // ─── AutoShop Database ────────────────────────────────────────────────────────
@@ -26,6 +27,7 @@ export class AutoShopDatabase extends Dexie {
   sales!: Table<Sale>;
   sale_items!: Table<SaleItem>;
   stock_movements!: Table<StockMovement>;
+  inventory_movements!: Table<InventoryMovement>;
   sync_queue!: Table<SyncCommand>;
   purchase_orders!: Table<PurchaseOrder>;
   po_items!: Table<POItem>;
@@ -153,6 +155,26 @@ export class AutoShopDatabase extends Dexie {
       rooms: "id, shop_id",
       inventory_levels: "id, shop_id, room_id, product_id, variant_id",
       stock_transfers: "id, from_shop_id, to_shop_id",
+      products: "id, shop_id, room_id, category, sku, updated_at",
+      product_variants: "id, product_id",
+      sales: "id, shop_id, user_id, created_at, synced",
+      sale_items: "id, sale_id, product_id",
+      stock_movements: "id, shop_id, product_id, seq, synced, created_at",
+      sync_queue: "id, shop_id, command, status, created_at, [shop_id+status]",
+      purchase_orders: "id, shop_id, status, synced, created_at",
+      po_items: "id, po_id, product_id",
+      customers: "id, shop_id",
+      customer_payments: "id, shop_id, customer_id",
+    });
+
+    // V8 — Product Activity & Inventory Movements Ledger
+    this.version(8).stores({
+      shops: "id",
+      rooms: "id, shop_id",
+      inventory_levels: "id, shop_id, room_id, product_id, variant_id",
+      stock_transfers: "id, from_shop_id, to_shop_id",
+      inventory_movements:
+        "id, shop_id, product_id, variant_id, movement_type, reference_id, idempotency_key, created_at",
       products: "id, shop_id, room_id, category, sku, updated_at",
       product_variants: "id, product_id",
       sales: "id, shop_id, user_id, created_at, synced",
