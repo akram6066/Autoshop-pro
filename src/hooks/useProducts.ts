@@ -55,7 +55,7 @@ export function useProducts(shopId: string | null): UseQueryResult<Product[]> {
     enabled: !!shopId,
     staleTime: 1000 * 60 * 2,
     gcTime: 1000 * 60 * 10,
-    placeholderData: [],
+    placeholderData: (previousData) => previousData ?? [],
   });
 }
 
@@ -108,8 +108,20 @@ export function useCreateProduct() {
         id: crypto.randomUUID(),
         shop_id: shopId,
         updated_at: now,
+        is_archived: false,
         ...data,
       };
+
+      // 1. Optimistically write to Dexie and TanStack Query cache instantly
+      try {
+        await getDb().products.put(payload);
+        qc.setQueryData<Product[]>(productKeys.all(shopId), (old = []) => {
+          const filtered = old.filter((p) => p.id !== payload.id);
+          return [payload, ...filtered];
+        });
+      } catch (err) {
+        console.warn("[useCreateProduct] Optimistic cache update failed:", err);
+      }
 
       let rpcError: unknown = null;
       let isNetworkError = false;
@@ -133,18 +145,22 @@ export function useCreateProduct() {
       try {
         if (rpcError) {
           if (!isNetworkError) {
+            // Roll back cache on business logic rejection (e.g. unique constraint)
+            qc.setQueryData<Product[]>(productKeys.all(shopId), (old = []) =>
+              old.filter((p) => p.id !== payload.id),
+            );
+            await getDb()
+              .products.delete(payload.id)
+              .catch(() => {});
             throw rpcError;
           }
           await enqueue(shopId, "MANAGE_PRODUCT", {
             op: "INSERT",
             product: payload as unknown as Record<string, unknown>,
           });
-          await getDb().products.put(payload);
           return { status: "offline", data: payload };
         }
 
-        // Cache product locally on success
-        await getDb().products.put(payload);
         return { status: "success", data: payload };
       } catch (err) {
         return {
@@ -155,8 +171,15 @@ export function useCreateProduct() {
       }
     },
     onSuccess: (result, { shopId }) => {
-      if (result.status !== "error") {
-        qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
+      if (result.status !== "error" && result.data) {
+        qc.setQueryData<Product[]>(productKeys.all(shopId), (old = []) => {
+          const filtered = old.filter((p) => p.id !== result.data!.id);
+          return [result.data!, ...filtered];
+        });
+        qc.invalidateQueries({
+          queryKey: productKeys.all(shopId),
+          refetchType: "none",
+        });
       }
     },
   });
@@ -269,9 +292,22 @@ export function useUpdateProduct() {
         };
       }
     },
-    onSuccess: (result, { shopId }) => {
+    onSuccess: (result, { shopId, productId, changes, quantityDelta }) => {
       if (result.status !== "error") {
-        qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
+        qc.setQueryData<Product[]>(productKeys.all(shopId), (old = []) => {
+          return old.map((p) => {
+            if (p.id !== productId) return p;
+            const nextQty =
+              quantityDelta !== undefined
+                ? Math.max(0, p.quantity + quantityDelta)
+                : p.quantity;
+            return { ...p, ...changes, quantity: nextQty };
+          });
+        });
+        qc.invalidateQueries({
+          queryKey: productKeys.all(shopId),
+          refetchType: "none",
+        });
       }
     },
   });
@@ -378,9 +414,20 @@ export function useRestockProduct() {
         };
       }
     },
-    onSuccess: (result, { shopId, productId }) => {
+    onSuccess: (result, { shopId, productId, quantityAdded }) => {
       if (result.status !== "error") {
-        qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
+        qc.setQueryData<Product[]>(productKeys.all(shopId), (old = []) => {
+          if (!old) return old;
+          return old.map((p) =>
+            p.id === productId
+              ? { ...p, quantity: Math.max(0, p.quantity + quantityAdded) }
+              : p,
+          );
+        });
+        qc.invalidateQueries({
+          queryKey: productKeys.all(shopId),
+          refetchType: "none",
+        });
         qc.invalidateQueries({ queryKey: ["inventory-levels", shopId] });
         qc.invalidateQueries({ queryKey: ["inventory-movements", productId] });
         qc.invalidateQueries({ queryKey: ["product-timeline", productId] });
@@ -474,7 +521,10 @@ export function useDeleteProduct() {
         qc.setQueryData(productKeys.all(shopId), (old?: Product[]) =>
           old ? old.filter((p) => p.id !== productId) : [],
         );
-        qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
+        qc.invalidateQueries({
+          queryKey: productKeys.all(shopId),
+          refetchType: "none",
+        });
         qc.invalidateQueries({ queryKey: ["inventory-levels", shopId] });
         qc.invalidateQueries({ queryKey: ["shop-variants", shopId] });
       }
@@ -595,7 +645,10 @@ export function useBulkDeleteProducts() {
         qc.setQueryData(productKeys.all(shopId), (old?: Product[]) =>
           old ? old.filter((p) => !idSet.has(p.id)) : [],
         );
-        qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
+        qc.invalidateQueries({
+          queryKey: productKeys.all(shopId),
+          refetchType: "none",
+        });
         qc.invalidateQueries({ queryKey: ["inventory-levels", shopId] });
         qc.invalidateQueries({ queryKey: ["shop-variants", shopId] });
       }

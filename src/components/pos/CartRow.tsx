@@ -128,7 +128,7 @@ export function CartRow({
           <button
             type="button"
             onClick={() => onQtyChange(item.quantity - 1)}
-            className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-medium transition-colors"
+            className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-semibold transition-all active:scale-90 select-none hover:bg-[var(--color-surface-3)]"
             style={{
               background: "var(--color-surface-2)",
               color: "var(--color-ink-secondary)",
@@ -138,7 +138,7 @@ export function CartRow({
             −
           </button>
           <span
-            className="w-8 text-center text-sm font-medium"
+            className="w-8 text-center text-sm font-bold select-none"
             style={{ color: "var(--color-ink-primary)" }}
           >
             {item.quantity}
@@ -147,7 +147,7 @@ export function CartRow({
             type="button"
             onClick={() => onQtyChange(item.quantity + 1)}
             disabled={item.quantity >= item.maxQuantity}
-            className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-medium transition-colors"
+            className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-semibold transition-all active:scale-90 select-none hover:bg-[var(--color-surface-3)]"
             style={{
               background: "var(--color-surface-2)",
               color: "var(--color-ink-secondary)",

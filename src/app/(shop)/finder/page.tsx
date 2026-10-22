@@ -1,20 +1,28 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import { useProducts } from "@/hooks/useProducts";
 import { useShopVariants } from "@/hooks/useVariants";
 import { createClient } from "@/lib/supabase/client";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { FinderResultCard } from "./_components/FinderResultCard";
+import {
+  CustomerDisplayModal,
+  type CustomerDisplayItem,
+} from "@/components/shop/CustomerDisplayModal";
 import type { Room, ProductVariant } from "@/types/app";
 
 export default function FinderPage() {
+  const router = useRouter();
   const shopId = useAuthStore(selectShopId);
   const { data: products = [], isLoading } = useProducts(shopId);
   const { data: allVariants = [] } = useShopVariants(shopId);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [query, setQuery] = useState("");
+  const [customerDisplayItem, setCustomerDisplayItem] =
+    useState<CustomerDisplayItem | null>(null);
 
   useEffect(() => {
     if (!shopId) return;
@@ -162,9 +170,42 @@ export default function FinderPage() {
               variants={variants}
               hasVariants={hasVariants}
               roomMap={roomMap}
+              onShowCustomer={(p, vars) => {
+                const roomName =
+                  (p.room_id ? roomMap[p.room_id] : null) ?? "Main Room";
+                setCustomerDisplayItem({
+                  id: p.id,
+                  name: p.name,
+                  sku: p.sku,
+                  category: p.category,
+                  price: p.price,
+                  quantity: p.quantity,
+                  size: p.size,
+                  room_name: roomName,
+                  variants: vars.map((v) => ({
+                    id: v.id,
+                    size: v.size,
+                    sku: v.sku,
+                    quantity: v.quantity,
+                    price: v.price,
+                  })),
+                });
+              }}
             />
           ))}
         </div>
+      )}
+
+      {customerDisplayItem && (
+        <CustomerDisplayModal
+          item={customerDisplayItem}
+          isOpen={!!customerDisplayItem}
+          onClose={() => setCustomerDisplayItem(null)}
+          actionLabel="Sell in POS"
+          onAction={() => {
+            router.push("/pos");
+          }}
+        />
       )}
     </div>
   );

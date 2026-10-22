@@ -11,7 +11,6 @@ import {
   useRestockProduct,
   useUpdateProduct,
 } from "@/hooks/useProducts";
-import { useCreateVariants } from "@/hooks/useVariants";
 import { useRooms } from "@/hooks/useRooms";
 import { useCategories } from "@/hooks/useCategories";
 import { productSchema, variantSchema } from "@/lib/validations/domain";
@@ -29,6 +28,8 @@ import {
   DuplicateProductModal,
   type DuplicateMatch,
 } from "./_components/DuplicateProductModal";
+import { ProductSuccessModal } from "./_components/ProductSuccessModal";
+import { CustomerDisplayModal } from "@/components/shop/CustomerDisplayModal";
 
 function newRow(): VariantRow {
   return {
@@ -57,7 +58,7 @@ export default function NewProductPage() {
 
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"single" | "import">("single");
-  const [importing, setImporting] = useState(false);
+  const [_importing, setImporting] = useState(false);
   const mounted = useMounted();
 
   // Duplicate detection & restock state
@@ -124,6 +125,39 @@ export default function NewProductPage() {
   const [useVariants, setUseVariants] = useState(false);
   const [variants, setVariants] = useState<VariantRow[]>([newRow()]);
 
+  // Success & customer display state
+  const [successProduct, setSuccessProduct] = useState<{
+    name: string;
+    category: string;
+    price: number;
+    quantity: number;
+    sku: string;
+    size?: string | null;
+    roomName: string;
+    variantCount?: number;
+    variants?: Array<{
+      id: string;
+      size: string;
+      sku?: string | null;
+      quantity: number;
+      price: number;
+    }>;
+  } | null>(null);
+  const [isCustomerDisplayOpen, setIsCustomerDisplayOpen] = useState(false);
+
+  function resetForm() {
+    setName("");
+    setSku("");
+    setSize("");
+    setQuantity(0);
+    setMinStock(5);
+    setPrice(0);
+    setVariants([newRow()]);
+    setSuccessProduct(null);
+    setIsCustomerDisplayOpen(false);
+    setError("");
+  }
+
   const effectiveRoomId = roomId || rooms[0]?.id || "";
   const effectiveCategory = category || categories[0]?.name || "";
   const isPending = isCreatingProduct || isRestockingDuplicate;
@@ -155,23 +189,25 @@ export default function NewProductPage() {
     }
 
     let saved = 0;
-    for (const row of rows) {
-      const finalSku = row.sku.trim() || generateSku(row.name, row.size);
-      const result = await createProduct({
-        shopId,
-        data: {
-          room_id: effectiveRoomId,
-          name: row.name.trim(),
-          sku: finalSku,
-          category: row.category || effectiveCategory,
-          quantity: row.quantity,
-          min_stock: row.min_stock,
-          price: row.price,
-          size: row.size.trim() || null,
-        },
-      });
-      if (result.status !== "error") saved++;
-    }
+    const importResults = await Promise.all(
+      rows.map(async (row) => {
+        const finalSku = row.sku.trim() || generateSku(row.name, row.size);
+        return createProduct({
+          shopId,
+          data: {
+            room_id: effectiveRoomId,
+            name: row.name.trim(),
+            sku: finalSku,
+            category: row.category || effectiveCategory,
+            quantity: row.quantity,
+            min_stock: row.min_stock,
+            price: row.price,
+            size: row.size.trim() || null,
+          },
+        });
+      }),
+    );
+    saved = importResults.filter((r) => r.status !== "error").length;
     setImporting(false);
     toast.success(
       `${saved} of ${rows.length} product${rows.length !== 1 ? "s" : ""} imported.`,
@@ -248,35 +284,35 @@ export default function NewProductPage() {
     if (!shopId || duplicateMatches.length === 0) return;
     setIsRestockingDuplicate(true);
     try {
-      // 1. Restock each existing match
-      for (const m of duplicateMatches) {
-        if (m.enteredQuantity > 0) {
-          await restockProduct({
+      // Run restocks and new variant creations concurrently in parallel
+      await Promise.all([
+        ...duplicateMatches
+          .filter((m) => m.enteredQuantity > 0)
+          .map((m) =>
+            restockProduct({
+              shopId,
+              productId: m.existingProduct.id,
+              quantityAdded: m.enteredQuantity,
+              reason: "restock",
+            }),
+          ),
+        ...newVariantsQueue.map((v) => {
+          const finalSku = v.sku.trim() || generateSku(name, v.size);
+          return createProduct({
             shopId,
-            productId: m.existingProduct.id,
-            quantityAdded: m.enteredQuantity,
-            reason: "restock",
+            data: {
+              room_id: effectiveRoomId,
+              name: name.trim(),
+              sku: finalSku,
+              category: effectiveCategory,
+              quantity: v.quantity,
+              min_stock: v.min_stock,
+              price: v.price,
+              size: v.size.trim() || null,
+            },
           });
-        }
-      }
-
-      // 2. Create any new sizes that didn't exist yet
-      for (const v of newVariantsQueue) {
-        const finalSku = v.sku.trim() || generateSku(name, v.size);
-        await createProduct({
-          shopId,
-          data: {
-            room_id: effectiveRoomId,
-            name: name.trim(),
-            sku: finalSku,
-            category: effectiveCategory,
-            quantity: v.quantity,
-            min_stock: v.min_stock,
-            price: v.price,
-            size: v.size.trim() || null,
-          },
-        });
-      }
+        }),
+      ]);
 
       toast.success(
         `Successfully restocked ${duplicateMatches.length} existing size(s)${
@@ -384,38 +420,65 @@ export default function NewProductPage() {
         return;
       }
 
-      // All sizes are new: save normally
-      let saved = 0;
+      // All sizes are new: save normally in parallel
+      const roomObj = rooms.find((r) => r.id === effectiveRoomId);
+      const roomName = roomObj?.name || "Main Floor";
+
+      const createdItems: Product[] = [];
       let hasOffline = false;
 
-      for (const v of filled) {
-        const finalSku = v.sku.trim() || generateSku(name, v.size);
-        const result = await createProduct({
-          shopId,
-          data: {
-            room_id: effectiveRoomId,
-            name: name.trim(),
-            sku: finalSku,
-            category: effectiveCategory,
-            quantity: v.quantity,
-            min_stock: v.min_stock,
-            price: v.price,
-            size: v.size.trim() || null,
-          },
-        });
+      await Promise.all(
+        filled.map(async (v) => {
+          const finalSku = v.sku.trim() || generateSku(name, v.size);
+          const result = await createProduct({
+            shopId,
+            data: {
+              room_id: effectiveRoomId,
+              name: name.trim(),
+              sku: finalSku,
+              category: effectiveCategory,
+              quantity: v.quantity,
+              min_stock: v.min_stock,
+              price: v.price,
+              size: v.size.trim() || null,
+            },
+          });
 
-        if (result.status !== "error") saved++;
-        if (result.status === "offline") hasOffline = true;
-      }
+          if (result.status === "offline") hasOffline = true;
+          if (result.status !== "error" && result.data) {
+            createdItems.push(result.data);
+          }
+          return result;
+        }),
+      );
+
+      const totalQuantity = filled.reduce((sum, v) => sum + v.quantity, 0);
+      const minPrice = Math.min(...filled.map((v) => v.price));
 
       if (hasOffline) {
         toast.warning("Saved offline — will sync when reconnected.");
       } else {
         toast.success(
-          `Successfully added ${saved} sizes as separate products.`,
+          `Successfully added ${createdItems.length} sizes as separate products.`,
         );
       }
-      router.push("/inventory");
+
+      setSuccessProduct({
+        name: name.trim(),
+        category: effectiveCategory,
+        price: minPrice,
+        quantity: totalQuantity,
+        sku: createdItems[0]?.sku || "",
+        roomName,
+        variantCount: filled.length,
+        variants: createdItems.map((c) => ({
+          id: c.id,
+          size: c.size || "",
+          sku: c.sku,
+          quantity: c.quantity,
+          price: c.price,
+        })),
+      });
       return;
     }
 
@@ -487,12 +550,24 @@ export default function NewProductPage() {
       return;
     }
 
+    const roomObj = rooms.find((r) => r.id === effectiveRoomId);
+    const roomName = roomObj?.name || "Main Floor";
+
     if (result.status === "offline") {
       toast.warning("Saved offline — will sync when reconnected.");
     } else {
       toast.success("Successfully added product.");
     }
-    router.push("/inventory");
+
+    setSuccessProduct({
+      name: name.trim(),
+      category: effectiveCategory,
+      price,
+      quantity,
+      size: size.trim() || null,
+      sku: effectiveSku,
+      roomName,
+    });
   }
 
   return (
@@ -750,6 +825,37 @@ export default function NewProductPage() {
         onConfirmVariantRestock={handleConfirmVariantRestock}
         isSubmitting={isRestockingDuplicate}
       />
+
+      {/* Product Success Modal (Instant actions: Show Customer, Sell in POS, Add Another) */}
+      <ProductSuccessModal
+        isOpen={!!successProduct && !isCustomerDisplayOpen}
+        product={successProduct}
+        onShowCustomer={() => setIsCustomerDisplayOpen(true)}
+        onSellInPos={() => router.push("/pos")}
+        onGoToInventory={() => router.push("/inventory")}
+        onAddAnother={() => resetForm()}
+      />
+
+      {/* Customer Display Presentation Card */}
+      {successProduct && (
+        <CustomerDisplayModal
+          isOpen={isCustomerDisplayOpen}
+          item={{
+            id: successProduct.sku,
+            name: successProduct.name,
+            sku: successProduct.sku,
+            category: successProduct.category,
+            price: successProduct.price,
+            quantity: successProduct.quantity,
+            size: successProduct.size,
+            room_name: successProduct.roomName,
+            variants: successProduct.variants,
+          }}
+          onClose={() => setIsCustomerDisplayOpen(false)}
+          onAction={() => router.push("/pos")}
+          actionLabel="Sell in POS"
+        />
+      )}
     </div>
   );
 }

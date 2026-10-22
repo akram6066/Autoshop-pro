@@ -20,7 +20,7 @@ export function MobileCartBar({ itemCount, grandTotal, onOpenCart }: Props) {
     >
       {itemCount === 0 ? (
         <p
-          className="text-center text-sm py-1"
+          className="text-center text-sm py-1 font-medium"
           style={{ color: "var(--color-ink-tertiary)" }}
         >
           Tap a product to add it to the cart
@@ -29,15 +29,17 @@ export function MobileCartBar({ itemCount, grandTotal, onOpenCart }: Props) {
         <button
           type="button"
           onClick={onOpenCart}
-          className="btn btn-primary w-full"
+          className="btn btn-primary w-full py-3 active:scale-[0.98] transition-all duration-150 flex items-center justify-between shadow-lg"
         >
-          <span>View Cart</span>
-          <span className="ml-auto flex items-center gap-2 text-sm opacity-90">
-            <span>
-              {itemCount} item{itemCount !== 1 ? "s" : ""}
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold animate-scale-up">
+              {itemCount}
             </span>
-            <span>·</span>
+            <span className="font-semibold">View Cart</span>
+          </div>
+          <span className="flex items-center gap-2 text-sm font-bold tracking-tight">
             <span>{formatCurrency(grandTotal)}</span>
+            <span className="text-white/70">→</span>
           </span>
         </button>
       )}

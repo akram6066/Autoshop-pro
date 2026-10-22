@@ -57,6 +57,7 @@ export function useShopVariants(shopId: string | null) {
     },
     enabled: !!shopId,
     staleTime: 1000 * 60 * 2,
+    placeholderData: (prev) => prev ?? [],
   });
 }
 
@@ -86,6 +87,7 @@ export function useProductVariants(productId: string | null) {
     },
     enabled: !!productId,
     staleTime: 1000 * 60 * 2,
+    placeholderData: (prev) => prev ?? [],
   });
 }
 

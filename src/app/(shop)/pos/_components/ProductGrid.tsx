@@ -4,6 +4,10 @@ import { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { ProductCard } from "@/components/pos/ProductCard";
+import {
+  CustomerDisplayModal,
+  type CustomerDisplayItem,
+} from "@/components/shop/CustomerDisplayModal";
 import type { Product, ProductVariant } from "@/types/app";
 
 // Only shown when a multi-size product is tapped — defer from initial POS bundle.
@@ -36,6 +40,8 @@ export function ProductGrid({
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [pickerProduct, setPickerProduct] = useState<Product | null>(null);
+  const [customerDisplayItem, setCustomerDisplayItem] =
+    useState<CustomerDisplayItem | null>(null);
 
   const { filtered, isLimited, totalMatches } = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -67,6 +73,26 @@ export function ProductGrid({
     } else {
       onAdd(product);
     }
+  }
+
+  function handleShowCustomer(product: Product) {
+    const variants = variantsByProduct.get(product.id) || [];
+    setCustomerDisplayItem({
+      id: product.id,
+      name: product.name,
+      sku: product.sku,
+      category: product.category,
+      price: product.price,
+      quantity: product.quantity,
+      size: product.size,
+      variants: variants.map((v) => ({
+        id: v.id,
+        size: v.size,
+        sku: v.sku,
+        quantity: v.quantity,
+        price: v.price,
+      })),
+    });
   }
 
   const pickerVariants = pickerProduct
@@ -109,7 +135,7 @@ export function ProductGrid({
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 pt-2">
-        {isLoading ? (
+        {isLoading && products.length === 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {Array.from({ length: 8 }).map((_, i) => (
               <div
@@ -140,6 +166,7 @@ export function ProductGrid({
                       product={product}
                       hasVariants={hasVariants}
                       onAdd={() => handleProductClick(product)}
+                      onShowCustomer={() => handleShowCustomer(product)}
                     />
                   </div>
                 );
@@ -164,6 +191,29 @@ export function ProductGrid({
           variants={pickerVariants}
           onSelect={(variant) => onAdd(pickerProduct, variant)}
           onClose={() => setPickerProduct(null)}
+        />
+      )}
+
+      {customerDisplayItem && (
+        <CustomerDisplayModal
+          item={customerDisplayItem}
+          isOpen={!!customerDisplayItem}
+          onClose={() => setCustomerDisplayItem(null)}
+          actionLabel="Add to Sale"
+          onAction={(item, variant) => {
+            const rawProduct = products.find((p) => p.id === item.id);
+            if (rawProduct) {
+              if (variant) {
+                const rawVariant = variantsByProduct
+                  .get(rawProduct.id)
+                  ?.find((v) => v.id === variant.id);
+                onAdd(rawProduct, rawVariant);
+              } else {
+                onAdd(rawProduct);
+              }
+            }
+            setCustomerDisplayItem(null);
+          }}
         />
       )}
     </div>

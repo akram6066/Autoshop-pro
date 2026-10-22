@@ -10,6 +10,7 @@ type Product = {
   quantity: number;
   min_stock: number;
   price: number;
+  size?: string | null;
 };
 
 export function FinderResultCard({
@@ -17,11 +18,13 @@ export function FinderResultCard({
   variants,
   hasVariants,
   roomMap,
+  onShowCustomer,
 }: {
   product: Product;
   variants: ProductVariant[];
   hasVariants: boolean;
   roomMap: Record<string, string>;
+  onShowCustomer?: (product: Product, variants: ProductVariant[]) => void;
 }) {
   return (
     <div className="card p-4 animate-fade-in-up">
@@ -67,9 +70,41 @@ export function FinderResultCard({
                 </p>
               )}
             </div>
-            <span className="badge badge-neutral shrink-0">
-              {categoryLabel(product.category)}
-            </span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="badge badge-neutral">
+                {categoryLabel(product.category)}
+              </span>
+              {onShowCustomer && (
+                <button
+                  type="button"
+                  onClick={() => onShowCustomer(product, variants)}
+                  className="btn btn-ghost btn-sm text-xs py-1 px-2.5 inline-flex items-center gap-1 active:scale-95 text-[var(--color-brand-600)] hover:bg-[var(--color-brand-50)] transition-all"
+                  title="Show Customer View"
+                >
+                  <svg
+                    width="13"
+                    height="13"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                  <span>Customer View</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {!hasVariants && (

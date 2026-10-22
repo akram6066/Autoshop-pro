@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
@@ -14,7 +15,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { useShopVariants } from "@/hooks/useVariants";
 import { useInventoryLevels, useLevelIndex } from "@/hooks/useInventoryLevels";
 import { useDebounce } from "@/hooks/useDebounce";
-import type { Category, ProductVariant } from "@/types/app";
+import type { Category, Product, ProductVariant } from "@/types/app";
 import { useSubscription } from "@/hooks/useSubscription";
 import { LimitWarningBanner } from "@/components/shop/LimitWarningBanner";
 import { friendlyError } from "@/lib/api/errors";
@@ -26,8 +27,10 @@ import { BulkDeleteModal } from "./_components/BulkDeleteModal";
 import { BulkActionBar } from "./_components/BulkActionBar";
 import { TransferModal } from "./_components/TransferModal";
 import { RestockModal } from "./_components/RestockModal";
+import { CustomerDisplayModal } from "@/components/shop/CustomerDisplayModal";
 
 export default function InventoryPage() {
+  const router = useRouter();
   const shopId = useAuthStore(selectShopId);
   const { sub } = useSubscription();
   const { data: products = [], isLoading: isLoadingProducts } =
@@ -55,6 +58,9 @@ export default function InventoryPage() {
   // Multi-selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+
+  const [customerDisplayProduct, setCustomerDisplayProduct] =
+    useState<Product | null>(null);
 
   const [deletingProduct, setDeletingProduct] = useState<{
     id: string;
@@ -435,7 +441,7 @@ export default function InventoryPage() {
       />
 
       {/* Table */}
-      {isLoading ? (
+      {isLoading && products.length === 0 ? (
         <div className="card">
           {Array.from({ length: 6 }).map((_, i) => (
             <div
@@ -483,6 +489,7 @@ export default function InventoryPage() {
             onDeleteClick={setDeletingProduct}
             onTransferClick={setTransferringProduct}
             onRestockClick={setRestockingProduct}
+            onShowCustomer={setCustomerDisplayProduct}
           />
           <InventoryTable
             paginated={paginated}
@@ -501,6 +508,7 @@ export default function InventoryPage() {
             onDeleteClick={setDeletingProduct}
             onTransferClick={setTransferringProduct}
             onRestockClick={setRestockingProduct}
+            onShowCustomer={setCustomerDisplayProduct}
           />
         </>
       )}
@@ -518,12 +526,14 @@ export default function InventoryPage() {
       />
 
       {/* Bulk Delete Modal */}
-      <BulkDeleteModal
-        selectedProducts={selectedProducts}
-        isDeleting={isBulkDeleting}
-        onClose={() => setIsBulkDeleteModalOpen(false)}
-        onConfirm={handleConfirmBulkDelete}
-      />
+      {isBulkDeleteModalOpen && (
+        <BulkDeleteModal
+          selectedProducts={selectedProducts}
+          isDeleting={isBulkDeleting}
+          onClose={() => setIsBulkDeleteModalOpen(false)}
+          onConfirm={handleConfirmBulkDelete}
+        />
+      )}
 
       {/* Single Delete Product Modal */}
       <DeleteProductModal
@@ -584,6 +594,38 @@ export default function InventoryPage() {
           key={transferringProduct.id}
           product={transferringProduct}
           onClose={() => setTransferringProduct(null)}
+        />
+      )}
+
+      {customerDisplayProduct && (
+        <CustomerDisplayModal
+          isOpen={!!customerDisplayProduct}
+          item={{
+            id: customerDisplayProduct.id,
+            name: customerDisplayProduct.name,
+            sku: customerDisplayProduct.sku,
+            category: customerDisplayProduct.category,
+            price: customerDisplayProduct.price,
+            quantity: customerDisplayProduct.quantity,
+            size: customerDisplayProduct.size,
+            room_name:
+              rooms.find((r) => r.id === customerDisplayProduct.room_id)
+                ?.name || null,
+            variants: (
+              variantsByProduct.get(customerDisplayProduct.id) || []
+            ).map((v) => ({
+              id: v.id,
+              size: v.size,
+              sku: v.sku,
+              quantity: v.quantity,
+              price: v.price,
+            })),
+          }}
+          onClose={() => setCustomerDisplayProduct(null)}
+          actionLabel="Sell in POS"
+          onAction={() => {
+            router.push("/pos");
+          }}
         />
       )}
     </div>
