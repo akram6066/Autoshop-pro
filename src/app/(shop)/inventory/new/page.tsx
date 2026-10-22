@@ -5,7 +5,12 @@ import { useMounted } from "@/hooks/useMounted";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
-import { useCreateProduct } from "@/hooks/useProducts";
+import {
+  useCreateProduct,
+  useProducts,
+  useRestockProduct,
+  useUpdateProduct,
+} from "@/hooks/useProducts";
 import { useCreateVariants } from "@/hooks/useVariants";
 import { useRooms } from "@/hooks/useRooms";
 import { useCategories } from "@/hooks/useCategories";
@@ -13,12 +18,17 @@ import { productSchema, variantSchema } from "@/lib/validations/domain";
 import { friendlyError } from "@/lib/api/errors";
 import { createClient } from "@/lib/supabase/client";
 import { generateSku } from "@/lib/sku";
+import type { Product } from "@/types/app";
 import { ProductLimitBanner } from "./_components/ProductLimitBanner";
 import { VariantTable } from "./_components/VariantTable";
 import type { VariantRow } from "./_components/VariantTable";
 import { SimpleProductFields } from "./_components/SimpleProductFields";
 import { ImportSheet } from "./_components/ImportSheet";
 import type { ImportRow } from "./_components/ImportSheet";
+import {
+  DuplicateProductModal,
+  type DuplicateMatch,
+} from "./_components/DuplicateProductModal";
 
 function newRow(): VariantRow {
   return {
@@ -36,8 +46,10 @@ export default function NewProductPage() {
   const shopId = useAuthStore(selectShopId);
   const { mutateAsync: createProduct, isPending: isCreatingProduct } =
     useCreateProduct();
-  const { mutateAsync: createVariants, isPending: isCreatingVariants } =
-    useCreateVariants(shopId);
+  const { mutateAsync: restockProduct } = useRestockProduct();
+  const { mutateAsync: updateProduct } = useUpdateProduct();
+  const { data: existingProducts = [] } = useProducts(shopId);
+
   const categoriesRes = useCategories(shopId);
   const roomsRes = useRooms(shopId);
   const categories = categoriesRes.data ?? [];
@@ -47,6 +59,17 @@ export default function NewProductPage() {
   const [tab, setTab] = useState<"single" | "import">("single");
   const [importing, setImporting] = useState(false);
   const mounted = useMounted();
+
+  // Duplicate detection & restock state
+  const [duplicateProduct, setDuplicateProduct] = useState<Product | null>(
+    null,
+  );
+  const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>(
+    [],
+  );
+  const [newVariantsQueue, setNewVariantsQueue] = useState<VariantRow[]>([]);
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  const [isRestockingDuplicate, setIsRestockingDuplicate] = useState(false);
 
   // Product limit check
   const [productLimit, setProductLimit] = useState<{
@@ -103,7 +126,7 @@ export default function NewProductPage() {
 
   const effectiveRoomId = roomId || rooms[0]?.id || "";
   const effectiveCategory = category || categories[0]?.name || "";
-  const isPending = isCreatingProduct;
+  const isPending = isCreatingProduct || isRestockingDuplicate;
 
   async function handleImport(rows: ImportRow[]) {
     if (!shopId || !effectiveRoomId) return;
@@ -173,6 +196,104 @@ export default function NewProductPage() {
     );
   }
 
+  // Restock handler for single product duplicate
+  async function handleConfirmSingleRestock({
+    updatePrice: shouldUpdatePrice,
+  }: {
+    updatePrice: boolean;
+  }) {
+    if (!shopId || !duplicateProduct) return;
+    setIsRestockingDuplicate(true);
+    try {
+      if (quantity > 0) {
+        const restockRes = await restockProduct({
+          shopId,
+          productId: duplicateProduct.id,
+          quantityAdded: quantity,
+          reason: "restock",
+        });
+        if (restockRes.status === "error") {
+          toast.error(
+            friendlyError(restockRes.error, "Could not restock product."),
+          );
+          setIsRestockingDuplicate(false);
+          return;
+        }
+      }
+
+      if (shouldUpdatePrice && price > 0 && price !== duplicateProduct.price) {
+        await updateProduct({
+          shopId,
+          productId: duplicateProduct.id,
+          changes: { price },
+        });
+      }
+
+      toast.success(
+        `Successfully restocked "${duplicateProduct.name}" (+${quantity} units). New stock: ${
+          duplicateProduct.quantity + quantity
+        }.`,
+      );
+      setIsDuplicateModalOpen(false);
+      router.push("/inventory");
+    } catch (err) {
+      toast.error(friendlyError(err, "Failed to restock product."));
+    } finally {
+      setIsRestockingDuplicate(false);
+    }
+  }
+
+  // Restock handler for variant mode duplicates
+  async function handleConfirmVariantRestock() {
+    if (!shopId || duplicateMatches.length === 0) return;
+    setIsRestockingDuplicate(true);
+    try {
+      // 1. Restock each existing match
+      for (const m of duplicateMatches) {
+        if (m.enteredQuantity > 0) {
+          await restockProduct({
+            shopId,
+            productId: m.existingProduct.id,
+            quantityAdded: m.enteredQuantity,
+            reason: "restock",
+          });
+        }
+      }
+
+      // 2. Create any new sizes that didn't exist yet
+      for (const v of newVariantsQueue) {
+        const finalSku = v.sku.trim() || generateSku(name, v.size);
+        await createProduct({
+          shopId,
+          data: {
+            room_id: effectiveRoomId,
+            name: name.trim(),
+            sku: finalSku,
+            category: effectiveCategory,
+            quantity: v.quantity,
+            min_stock: v.min_stock,
+            price: v.price,
+            size: v.size.trim() || null,
+          },
+        });
+      }
+
+      toast.success(
+        `Successfully restocked ${duplicateMatches.length} existing size(s)${
+          newVariantsQueue.length > 0
+            ? ` and added ${newVariantsQueue.length} new size(s)`
+            : ""
+        }.`,
+      );
+      setIsDuplicateModalOpen(false);
+      router.push("/inventory");
+    } catch (err) {
+      toast.error(friendlyError(err, "Failed to process products."));
+    } finally {
+      setIsRestockingDuplicate(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!shopId || !effectiveRoomId || !effectiveCategory) return;
@@ -224,8 +345,46 @@ export default function NewProductPage() {
 
     setError("");
 
+    // ── Variant Mode Duplicate & Restock Check ──
     if (useVariants) {
       const filled = variants.filter((v) => v.size.trim());
+      const cleanName = name.trim().toLowerCase();
+      const matches: DuplicateMatch[] = [];
+      const newItems: VariantRow[] = [];
+
+      for (const v of filled) {
+        const vSku = (v.sku.trim() || generateSku(name, v.size)).toLowerCase();
+        const vSize = v.size.trim().toLowerCase();
+        const existing = existingProducts.find((p) => {
+          const pSku = p.sku.trim().toLowerCase();
+          const pName = p.name.trim().toLowerCase();
+          const pSize = (p.size || "").trim().toLowerCase();
+          return pSku === vSku || (pName === cleanName && pSize === vSize);
+        });
+
+        if (existing) {
+          matches.push({
+            existingProduct: existing,
+            enteredQuantity: v.quantity,
+            enteredPrice: v.price,
+            size: v.size,
+            sku: v.sku.trim() || generateSku(name, v.size),
+          });
+        } else {
+          newItems.push(v);
+        }
+      }
+
+      // If existing sizes were detected, offer conversational restock!
+      if (matches.length > 0) {
+        setDuplicateMatches(matches);
+        setNewVariantsQueue(newItems);
+        setDuplicateProduct(null);
+        setIsDuplicateModalOpen(true);
+        return;
+      }
+
+      // All sizes are new: save normally
       let saved = 0;
       let hasOffline = false;
 
@@ -260,8 +419,28 @@ export default function NewProductPage() {
       return;
     }
 
-    // Single product creation
+    // ── Single Product Mode Duplicate & Restock Check ──
     const effectiveSku = sku.trim() || generateSku(name, size);
+    const cleanName = name.trim().toLowerCase();
+    const cleanSize = size.trim().toLowerCase();
+    const cleanSku = effectiveSku.trim().toLowerCase();
+
+    const existingMatch = existingProducts.find((p) => {
+      const pSku = p.sku.trim().toLowerCase();
+      const pName = p.name.trim().toLowerCase();
+      const pSize = (p.size || "").trim().toLowerCase();
+      return pSku === cleanSku || (pName === cleanName && pSize === cleanSize);
+    });
+
+    // If product/size already exists in shop, ask user to restock!
+    if (existingMatch) {
+      setDuplicateProduct(existingMatch);
+      setDuplicateMatches([]);
+      setIsDuplicateModalOpen(true);
+      return;
+    }
+
+    // Single product creation
     const result = await createProduct({
       shopId,
       data: {
@@ -277,6 +456,28 @@ export default function NewProductPage() {
     });
 
     if (result.status === "error") {
+      // Check if error was due to duplicate SKU/name that occurred concurrently
+      if (
+        /duplicate key|unique.*constraint|23505/i.test(
+          result.error?.message || "",
+        )
+      ) {
+        const supabase = createClient();
+        const { data: found } = await supabase
+          .from("products")
+          .select("*")
+          .eq("shop_id", shopId)
+          .or(`sku.eq.${effectiveSku},name.eq.${name.trim()}`)
+          .maybeSingle();
+
+        if (found) {
+          setDuplicateProduct(found as Product);
+          setDuplicateMatches([]);
+          setIsDuplicateModalOpen(true);
+          return;
+        }
+      }
+
       setError(
         friendlyError(
           result.error,
@@ -299,170 +500,116 @@ export default function NewProductPage() {
       <button
         type="button"
         onClick={() => router.back()}
-        className="btn btn-ghost btn-sm mb-6"
-        style={{ color: "var(--color-ink-tertiary)" }}
+        className="btn btn-ghost btn-sm mb-4 inline-flex items-center gap-1.5"
       >
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
           <path
-            d="M19 12H5M12 5l-7 7 7 7"
+            d="M19 12H5m7 7l-7-7 7-7"
             stroke="currentColor"
-            strokeWidth="1.75"
+            strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
         </svg>
-        Back to inventory
+        Back
       </button>
 
-      <div className="flex items-center justify-between mb-6">
-        <h1
-          className="text-2xl font-semibold"
-          style={{ color: "var(--color-ink-primary)" }}
-        >
-          Add product
-        </h1>
-        <div
-          style={{
-            display: "flex",
-            background: "var(--color-surface-1)",
-            border: "1px solid var(--color-border-input)",
-            borderRadius: 8,
-            padding: 3,
-            gap: 2,
-          }}
-        >
-          {(["single", "import"] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTab(t)}
-              style={{
-                padding: "5px 14px",
-                borderRadius: 6,
-                border: "none",
-                fontSize: "0.8125rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                background:
-                  tab === t ? "var(--color-surface-3)" : "transparent",
-                color:
-                  tab === t
-                    ? "var(--color-ink-primary)"
-                    : "var(--color-ink-tertiary)",
-                boxShadow: tab === t ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-              }}
-            >
-              {t === "single" ? "Single" : "Import sheet"}
-            </button>
-          ))}
-        </div>
-      </div>
-
+      {/* Limit banners */}
       <ProductLimitBanner
         productLimit={productLimit}
         productAtLimit={productAtLimit}
         productNearLimit={productNearLimit}
       />
 
-      {tab === "import" && (
-        <div className="card p-4 sm:p-6 animate-scale-in">
-          {importing ? (
-            <div style={{ textAlign: "center", padding: "40px 0" }}>
-              <p
-                className="text-sm"
-                style={{ color: "var(--color-ink-tertiary)" }}
-              >
-                Importing products…
-              </p>
-            </div>
-          ) : (
-            <ImportSheet
-              defaultCategory={effectiveCategory}
-              existingCategories={categories.map((c) => c.name)}
-              onImport={handleImport}
-              onCancel={() => setTab("single")}
-            />
-          )}
-        </div>
-      )}
+      {/* Tabs */}
+      <div className="flex gap-1 mb-6 border-b border-[var(--color-surface-2)]">
+        <button
+          type="button"
+          onClick={() => setTab("single")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            tab === "single"
+              ? "border-[var(--color-brand-600)] text-[var(--color-brand-600)]"
+              : "border-transparent text-[var(--color-ink-tertiary)] hover:text-[var(--color-ink-primary)]"
+          }`}
+        >
+          Single product
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("import")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            tab === "import"
+              ? "border-[var(--color-brand-600)] text-[var(--color-brand-600)]"
+              : "border-transparent text-[var(--color-ink-tertiary)] hover:text-[var(--color-ink-primary)]"
+          }`}
+        >
+          Import Excel / CSV
+        </button>
+      </div>
 
-      {tab === "single" && (
-        <div className="card p-6 animate-scale-in">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Product name */}
-            <div>
-              <label className="block text-sm font-medium mb-1.5">
-                Product name{" "}
-                <span style={{ color: "var(--color-danger)" }}>*</span>
-              </label>
-              <input
-                className="input"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                autoFocus
-                placeholder="e.g. Michelin Pilot Sport 4S"
-              />
-            </div>
+      {tab === "import" ? (
+        <ImportSheet
+          defaultCategory={effectiveCategory}
+          existingCategories={categories.map((c) => c.name)}
+          onImport={handleImport}
+          onCancel={() => setTab("single")}
+        />
+      ) : (
+        <div className="card p-6 max-w-3xl">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Product info header */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium mb-1.5">
+                  Product name{" "}
+                  <span style={{ color: "var(--color-danger)" }}>*</span>
+                </label>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="e.g. Michelin Pilot Sport 4"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
 
-            {/* Category + Room */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1.5">
-                  Category
+                  Category{" "}
+                  <span style={{ color: "var(--color-danger)" }}>*</span>
                 </label>
                 <select
                   className="input"
-                  value={effectiveCategory}
+                  value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   required
-                  disabled={
-                    categoriesRes.isLoading ||
-                    categoriesRes.isError ||
-                    categories.length === 0
-                  }
                 >
-                  {categoriesRes.isLoading && (
-                    <option value="">Loading categories...</option>
-                  )}
-                  {categoriesRes.isError && (
-                    <option value="">Could not load categories</option>
-                  )}
-                  {!categoriesRes.isLoading &&
-                    !categoriesRes.isError &&
-                    categories.length === 0 && (
-                      <option value="">No categories in Settings</option>
-                    )}
+                  <option value="" disabled>
+                    Select category
+                  </option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.name}>
                       {c.name}
                     </option>
                   ))}
                 </select>
-                {categoriesRes.isError && (
-                  <p
-                    className="text-xs mt-1"
-                    style={{ color: "var(--color-danger)" }}
-                  >
-                    Failed to read categories. Check Supabase category policies
-                    or try again.
-                  </p>
-                )}
               </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1.5">
-                  Location
+                  Initial location{" "}
+                  <span style={{ color: "var(--color-danger)" }}>*</span>
                 </label>
                 <select
                   className="input"
-                  value={effectiveRoomId}
+                  value={roomId}
                   onChange={(e) => setRoomId(e.target.value)}
                   required
                 >
-                  {rooms.length === 0 && (
-                    <option value="">No locations — create in Settings</option>
-                  )}
+                  <option value="" disabled>
+                    Select location
+                  </option>
                   {rooms.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.name}
@@ -472,50 +619,43 @@ export default function NewProductPage() {
               </div>
             </div>
 
-            {/* Variant mode toggle */}
+            {/* Mode toggle */}
             <div
-              className="flex items-center justify-between rounded-xl px-4 py-3"
-              style={{
-                background: useVariants
-                  ? "var(--color-brand-50)"
-                  : "var(--color-surface-1)",
-                border: `1px solid ${useVariants ? "var(--color-brand-200)" : "var(--color-border-input)"}`,
-              }}
+              className="flex items-center justify-between p-3.5 rounded-xl border border-[var(--color-surface-2)]"
+              style={{ background: "var(--color-surface-1)" }}
             >
               <div>
-                <p
-                  className="text-sm font-medium"
-                  style={{ color: "var(--color-ink-primary)" }}
-                >
-                  Multiple sizes
-                </p>
-                <p
+                <span className="text-sm font-medium block">
+                  Multiple sizes / variants
+                </span>
+                <span
                   className="text-xs"
                   style={{ color: "var(--color-ink-tertiary)" }}
                 >
-                  One brand, different sizes each with their own qty &amp; price
-                </p>
+                  Track different sizes (e.g. 175/70R13, 205/55R16) with their
+                  own stock and prices
+                </span>
               </div>
               <button
                 type="button"
                 role="switch"
                 aria-checked={useVariants}
                 onClick={() => setUseVariants((v) => !v)}
-                className="flex-shrink-0 w-10 h-6 rounded-full transition-colors relative"
-                style={{
-                  background: useVariants
-                    ? "var(--color-brand-500)"
-                    : "var(--color-surface-3)",
-                }}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  useVariants
+                    ? "bg-[var(--color-brand-600)]"
+                    : "bg-[var(--color-surface-3)]"
+                }`}
               >
                 <span
-                  className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all"
-                  style={{ left: useVariants ? "1.25rem" : "0.25rem" }}
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    useVariants ? "translate-x-5" : "translate-x-0"
+                  }`}
                 />
               </button>
             </div>
 
-            {/* Variant rows or Simple fields */}
+            {/* Mode-specific fields */}
             {useVariants ? (
               <VariantTable
                 variants={variants}
@@ -542,9 +682,31 @@ export default function NewProductPage() {
             )}
 
             {error && (
-              <p className="text-sm" style={{ color: "var(--color-danger)" }}>
-                {error}
-              </p>
+              <div
+                className="p-3 rounded-lg text-sm flex items-center gap-2 border"
+                style={{
+                  background: "rgba(239, 68, 68, 0.08)",
+                  borderColor: "rgba(239, 68, 68, 0.25)",
+                  color: "var(--color-danger, #ef4444)",
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  className="flex-shrink-0"
+                >
+                  <path
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span>{error}</span>
+              </div>
             )}
 
             <div className="flex gap-3 pt-2">
@@ -574,6 +736,20 @@ export default function NewProductPage() {
           </form>
         </div>
       )}
+
+      {/* Duplicate product detected modal — conversational restock flow */}
+      <DuplicateProductModal
+        isOpen={isDuplicateModalOpen}
+        onClose={() => setIsDuplicateModalOpen(false)}
+        existingProduct={duplicateProduct}
+        enteredQuantity={quantity}
+        enteredPrice={price}
+        onConfirmRestock={handleConfirmSingleRestock}
+        duplicateMatches={duplicateMatches}
+        newVariantsCount={newVariantsQueue.length}
+        onConfirmVariantRestock={handleConfirmVariantRestock}
+        isSubmitting={isRestockingDuplicate}
+      />
     </div>
   );
 }

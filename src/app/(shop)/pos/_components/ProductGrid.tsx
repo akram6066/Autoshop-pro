@@ -42,6 +42,7 @@ export function ProductGrid({
     const hasActiveFilter = q.length >= 2 || categoryFilter !== "all";
 
     const matches = products.filter((p) => {
+      if (p.is_archived) return false;
       const matchCat =
         categoryFilter === "all" || p.category === categoryFilter;
       const matchQ =

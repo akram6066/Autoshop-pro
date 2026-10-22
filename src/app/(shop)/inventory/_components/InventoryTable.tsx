@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { CATEGORY_LABELS } from "@/types/app";
@@ -15,6 +16,11 @@ interface InventoryTableProps {
   totalPages: number;
   filtered: Product[];
   PAGE_SIZE: number;
+  selectedIds: Set<string>;
+  isAllPageSelected: boolean;
+  isSomePageSelected: boolean;
+  onToggleSelect: (productId: string) => void;
+  onSelectAllPage: () => void;
   onSetPage: (p: number) => void;
   onDeleteClick: (p: {
     id: string;
@@ -46,16 +52,41 @@ export function InventoryTable({
   totalPages,
   filtered,
   PAGE_SIZE,
+  selectedIds,
+  isAllPageSelected,
+  isSomePageSelected,
+  onToggleSelect,
+  onSelectAllPage,
   onSetPage,
   onDeleteClick,
   onTransferClick,
   onRestockClick,
 }: InventoryTableProps) {
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate =
+        isSomePageSelected && !isAllPageSelected;
+    }
+  }, [isSomePageSelected, isAllPageSelected]);
+
   return (
     <div className="hidden sm:block card overflow-x-auto">
-      <table className="table-auto-shop" style={{ minWidth: 640 }}>
+      <table className="table-auto-shop" style={{ minWidth: 680 }}>
         <thead>
           <tr>
+            <th style={{ width: 44, paddingLeft: 16, paddingRight: 8 }}>
+              <input
+                ref={headerCheckboxRef}
+                type="checkbox"
+                checked={isAllPageSelected}
+                onChange={onSelectAllPage}
+                className="cursor-pointer rounded border-gray-300 accent-blue-600"
+                style={{ width: 16, height: 16 }}
+                aria-label="Select all products on page"
+              />
+            </th>
             <th>Product</th>
             <th>SKU</th>
             <th>Size</th>
@@ -68,6 +99,7 @@ export function InventoryTable({
         </thead>
         <tbody>
           {paginated.map((product) => {
+            const isSelected = selectedIds.has(product.id);
             const pVariants = variantsByProduct.get(product.id);
             const hasVariants = !!pVariants?.length;
             const totalQty = locationQty
@@ -76,7 +108,24 @@ export function InventoryTable({
                 ? pVariants!.reduce((s, v) => s + v.quantity, 0)
                 : product.quantity;
             return (
-              <tr key={product.id}>
+              <tr
+                key={product.id}
+                style={{
+                  background: isSelected
+                    ? "var(--color-surface-selected, rgba(37, 99, 235, 0.06))"
+                    : undefined,
+                }}
+              >
+                <td style={{ width: 44, paddingLeft: 16, paddingRight: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => onToggleSelect(product.id)}
+                    className="cursor-pointer rounded border-gray-300 accent-blue-600"
+                    style={{ width: 16, height: 16 }}
+                    aria-label={`Select ${product.name}`}
+                  />
+                </td>
                 <td>
                   <Link
                     href={`/inventory/${product.id}`}

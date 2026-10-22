@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useAuthStore } from "@/stores/authStore";
 import { useRooms } from "@/hooks/useRooms";
 import { useRecordInventoryMovement } from "@/hooks/useInventoryMovements";
+import { friendlyError } from "@/lib/api/errors";
 import type { InventoryMovementType } from "@/types/app";
 
 interface StockAdjustmentModalProps {
@@ -111,7 +112,12 @@ export function StockAdjustmentModal({
     });
 
     if (result.status === "error") {
-      toast.error(result.error.message);
+      toast.error(
+        friendlyError(
+          result.error,
+          "Could not adjust stock. Please try again.",
+        ),
+      );
       return;
     }
 

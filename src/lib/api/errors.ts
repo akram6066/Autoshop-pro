@@ -50,18 +50,37 @@ const KNOWN_PATTERNS: Array<{
     status: 409,
   },
   {
-    pattern: /duplicate key|unique.*constraint/i,
-    message: "This record already exists",
+    pattern: /duplicate key|unique.*constraint|23505/i,
+    message:
+      "A product or record with this SKU or Name already exists in your inventory.",
     status: 409,
   },
   {
-    pattern: /foreign key/i,
-    message: "Cannot complete this action — related records exist",
+    pattern: /violates foreign key constraint|foreign key/i,
+    message:
+      "Cannot remove this item because it is referenced in past sales or activity history.",
     status: 409,
   },
   {
-    pattern: /permission denied|not authorized|42501/i,
-    message: "You do not have permission to do that",
+    pattern: /check constraint|chk_|value out of range/i,
+    message:
+      "Please verify your numbers. Prices and quantities must be positive whole amounts.",
+    status: 400,
+  },
+  {
+    pattern: /null value in column|violates not-null/i,
+    message: "Please fill in all required fields before saving.",
+    status: 400,
+  },
+  {
+    pattern: /failed to fetch|networkerror|load failed|network request failed/i,
+    message:
+      "Connection problem. Changes are queued offline and will sync when online.",
+    status: 503,
+  },
+  {
+    pattern: /permission denied|not authorized|42501|unauthenticated/i,
+    message: "You need owner or manager permissions to do this.",
     status: 403,
   },
   {
@@ -119,7 +138,16 @@ export function friendlyError(
     if (pattern.test(raw)) return message;
   }
 
-  return fallback;
+  // Prevent leaking raw database schemas, table names or SQL fragments
+  if (
+    /relation\s+"?\w+"?|column\s+"?\w+"?|syntax error|syntax near|pg_|pgrst|violates|constraint|sqlstate/i.test(
+      raw,
+    )
+  ) {
+    return fallback;
+  }
+
+  return raw.length > 150 ? fallback : raw;
 }
 
 export function sanitizeError(

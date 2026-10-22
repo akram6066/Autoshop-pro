@@ -4,7 +4,11 @@ import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
-import { useProducts, useDeleteProduct } from "@/hooks/useProducts";
+import {
+  useProducts,
+  useDeleteProduct,
+  useBulkDeleteProducts,
+} from "@/hooks/useProducts";
 import { useRooms } from "@/hooks/useRooms";
 import { useCategories } from "@/hooks/useCategories";
 import { useShopVariants } from "@/hooks/useVariants";
@@ -13,10 +17,13 @@ import { useDebounce } from "@/hooks/useDebounce";
 import type { Category, ProductVariant } from "@/types/app";
 import { useSubscription } from "@/hooks/useSubscription";
 import { LimitWarningBanner } from "@/components/shop/LimitWarningBanner";
+import { friendlyError } from "@/lib/api/errors";
 import { InventoryFilters } from "./_components/InventoryFilters";
 import { InventoryTable } from "./_components/InventoryTable";
 import { InventoryMobileList } from "./_components/InventoryMobileList";
 import { DeleteProductModal } from "./_components/DeleteProductModal";
+import { BulkDeleteModal } from "./_components/BulkDeleteModal";
+import { BulkActionBar } from "./_components/BulkActionBar";
 import { TransferModal } from "./_components/TransferModal";
 import { RestockModal } from "./_components/RestockModal";
 
@@ -26,6 +33,8 @@ export default function InventoryPage() {
   const { data: products = [], isLoading: isLoadingProducts } =
     useProducts(shopId);
   const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProduct();
+  const { mutate: bulkDeleteProducts, isPending: isBulkDeleting } =
+    useBulkDeleteProducts();
   const { data: rooms = [] } = useRooms(shopId);
   const { data: categories = [] } = useCategories(shopId);
   const { data: allVariants = [], isLoading: isLoadingVariants } =
@@ -42,6 +51,11 @@ export default function InventoryPage() {
   const [categoryFilter, setCategoryFilter] = useState<Category | "all">("all");
   const [sortBy, setSortBy] = useState<"name" | "qty" | "price">("name");
   const [page, setPage] = useState(0);
+
+  // Multi-selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+
   const [deletingProduct, setDeletingProduct] = useState<{
     id: string;
     name: string;
@@ -73,6 +87,9 @@ export default function InventoryPage() {
   const filtered = useMemo(() => {
     const q = debouncedSearch.toLowerCase().trim();
     let result = products.filter((p) => {
+      // Exclude archived products from active catalog
+      if (p.is_archived) return false;
+
       // A product belongs to a location when it holds stock there. Products with
       // no stock anywhere still show under their primary (legacy) location.
       const matchRoom =
@@ -115,7 +132,55 @@ export default function InventoryPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
+  // Selection helpers
+  const handleToggleSelect = (productId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) {
+        next.delete(productId);
+      } else {
+        next.add(productId);
+      }
+      return next;
+    });
+  };
+
+  const isAllPageSelected =
+    paginated.length > 0 && paginated.every((p) => selectedIds.has(p.id));
+  const isSomePageSelected = paginated.some((p) => selectedIds.has(p.id));
+
+  const handleSelectAllPage = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (isAllPageSelected) {
+        for (const p of paginated) next.delete(p.id);
+      } else {
+        for (const p of paginated) next.add(p.id);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAllFiltered = () => {
+    setSelectedIds(new Set(filtered.map((p) => p.id)));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedIds(new Set());
+  };
+
+  const isAllFilteredSelected =
+    filtered.length > 0 &&
+    selectedIds.size >= filtered.length &&
+    filtered.every((p) => selectedIds.has(p.id));
+
+  const selectedProducts = useMemo(
+    () => products.filter((p) => selectedIds.has(p.id)),
+    [products, selectedIds],
+  );
+
   const lowStockCount = products.filter((p) => {
+    if (p.is_archived) return false;
     const variants = variantsByProduct.get(p.id);
     if (variants?.length)
       return variants.some((v) => v.quantity <= v.min_stock);
@@ -126,7 +191,7 @@ export default function InventoryPage() {
     ? [
         {
           label: "products",
-          current: products.length,
+          current: products.filter((p) => !p.is_archived).length,
           max: sub.plan.maxProductsPerShop,
         },
       ]
@@ -135,6 +200,7 @@ export default function InventoryPage() {
   const totalPieces = useMemo(() => {
     let sum = 0;
     for (const p of products) {
+      if (p.is_archived) continue;
       const variants = variantsByProduct.get(p.id);
       if (variants && variants.length > 0) {
         sum += variants.reduce((acc, v) => acc + (Number(v.quantity) || 0), 0);
@@ -144,6 +210,88 @@ export default function InventoryPage() {
     }
     return sum;
   }, [products, variantsByProduct]);
+
+  // Export selected products as CSV
+  const handleExportSelected = () => {
+    if (selectedProducts.length === 0) return;
+    const escapeCsvField = (f: string | number) =>
+      `"${String(f).replace(/"/g, '""')}"`;
+    const rows = [
+      [
+        "SKU",
+        "Name",
+        "Category",
+        "Quantity",
+        "Min Stock",
+        "Price (KES)",
+        "Status",
+      ],
+      ...selectedProducts.map((p) => {
+        let totalQty = p.quantity;
+        let minQty = p.min_stock;
+
+        const variants = variantsByProduct.get(p.id);
+        if (variants && variants.length > 0) {
+          totalQty = variants.reduce((sum, v) => sum + v.quantity, 0);
+          minQty = Math.max(...variants.map((v) => v.min_stock));
+        }
+
+        const status = totalQty <= minQty ? "Low Stock" : "In Stock";
+
+        return [
+          p.sku,
+          p.name,
+          p.category,
+          String(totalQty),
+          String(minQty),
+          p.price.toFixed(2),
+          status,
+        ];
+      }),
+    ];
+    const csv = rows.map((r) => r.map(escapeCsvField).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `inventory-selected-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(
+      `Exported ${selectedProducts.length} selected products to CSV.`,
+    );
+  };
+
+  // Bulk deletion handler
+  const handleConfirmBulkDelete = () => {
+    const ids = Array.from(selectedIds);
+    if (!shopId || ids.length === 0) return;
+    bulkDeleteProducts(
+      { shopId, productIds: ids },
+      {
+        onSuccess: (result) => {
+          if (result.status === "error") {
+            toast.error(
+              friendlyError(result.error, "Failed to delete products"),
+            );
+            return;
+          }
+          if (result.status === "offline") {
+            toast.warning("Saved offline — will sync when reconnected.");
+          } else {
+            toast.success(`Successfully deleted ${ids.length} products.`);
+          }
+          setSelectedIds(new Set());
+          setIsBulkDeleteModalOpen(false);
+        },
+        onError: (err) => {
+          toast.error(
+            err instanceof Error ? err.message : "Failed to delete products",
+          );
+        },
+      },
+    );
+  };
 
   return (
     <div>
@@ -169,6 +317,11 @@ export default function InventoryPage() {
             {lowStockCount > 0 && (
               <span className="badge badge-warning ml-2">
                 {lowStockCount} low stock
+              </span>
+            )}
+            {selectedIds.size > 0 && (
+              <span className="badge badge-info ml-2">
+                {selectedIds.size} selected
               </span>
             )}
           </p>
@@ -258,16 +411,19 @@ export default function InventoryPage() {
         onSearchChange={(v) => {
           setSearch(v);
           setPage(0);
+          setSelectedIds(new Set());
         }}
         roomFilter={roomFilter}
         onRoomFilterChange={(v) => {
           setRoomFilter(v);
           setPage(0);
+          setSelectedIds(new Set());
         }}
         categoryFilter={categoryFilter}
         onCategoryFilterChange={(v) => {
           setCategoryFilter(v);
           setPage(0);
+          setSelectedIds(new Set());
         }}
         sortBy={sortBy}
         onSortByChange={(v) => {
@@ -321,6 +477,8 @@ export default function InventoryPage() {
             totalPages={totalPages}
             filtered={filtered}
             PAGE_SIZE={PAGE_SIZE}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
             onSetPage={setPage}
             onDeleteClick={setDeletingProduct}
             onTransferClick={setTransferringProduct}
@@ -334,6 +492,11 @@ export default function InventoryPage() {
             totalPages={totalPages}
             filtered={filtered}
             PAGE_SIZE={PAGE_SIZE}
+            selectedIds={selectedIds}
+            isAllPageSelected={isAllPageSelected}
+            isSomePageSelected={isSomePageSelected}
+            onToggleSelect={handleToggleSelect}
+            onSelectAllPage={handleSelectAllPage}
             onSetPage={setPage}
             onDeleteClick={setDeletingProduct}
             onTransferClick={setTransferringProduct}
@@ -342,24 +505,66 @@ export default function InventoryPage() {
         </>
       )}
 
+      {/* Bulk actions floating toolbar */}
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        totalFilteredCount={filtered.length}
+        isAllFilteredSelected={isAllFilteredSelected}
+        onSelectAllFiltered={handleSelectAllFiltered}
+        onDeselectAll={handleDeselectAll}
+        onExportSelected={handleExportSelected}
+        onOpenBulkDelete={() => setIsBulkDeleteModalOpen(true)}
+        isDeleting={isBulkDeleting}
+      />
+
+      {/* Bulk Delete Modal */}
+      <BulkDeleteModal
+        selectedProducts={selectedProducts}
+        isDeleting={isBulkDeleting}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        onConfirm={handleConfirmBulkDelete}
+      />
+
+      {/* Single Delete Product Modal */}
       <DeleteProductModal
         product={deletingProduct}
         isDeleting={isDeleting}
         onClose={() => setDeletingProduct(null)}
         onConfirm={() => {
           if (!shopId || !deletingProduct) return;
+          const targetId = deletingProduct.id;
+          const targetName = deletingProduct.name;
           deleteProduct(
-            { shopId, productId: deletingProduct.id },
+            { shopId, productId: targetId },
             {
               onSuccess: (result) => {
                 if (result.status === "error") {
-                  toast.error(result.error.message);
+                  toast.error(
+                    friendlyError(result.error, "Failed to delete product"),
+                  );
                   return;
                 }
                 if (result.status === "offline") {
                   toast.warning("Saved offline — will sync when reconnected.");
+                } else {
+                  toast.success(`"${targetName}" deleted successfully.`);
                 }
+                setSelectedIds((prev) => {
+                  if (prev.has(targetId)) {
+                    const next = new Set(prev);
+                    next.delete(targetId);
+                    return next;
+                  }
+                  return prev;
+                });
                 setDeletingProduct(null);
+              },
+              onError: (err) => {
+                toast.error(
+                  err instanceof Error
+                    ? err.message
+                    : "Failed to delete product",
+                );
               },
             },
           );

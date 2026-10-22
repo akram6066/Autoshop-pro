@@ -8,6 +8,7 @@ import { useRooms } from "@/hooks/useRooms";
 import { useShopVariants } from "@/hooks/useVariants";
 import { useInventoryLevels, useLevelIndex } from "@/hooks/useInventoryLevels";
 import { TRANSFER_REASON_MAX_LENGTH } from "@/lib/validations/transfers";
+import { friendlyError } from "@/lib/api/errors";
 
 interface SelectOption {
   value: string;
@@ -245,7 +246,9 @@ export function TransferModal({ product, onClose }: TransferModalProps) {
       {
         onSuccess: (result) => {
           if (result.status === "error") {
-            toast.error(result.error.message || "Failed to transfer stock");
+            toast.error(
+              friendlyError(result.error, "Failed to transfer stock."),
+            );
             return;
           }
           if (result.status === "offline") {

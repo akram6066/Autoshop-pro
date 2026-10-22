@@ -6,7 +6,12 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import { productSchema } from "@/lib/validations/domain";
-import { useProduct, useUpdateProduct } from "@/hooks/useProducts";
+import { useRouter } from "next/navigation";
+import {
+  useProduct,
+  useUpdateProduct,
+  useDeleteProduct,
+} from "@/hooks/useProducts";
 import {
   useProductVariants,
   useUpdateVariant,
@@ -33,6 +38,8 @@ import { ProductSalesTab } from "../_components/tabs/ProductSalesTab";
 import { ProductTransfersTab } from "../_components/tabs/ProductTransfersTab";
 import { StockAdjustmentModal } from "../_components/StockAdjustmentModal";
 import { TransferModal } from "../_components/TransferModal";
+import { DeleteProductModal } from "../_components/DeleteProductModal";
+import { friendlyError } from "@/lib/api/errors";
 
 // ─── Edit Form ────────────────────────────────────────────────────────────────
 
@@ -67,7 +74,10 @@ export default function ProductDetailPage({
   );
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [archiveModalOpen, setArchiveModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [archiveReason, setArchiveReason] = useState("");
+  const router = useRouter();
+  const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProduct();
 
   const { mutateAsync: archiveProduct, isPending: isArchiving } =
     useArchiveProduct();
@@ -249,14 +259,24 @@ export default function ProductDetailPage({
           )}
 
           {!isArchived && (
-            <button
-              type="button"
-              onClick={() => setArchiveModalOpen(true)}
-              className="btn btn-ghost btn-sm text-xs"
-              style={{ color: "var(--color-danger)" }}
-            >
-              Archive
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setArchiveModalOpen(true)}
+                className="btn btn-ghost btn-sm text-xs"
+                style={{ color: "var(--color-danger)" }}
+              >
+                Archive
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteModalOpen(true)}
+                className="btn btn-ghost btn-sm text-xs"
+                style={{ color: "var(--color-danger)" }}
+              >
+                Delete
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -552,6 +572,43 @@ export default function ProductDetailPage({
           </div>
         </div>
       )}
+
+      {/* Delete Product Modal */}
+      <DeleteProductModal
+        product={deleteModalOpen ? product : null}
+        isDeleting={isDeleting}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={() => {
+          if (!shopId || !product) return;
+          deleteProduct(
+            { shopId, productId: product.id },
+            {
+              onSuccess: (result) => {
+                if (result.status === "error") {
+                  toast.error(
+                    friendlyError(result.error, "Failed to delete product"),
+                  );
+                  return;
+                }
+                if (result.status === "offline") {
+                  toast.warning("Saved offline — will sync when reconnected.");
+                } else {
+                  toast.success(`"${product.name}" deleted successfully.`);
+                }
+                setDeleteModalOpen(false);
+                router.push("/inventory");
+              },
+              onError: (err) => {
+                toast.error(
+                  err instanceof Error
+                    ? err.message
+                    : "Failed to delete product",
+                );
+              },
+            },
+          );
+        }}
+      />
     </div>
   );
 }

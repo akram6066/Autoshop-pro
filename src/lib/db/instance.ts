@@ -162,8 +162,9 @@ export async function seedProducts(
 
   const pendingStockDeductions = await getPendingDeductions(shopId, "product");
 
-  // Apply pending deductions to the incoming remote products
-  const adjustedProducts = products.map((p) => {
+  // Filter out any archived products and apply pending deductions
+  const activeIncoming = products.filter((p) => !p.is_archived);
+  const adjustedProducts = activeIncoming.map((p) => {
     const deduction = pendingStockDeductions.get(p.id) || 0;
     if (deduction !== 0) {
       return { ...p, quantity: Math.max(0, p.quantity - deduction) };
@@ -350,7 +351,11 @@ export async function pruneOldData(): Promise<void> {
 // ─── Getters ──────────────────────────────────────────────────────────────────
 
 export async function getLocalProducts(shopId: string): Promise<Product[]> {
-  return getDb().products.where("shop_id").equals(shopId).toArray();
+  const items = await getDb()
+    .products.where("shop_id")
+    .equals(shopId)
+    .toArray();
+  return items.filter((p) => !p.is_archived);
 }
 
 export async function getLocalRooms(shopId: string): Promise<Room[]> {

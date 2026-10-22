@@ -37,8 +37,9 @@ async function fetchProducts(shopId: string): Promise<Product[]> {
   const supabase = createClient();
   try {
     const data = await fetchAllProducts(supabase, shopId);
-    const adjustedProducts = await seedProducts(shopId, data);
-    return adjustedProducts;
+    const activeProducts = data.filter((p) => !p.is_archived);
+    const adjustedProducts = await seedProducts(shopId, activeProducts);
+    return adjustedProducts.filter((p) => !p.is_archived);
   } catch (err) {
     console.warn("[useProducts] Supabase fetch failed, using IndexedDB:", err);
     return getLocalProducts(shopId);
@@ -60,7 +61,30 @@ export function useProducts(shopId: string | null): UseQueryResult<Product[]> {
 
 export function useProduct(shopId: string | null, productId: string | null) {
   const { data: products } = useProducts(shopId);
-  return products?.find((p) => p.id === productId) ?? null;
+  const fromCache = products?.find((p) => p.id === productId);
+
+  const singleQuery = useQuery({
+    queryKey:
+      shopId && productId
+        ? productKeys.detail(shopId, productId)
+        : ["product-disabled"],
+    queryFn: async (): Promise<Product | null> => {
+      if (!shopId || !productId) return null;
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("id", productId)
+        .eq("shop_id", shopId)
+        .maybeSingle();
+      if (error || !data) return null;
+      return data as Product;
+    },
+    enabled: !!shopId && !!productId && !fromCache,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  return fromCache ?? singleQuery.data ?? null;
 }
 
 // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Mutations Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
@@ -445,9 +469,135 @@ export function useDeleteProduct() {
         };
       }
     },
-    onSuccess: (result, { shopId }) => {
+    onSuccess: (result, { shopId, productId }) => {
       if (result.status !== "error") {
+        qc.setQueryData(productKeys.all(shopId), (old?: Product[]) =>
+          old ? old.filter((p) => p.id !== productId) : [],
+        );
         qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
+        qc.invalidateQueries({ queryKey: ["inventory-levels", shopId] });
+        qc.invalidateQueries({ queryKey: ["shop-variants", shopId] });
+      }
+    },
+  });
+}
+
+export function useBulkDeleteProducts() {
+  const qc = useQueryClient();
+  const supabase = createClient();
+
+  return useMutation({
+    mutationFn: async ({
+      shopId,
+      productIds,
+    }: {
+      shopId: string;
+      productIds: string[];
+    }): Promise<MutationResult<{ shopId: string; count: number }>> => {
+      if (productIds.length === 0) {
+        return { status: "success", data: { shopId, count: 0 } };
+      }
+
+      let rpcError: unknown = null;
+      let isNetworkError = false;
+
+      // Try bulk_delete_products RPC first
+      try {
+        const { error } = await supabase.rpc("bulk_delete_products", {
+          p_shop_id: shopId,
+          p_product_ids: productIds,
+        });
+        if (error) {
+          // If RPC is not found on remote schema, fallback to looping manage_product
+          if (
+            error.message?.includes("bulk_delete_products") ||
+            error.code === "PGRST202" ||
+            error.code === "42883"
+          ) {
+            for (const pid of productIds) {
+              const { error: singleError } = await supabase.rpc(
+                "manage_product",
+                {
+                  p_op: "DELETE",
+                  p_product: { id: pid, shop_id: shopId } as unknown as Json,
+                },
+              );
+              if (singleError) {
+                rpcError = singleError;
+                break;
+              }
+            }
+          } else {
+            rpcError = error;
+          }
+        }
+      } catch (err) {
+        console.warn(
+          "[useProducts] Bulk delete failed with exception, falling back to offline:",
+          err,
+        );
+        rpcError = err || new Error("Failed to connect to Supabase");
+        isNetworkError = true;
+      }
+
+      try {
+        if (rpcError && !isNetworkError) {
+          throw rpcError;
+        }
+
+        const isOffline = !!rpcError;
+
+        if (isOffline) {
+          for (const pid of productIds) {
+            await enqueue(shopId, "MANAGE_PRODUCT", {
+              op: "DELETE",
+              product: { id: pid, shop_id: shopId } as unknown as Record<
+                string,
+                unknown
+              >,
+            });
+          }
+        }
+
+        // Delete from local Dexie IndexedDB
+        const db = getDb();
+        await db.transaction(
+          "rw",
+          [db.products, db.product_variants],
+          async () => {
+            await db.products.bulkDelete(productIds);
+            const orphanedVariants = await db.product_variants
+              .where("product_id")
+              .anyOf(productIds)
+              .toArray();
+            if (orphanedVariants.length > 0) {
+              await db.product_variants.bulkDelete(
+                orphanedVariants.map((v) => v.id),
+              );
+            }
+          },
+        );
+
+        return isOffline
+          ? { status: "offline", data: { shopId, count: productIds.length } }
+          : { status: "success", data: { shopId, count: productIds.length } };
+      } catch (err) {
+        return {
+          status: "error",
+          error:
+            err instanceof Error ? err : new Error("Failed to delete products"),
+        };
+      }
+    },
+    onSuccess: (result, { shopId, productIds }) => {
+      if (result.status !== "error") {
+        const idSet = new Set(productIds);
+        qc.setQueryData(productKeys.all(shopId), (old?: Product[]) =>
+          old ? old.filter((p) => !idSet.has(p.id)) : [],
+        );
+        qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
+        qc.invalidateQueries({ queryKey: ["inventory-levels", shopId] });
+        qc.invalidateQueries({ queryKey: ["shop-variants", shopId] });
       }
     },
   });

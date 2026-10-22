@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import { productSchema } from "@/lib/validations/domain";
+import { friendlyError } from "@/lib/api/errors";
 import { useProduct, useUpdateProduct } from "@/hooks/useProducts";
 import {
   useProductVariants,
@@ -93,7 +94,12 @@ export function EditForm({
       quantityDelta,
     });
     if (result.status === "error") {
-      setError(result.error.message);
+      setError(
+        friendlyError(
+          result.error,
+          "Failed to update product. Please check the values and try again.",
+        ),
+      );
       return;
     }
     if (result.status === "offline") {

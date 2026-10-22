@@ -12,6 +12,8 @@ interface InventoryMobileListProps {
   totalPages: number;
   filtered: Product[];
   PAGE_SIZE: number;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (productId: string) => void;
   onSetPage: (p: number) => void;
   onDeleteClick: (p: {
     id: string;
@@ -41,6 +43,8 @@ export function InventoryMobileList({
   totalPages,
   filtered,
   PAGE_SIZE,
+  selectedIds,
+  onToggleSelect,
   onSetPage,
   onDeleteClick,
   onTransferClick,
@@ -49,14 +53,38 @@ export function InventoryMobileList({
   return (
     <div className="sm:hidden space-y-2">
       {paginated.map((product) => {
+        const isSelected = selectedIds?.has(product.id) ?? false;
         const pVariants = variantsByProduct.get(product.id);
         const hasVariants = !!pVariants?.length;
         const totalQty = hasVariants
           ? pVariants!.reduce((s, v) => s + v.quantity, 0)
           : product.quantity;
         return (
-          <div key={product.id} className="card px-4 py-3">
-            <div className="flex items-start justify-between gap-2">
+          <div
+            key={product.id}
+            className="card px-4 py-3 transition-colors"
+            style={{
+              background: isSelected
+                ? "var(--color-surface-selected, rgba(37, 99, 235, 0.06))"
+                : undefined,
+              borderColor: isSelected
+                ? "var(--color-brand-600, #2563eb)"
+                : undefined,
+            }}
+          >
+            <div className="flex items-start justify-between gap-2.5">
+              {onToggleSelect && (
+                <div className="pt-0.5 flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => onToggleSelect(product.id)}
+                    className="cursor-pointer rounded border-gray-300 accent-blue-600"
+                    style={{ width: 18, height: 18 }}
+                    aria-label={`Select ${product.name}`}
+                  />
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <Link
                   href={`/inventory/${product.id}`}
@@ -80,7 +108,7 @@ export function InventoryMobileList({
                         className="text-xs font-mono"
                         style={{ color: "var(--color-ink-tertiary)" }}
                       >
-                        {product.sku}
+                        {product.sku || "No SKU"}
                       </span>
                       {product.size && (
                         <span
@@ -103,7 +131,7 @@ export function InventoryMobileList({
                 />
               )}
             </div>
-            <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-[var(--color-border-subtle)]">
               <div className="flex items-center gap-3">
                 <span
                   className="text-sm font-medium"

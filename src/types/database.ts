@@ -256,6 +256,9 @@ export interface Database {
           min_stock: number;
           price: number;
           size: string | null;
+          is_archived?: boolean;
+          archived_at?: string | null;
+          archive_reason?: string | null;
           updated_at: string;
         };
         Insert: {
@@ -269,6 +272,9 @@ export interface Database {
           min_stock?: number;
           price: number;
           size?: string | null;
+          is_archived?: boolean;
+          archived_at?: string | null;
+          archive_reason?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -282,6 +288,9 @@ export interface Database {
           min_stock?: number;
           price?: number;
           size?: string | null;
+          is_archived?: boolean;
+          archived_at?: string | null;
+          archive_reason?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -881,6 +890,10 @@ export interface Database {
       manage_product: {
         Args: { p_op: string; p_product: Json };
         Returns: string;
+      };
+      bulk_delete_products: {
+        Args: { p_shop_id: string; p_product_ids: string[] };
+        Returns: string[];
       };
       record_stock_movement: {
         Args: { p_movement: Json };

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/authStore";
 import { useRestockProduct } from "@/hooks/useProducts";
+import { friendlyError } from "@/lib/api/errors";
 
 export function RestockModal({
   product,
@@ -40,7 +41,12 @@ export function RestockModal({
     });
 
     if (result.status === "error") {
-      toast.error(result.error.message);
+      toast.error(
+        friendlyError(
+          result.error,
+          "Failed to restock product. Please try again.",
+        ),
+      );
       return;
     }
 
