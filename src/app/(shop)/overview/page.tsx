@@ -29,6 +29,31 @@ export default function OverviewPage() {
   const atShopLimit = plan === "free" && shops.length >= 1;
 
   const [kpisMap, setKpisMap] = useState<Record<string, ShopKPIs>>({});
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+
+  // Live date tracking with automatic midnight rollover detection
+  useEffect(() => {
+    function checkDateRoll() {
+      const fresh = new Date();
+      if (
+        fresh.getFullYear() !== currentDate.getFullYear() ||
+        fresh.getMonth() !== currentDate.getMonth() ||
+        fresh.getDate() !== currentDate.getDate()
+      ) {
+        setCurrentDate(fresh);
+      }
+    }
+
+    const interval = setInterval(checkDateRoll, 30_000);
+    window.addEventListener("focus", checkDateRoll);
+    document.addEventListener("visibilitychange", checkDateRoll);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", checkDateRoll);
+      document.removeEventListener("visibilitychange", checkDateRoll);
+    };
+  }, [currentDate]);
 
   useEffect(() => {
     if (shops.length === 1) {
@@ -40,10 +65,9 @@ export default function OverviewPage() {
     if (shops.length === 0) return;
 
     const supabase = createClient();
-    const now = new Date();
-    const todayStart = new Date(now);
+    const todayStart = new Date(currentDate);
     todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(now);
+    const todayEnd = new Date(currentDate);
     todayEnd.setHours(23, 59, 59, 999);
 
     shops.forEach(async (shop) => {
@@ -61,18 +85,29 @@ export default function OverviewPage() {
             .eq("shop_id", shop.id),
         ]);
 
-        const summary = (
-          summaryRes.data as
+        const rows =
+          (summaryRes.data as
             | { total_revenue: number; order_count: number }[]
-            | null
-        )?.[0];
+            | null) ?? [];
+
+        // Sum all returned rows for [todayStart, todayEnd].
+        // In Postgres (UTC), dates are bucketed by UTC date which may split a local day into 2 rows.
+        // Summing all rows guarantees we get the complete day's revenue and orders rather than just index [0].
+        const todayRevenue = rows.reduce(
+          (sum, r) => sum + Number(r.total_revenue || 0),
+          0,
+        );
+        const todayOrders = rows.reduce(
+          (sum, r) => sum + Number(r.order_count || 0),
+          0,
+        );
 
         setKpisMap((prev) => ({
           ...prev,
           [shop.id]: {
             shopId: shop.id,
-            todayRevenue: summary?.total_revenue ?? 0,
-            todayOrders: summary?.order_count ?? 0,
+            todayRevenue,
+            todayOrders,
             lowStockCount: (lowStockRes.data as unknown[])?.length ?? 0,
             totalProducts: countRes.count ?? 0,
             loading: false,
@@ -94,7 +129,7 @@ export default function OverviewPage() {
         }));
       }
     });
-  }, [shops]);
+  }, [shops, currentDate]);
 
   function handleOpenShop(shop: ShopWithRole) {
     switchShop(shop);
@@ -113,7 +148,7 @@ export default function OverviewPage() {
 
   const allLoaded = Object.values(kpisMap).every((k) => !k.loading);
 
-  const h = new Date().getHours();
+  const h = currentDate.getHours();
   const greeting =
     h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 

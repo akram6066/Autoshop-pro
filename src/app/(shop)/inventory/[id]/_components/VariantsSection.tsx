@@ -1,42 +1,14 @@
 "use client";
+
+import { useProductVariants } from "@/hooks/useVariants";
 import { VariantCard } from "./VariantCard";
 
-import { useState, useMemo, use } from "react";
-import { useMounted } from "@/hooks/useMounted";
-import { toast } from "sonner";
-import Link from "next/link";
-import { useAuthStore, selectShopId } from "@/stores/authStore";
-import { productSchema } from "@/lib/validations/domain";
-import { useProduct, useUpdateProduct } from "@/hooks/useProducts";
-import {
-  useProductVariants,
-  useUpdateVariant,
-  useDeleteVariant,
-} from "@/hooks/useVariants";
-import { useRooms } from "@/hooks/useRooms";
-import { useTeam } from "@/hooks/useTeam";
-import { useCategories } from "@/hooks/useCategories";
-import {
-  useArchiveProduct,
-  useRestoreProduct,
-} from "@/hooks/useInventoryMovements";
-import { formatCurrency, formatDateTime, categoryLabel } from "@/lib/utils";
-import type {
-  Room,
-  Category,
-  ProductVariant,
-  InventoryMovementType,
-} from "@/types/app";
-
-// ─── Edit Form ────────────────────────────────────────────────────────────────
-
-export function VariantsSection({
-  productId,
-  shopId,
-}: {
+interface VariantsSectionProps {
   productId: string;
   shopId: string | null;
-}) {
+}
+
+export function VariantsSection({ productId, shopId }: VariantsSectionProps) {
   const { data: variants = [], isLoading } = useProductVariants(productId);
 
   if (isLoading) {
@@ -69,5 +41,3 @@ export function VariantsSection({
     </div>
   );
 }
-
-// ─── Page ─────────────────────────────────────────────────────────────────────

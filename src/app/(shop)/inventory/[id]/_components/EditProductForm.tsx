@@ -1,46 +1,28 @@
 "use client";
 
-import { useState, useMemo, use } from "react";
-import { useMounted } from "@/hooks/useMounted";
+import { useState } from "react";
 import { toast } from "sonner";
-import Link from "next/link";
+import { useMounted } from "@/hooks/useMounted";
 import { useAuthStore, selectShopId } from "@/stores/authStore";
 import { productSchema } from "@/lib/validations/domain";
 import { friendlyError } from "@/lib/api/errors";
-import { useProduct, useUpdateProduct } from "@/hooks/useProducts";
-import {
-  useProductVariants,
-  useUpdateVariant,
-  useDeleteVariant,
-} from "@/hooks/useVariants";
-import { useRooms } from "@/hooks/useRooms";
-import { useTeam } from "@/hooks/useTeam";
+import { useUpdateProduct } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
-import {
-  useArchiveProduct,
-  useRestoreProduct,
-} from "@/hooks/useInventoryMovements";
-import { formatCurrency, formatDateTime, categoryLabel } from "@/lib/utils";
-import type {
-  Room,
-  Category,
-  ProductVariant,
-  InventoryMovementType,
-} from "@/types/app";
+import type { Product, Room, Category } from "@/types/app";
 
-// ─── Edit Form ────────────────────────────────────────────────────────────────
+interface EditFormProps {
+  product: Product;
+  rooms: Room[];
+  hasVariants: boolean;
+  onSaved: () => void;
+}
 
 export function EditForm({
   product,
   rooms,
   hasVariants,
   onSaved,
-}: {
-  product: NonNullable<ReturnType<typeof useProduct>>;
-  rooms: Room[];
-  hasVariants: boolean;
-  onSaved: () => void;
-}) {
+}: EditFormProps) {
   const shopId = useAuthStore(selectShopId);
   const user = useAuthStore((s) => s.user);
   const { mutateAsync: updateProduct, isPending } = useUpdateProduct();
@@ -314,5 +296,3 @@ export function EditForm({
     </form>
   );
 }
-
-// ─── Variant Card ─────────────────────────────────────────────────────────────

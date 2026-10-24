@@ -111,11 +111,24 @@ export function Providers({ children }: { children: ReactNode }) {
     const interval = setInterval(() => {
       const shopId = useAuthStore.getState().shopId;
       if (shopId && navigator.onLine) {
-        flushQueue(shopId).catch(console.warn);
+        flushQueue(shopId)
+          .then(() => {
+            queryClient.invalidateQueries({
+              predicate: (query) =>
+                query.queryKey[0] === "dashboard-today-sales" &&
+                query.queryKey[1] === shopId,
+            });
+            queryClient.invalidateQueries({
+              predicate: (query) =>
+                query.queryKey[0] === "dashboard-monthly-sales-count" &&
+                query.queryKey[1] === shopId,
+            });
+          })
+          .catch(console.warn);
       }
     }, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [queryClient]);
 
   // Listen for manual sync clearing to invalidate UI state
   useEffect(() => {

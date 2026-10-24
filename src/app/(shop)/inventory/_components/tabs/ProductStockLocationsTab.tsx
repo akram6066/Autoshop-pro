@@ -21,7 +21,7 @@ interface ProductStockLocationsTabProps {
 export function ProductStockLocationsTab({
   productId,
   shopId,
-  totalQuantity: _totalQuantity,
+  totalQuantity,
   minStock,
   onOpenAdjustModal,
   onOpenTransferModal,
@@ -98,7 +98,9 @@ export function ProductStockLocationsTab({
           <p className="text-xs text-[var(--color-ink-tertiary)]">
             Per-room inventory breakdown. Total across all locations:{" "}
             <strong>
-              {locationBreakdown.reduce((sum, l) => sum + l.quantity, 0)} units
+              {totalQuantity ??
+                locationBreakdown.reduce((sum, l) => sum + l.quantity, 0)}{" "}
+              units
             </strong>
           </p>
         </div>

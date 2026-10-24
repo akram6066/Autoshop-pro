@@ -1,41 +1,18 @@
 "use client";
 
-import { useState, useMemo, use } from "react";
-import { useMounted } from "@/hooks/useMounted";
+import { useState } from "react";
 import { toast } from "sonner";
-import Link from "next/link";
-import { useAuthStore, selectShopId } from "@/stores/authStore";
-import { productSchema } from "@/lib/validations/domain";
-import { useProduct, useUpdateProduct } from "@/hooks/useProducts";
-import {
-  useProductVariants,
-  useUpdateVariant,
-  useDeleteVariant,
-} from "@/hooks/useVariants";
-import { useRooms } from "@/hooks/useRooms";
-import { useTeam } from "@/hooks/useTeam";
-import { useCategories } from "@/hooks/useCategories";
-import {
-  useArchiveProduct,
-  useRestoreProduct,
-} from "@/hooks/useInventoryMovements";
-import { formatCurrency, formatDateTime, categoryLabel } from "@/lib/utils";
-import type {
-  Room,
-  Category,
-  ProductVariant,
-  InventoryMovementType,
-} from "@/types/app";
+import { useMounted } from "@/hooks/useMounted";
+import { useUpdateVariant, useDeleteVariant } from "@/hooks/useVariants";
+import { formatCurrency } from "@/lib/utils";
+import type { ProductVariant } from "@/types/app";
 
-// ─── Edit Form ────────────────────────────────────────────────────────────────
-
-export function VariantCard({
-  variant,
-  shopId,
-}: {
+interface VariantCardProps {
   variant: ProductVariant;
   shopId: string | null;
-}) {
+}
+
+export function VariantCard({ variant, shopId }: VariantCardProps) {
   const mounted = useMounted();
   const [mode, setMode] = useState<"view" | "edit" | "confirm-delete">("view");
   const [size, setSize] = useState(variant.size);
@@ -118,6 +95,7 @@ export function VariantCard({
                 </p>
               )}
             </div>
+
             <div className="flex items-center gap-1 shrink-0">
               <button
                 type="button"
@@ -280,5 +258,3 @@ export function VariantCard({
     </div>
   );
 }
-
-// ─── Variants Section ─────────────────────────────────────────────────────────

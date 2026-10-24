@@ -400,6 +400,18 @@ export function useRecordSale() {
         predicate: (query) =>
           query.queryKey[0] === "sales-history" && query.queryKey[1] === shopId,
       });
+      // Invalidate dashboard today sales and monthly sales
+      qc.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === "dashboard-today-sales" &&
+          query.queryKey[1] === shopId,
+      });
+      qc.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === "dashboard-monthly-sales-count" &&
+          query.queryKey[1] === shopId,
+      });
+      qc.invalidateQueries({ queryKey: ["sales-summary", shopId] });
       qc.invalidateQueries({ queryKey: ["products", shopId] });
       qc.invalidateQueries({ queryKey: ["variants", "shop", shopId] });
       qc.invalidateQueries({ queryKey: ["customers", shopId] });
@@ -438,6 +450,17 @@ export function useVoidSale() {
       });
       // Infinite list used by POS / useSales hook
       qc.invalidateQueries({ queryKey: saleKeys.list(shopId) });
+      // Dashboard today sales and monthly sales
+      qc.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === "dashboard-today-sales" &&
+          query.queryKey[1] === shopId,
+      });
+      qc.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === "dashboard-monthly-sales-count" &&
+          query.queryKey[1] === shopId,
+      });
       // Summary used by reports — voiding a sale changes revenue totals
       qc.invalidateQueries({ queryKey: ["sales-summary", shopId] });
       // Product stock — void_sale restores quantities

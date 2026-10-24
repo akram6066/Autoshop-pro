@@ -364,6 +364,7 @@ export interface Database {
           amount_paid: number;
           synced: boolean;
           created_at: string;
+          status: string;
           invoice_number: string | null;
         };
         Insert: {
@@ -377,6 +378,7 @@ export interface Database {
           amount_paid?: number;
           synced?: boolean;
           created_at?: string;
+          status?: string;
           invoice_number?: string | null;
         };
         Update: {
@@ -390,6 +392,7 @@ export interface Database {
           amount_paid?: number;
           synced?: boolean;
           created_at?: string;
+          status?: string;
           invoice_number?: string | null;
         };
         Relationships: [];

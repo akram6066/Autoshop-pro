@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useQuery } from "@tanstack/react-query";
@@ -55,34 +55,69 @@ function DashboardContent() {
   const { isOnline } = useOnlineStatus();
   const { sub, subLoading } = useSubscription();
 
-  const now = useMemo(() => new Date(), []);
+  // Live date tracking with automatic midnight rollover detection
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+
+  useEffect(() => {
+    function checkDateRoll() {
+      const fresh = new Date();
+      if (
+        fresh.getFullYear() !== currentDate.getFullYear() ||
+        fresh.getMonth() !== currentDate.getMonth() ||
+        fresh.getDate() !== currentDate.getDate()
+      ) {
+        setCurrentDate(fresh);
+      }
+    }
+
+    const interval = setInterval(checkDateRoll, 30_000);
+    window.addEventListener("focus", checkDateRoll);
+    document.addEventListener("visibilitychange", checkDateRoll);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", checkDateRoll);
+      document.removeEventListener("visibilitychange", checkDateRoll);
+    };
+  }, [currentDate]);
+
+  const todayDateKey = useMemo(() => {
+    const y = currentDate.getFullYear();
+    const m = String(currentDate.getMonth() + 1).padStart(2, "0");
+    const d = String(currentDate.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }, [currentDate]);
+
   const todayStart = useMemo(() => {
-    const d = new Date(now);
+    const d = new Date(currentDate);
     d.setHours(0, 0, 0, 0);
     return d;
-  }, [now]);
+  }, [currentDate]);
+
   const todayEnd = useMemo(() => {
-    const d = new Date(now);
+    const d = new Date(currentDate);
     d.setHours(23, 59, 59, 999);
     return d;
-  }, [now]);
+  }, [currentDate]);
+
   const monthStart = useMemo(() => {
-    return new Date(now.getFullYear(), now.getMonth(), 1);
-  }, [now]);
+    return new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  }, [currentDate]);
 
   const shopIds = useMemo(() => shopsList.map((r) => r.id), [shopsList]);
 
-  // React Query: Supabase today's sales
+  // React Query: Supabase today's sales (keyed by date to prevent serving yesterday's cache)
   const { data: onlineTodaySales, isLoading: salesLoading } = useQuery({
-    queryKey: ["dashboard-today-sales", activeShopId],
+    queryKey: ["dashboard-today-sales", activeShopId, todayDateKey],
     queryFn: async () => {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("sales")
-        .select("id, total_amount, created_at, synced")
+        .select("id, total_amount, created_at, synced, status")
         .eq("shop_id", activeShopId!)
         .gte("created_at", todayStart.toISOString())
-        .lte("created_at", todayEnd.toISOString());
+        .lte("created_at", todayEnd.toISOString())
+        .neq("status", "voided");
       if (error) throw error;
       return data;
     },
@@ -124,16 +159,21 @@ function DashboardContent() {
     staleTime: 60000,
   });
 
-  // React Query: Supabase monthly sales count
+  // React Query: Supabase monthly sales count (keyed by month)
   const { data: onlineMonthlySalesCount } = useQuery({
-    queryKey: ["dashboard-monthly-sales-count", activeShopId],
+    queryKey: [
+      "dashboard-monthly-sales-count",
+      activeShopId,
+      todayDateKey.slice(0, 7),
+    ],
     queryFn: async () => {
       const supabase = createClient();
       const { count, error } = await supabase
         .from("sales")
         .select("id", { count: "exact", head: true })
         .eq("shop_id", activeShopId!)
-        .gte("created_at", monthStart.toISOString());
+        .gte("created_at", monthStart.toISOString())
+        .neq("status", "voided");
       if (error) throw error;
       return count ?? 0;
     },
@@ -185,6 +225,7 @@ function DashboardContent() {
       .where("shop_id")
       .equals(activeShopId)
       .filter((s) => {
+        if (s.status === "voided") return false;
         const d = new Date(s.created_at);
         return d >= todayStart && d <= todayEnd;
       })
@@ -219,7 +260,9 @@ function DashboardContent() {
     return db.sales
       .where("shop_id")
       .equals(activeShopId)
-      .filter((s) => new Date(s.created_at) >= monthStart)
+      .filter(
+        (s) => s.status !== "voided" && new Date(s.created_at) >= monthStart,
+      )
       .count();
   }, [activeShopId, monthStart]);
 
@@ -244,16 +287,18 @@ function DashboardContent() {
 
   // Removed localInventoryUnitCount as we now use productCount
 
-  // Combine online (Supabase) + local unsynced data
+  // Combine online (Supabase) + local data immediately so new sales reflect without delay
   const todaySales = useMemo(() => {
-    if (!isOnline || !onlineTodaySales) {
-      return localTodaySales ?? [];
-    }
-    const onlineIds = new Set(onlineTodaySales.map((s) => s.id));
-    const unsyncedLocal = (localTodaySales ?? []).filter(
-      (s) => !s.synced && !onlineIds.has(s.id),
+    const validLocal = (localTodaySales ?? []).filter(
+      (s) => s.status !== "voided",
     );
-    return [...onlineTodaySales, ...unsyncedLocal];
+    if (!isOnline || !onlineTodaySales) {
+      return validLocal;
+    }
+    const onlineValid = onlineTodaySales.filter((s) => s.status !== "voided");
+    const onlineIds = new Set(onlineValid.map((s) => s.id));
+    const localPending = validLocal.filter((s) => !onlineIds.has(s.id));
+    return [...onlineValid, ...localPending];
   }, [isOnline, onlineTodaySales, localTodaySales]);
 
   const lowStock = useMemo(() => {
@@ -341,7 +386,7 @@ function DashboardContent() {
 
   const showLimitBanner = isOwner && sub && !sub.isAdminOverride;
 
-  const hour = now.getHours();
+  const hour = currentDate.getHours();
   const greeting =
     hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = profile.full_name?.split(" ")[0] || "there";
@@ -361,7 +406,7 @@ function DashboardContent() {
             {sub && <PlanBadge sub={sub} />}
           </div>
           <p className="text-sm mt-1 text-[var(--color-ink-secondary)]">
-            {formatDate(now.toISOString())}
+            {formatDate(currentDate.toISOString())}
           </p>
         </div>
         <div className="flex gap-2 sm:flex-shrink-0">
