@@ -23,7 +23,7 @@ import { VariantTable } from "./_components/VariantTable";
 import type { VariantRow } from "./_components/VariantTable";
 import { SimpleProductFields } from "./_components/SimpleProductFields";
 import { ImportSheet } from "./_components/ImportSheet";
-import type { ImportRow } from "./_components/ImportSheet";
+import type { ImportRow, ImportMode } from "./_components/ImportSheet";
 import {
   DuplicateProductModal,
   type DuplicateMatch,
@@ -163,15 +163,22 @@ export default function NewProductPage() {
   const effectiveCategory = category || categories[0]?.name || "";
   const isPending = isCreatingProduct || isRestockingDuplicate;
 
-  async function handleImport(rows: ImportRow[]) {
+  async function handleImport(
+    rows: ImportRow[],
+    options: { mode: ImportMode; updatePrice: boolean },
+  ) {
     if (!shopId || !effectiveRoomId) return;
     setImporting(true);
 
-    // Auto-create any categories from the sheet that don't exist in this shop yet.
+    const newRows = rows.filter((r) => !r.existing);
+    const restockRows =
+      options.mode === "restock" ? rows.filter((r) => r.existing) : [];
+
+    // Auto-create any categories from the new rows that don't exist in this shop yet.
     const existingNames = categories.map((c) => c.name.toLowerCase());
     const newCatNames = [
       ...new Set(
-        rows
+        newRows
           .map((r) => r.category.trim())
           .filter((c) => c && !existingNames.includes(c.toLowerCase())),
       ),
@@ -189,39 +196,87 @@ export default function NewProductPage() {
       );
     }
 
-    let saved = 0;
-    const importResults = await Promise.all(
-      rows.map(async (row) => {
-        const finalSku = row.sku.trim() || generateSku(row.name, row.size);
-        return createProduct({
-          shopId,
-          data: {
-            room_id: effectiveRoomId,
-            name: row.name.trim(),
-            sku: finalSku,
-            category: row.category || effectiveCategory,
-            quantity: row.quantity,
-            min_stock: row.min_stock,
-            price: row.price,
-            size: row.size.trim() || null,
-          },
-        });
-      }),
-    );
-    saved = importResults.filter((r) => r.status !== "error").length;
+    const [createResults, restockResults] = await Promise.all([
+      Promise.all(
+        newRows.map(async (row) => {
+          const finalSku = row.sku.trim() || generateSku(row.name, row.size);
+          return createProduct({
+            shopId,
+            data: {
+              room_id: row.room_id || effectiveRoomId,
+              name: row.name.trim(),
+              sku: finalSku,
+              category: row.category || effectiveCategory,
+              quantity: row.quantity,
+              min_stock: row.min_stock,
+              price: row.price,
+              size: row.size.trim() || null,
+            },
+          });
+        }),
+      ),
+      Promise.all(
+        restockRows.map(async (row) => {
+          const existing = row.existing!;
+          let res: { status: string; error?: Error } = { status: "success" };
+          if (row.quantity > 0) {
+            res = await restockProduct({
+              shopId,
+              productId: existing.id,
+              quantityAdded: row.quantity,
+              reason: "restock",
+            });
+            if (res.status === "error") return res;
+          }
+          if (
+            options.updatePrice &&
+            row.price > 0 &&
+            row.price !== existing.price
+          ) {
+            res = await updateProduct({
+              shopId,
+              productId: existing.id,
+              changes: { price: row.price },
+            });
+          }
+          return res;
+        }),
+      ),
+    ]);
+
+    const createdCount = createResults.filter(
+      (r) => r.status !== "error",
+    ).length;
+    const restockedCount = restockResults.filter(
+      (r) => r.status !== "error",
+    ).length;
+    const allResults = [...createResults, ...restockResults];
+    const firstFailure = allResults.find((r) => r.status === "error");
+
     setImporting(false);
-    const firstFailure = importResults.find((r) => r.status === "error");
-    if (saved < rows.length && firstFailure?.status === "error") {
+
+    const parts: string[] = [];
+    if (newRows.length > 0) {
+      parts.push(
+        `${createdCount} of ${newRows.length} new product${newRows.length !== 1 ? "s" : ""} added`,
+      );
+    }
+    if (restockRows.length > 0) {
+      parts.push(
+        `${restockedCount} of ${restockRows.length} existing product${restockRows.length !== 1 ? "s" : ""} restocked`,
+      );
+    }
+    const summary = parts.join(" · ") || "Nothing to import.";
+
+    if (firstFailure?.status === "error") {
       toast.error(
-        `${saved} of ${rows.length} imported. ${friendlyError(
+        `${summary}. ${friendlyError(
           firstFailure.error,
           "Some products could not be saved.",
         )}`,
       );
     } else {
-      toast.success(
-        `${saved} of ${rows.length} product${rows.length !== 1 ? "s" : ""} imported.`,
-      );
+      toast.success(`${summary}.`);
     }
     router.push("/inventory");
   }
@@ -646,6 +701,8 @@ export default function NewProductPage() {
         <ImportSheet
           defaultCategory={effectiveCategory}
           existingCategories={categories.map((c) => c.name)}
+          rooms={rooms}
+          existingProducts={existingProducts}
           onImport={handleImport}
           onCancel={() => setTab("single")}
         />

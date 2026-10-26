@@ -3,12 +3,23 @@ import {
   buildRow,
   detectFields,
   findHeaderRow,
+  ignoredColumns,
+  markDuplicates,
+  matchRoom,
   parseCsv,
   parseEditedNumber,
   readNumber,
+  type BuildContext,
 } from "@/lib/import/inventorySheet";
 
 const HEADERS = ["Name", "Size", "SKU", "Category", "Qty", "Min", "Price"];
+const CTX: BuildContext = {
+  rooms: [
+    { id: "r1", name: "Main Store" },
+    { id: "r2", name: "Warehouse" },
+  ],
+  defaultRoomId: "r1",
+};
 
 describe("readNumber", () => {
   it("flags blank cells as empty → 0", () => {
@@ -46,12 +57,15 @@ describe("buildRow", () => {
       {},
       "Default",
       0,
+      {},
+      CTX,
     );
     expect(row).toMatchObject({
       name: "Pilot Sport",
       size: "205/55R16",
       sku: "MPS-1",
       category: "Tire",
+      room_id: "r1",
       quantity: 10,
       min_stock: 3,
       price: 4500,
@@ -68,6 +82,8 @@ describe("buildRow", () => {
       {},
       "Default",
       3,
+      {},
+      CTX,
     );
     expect(row.quantity).toBe(0);
     expect(row.min_stock).toBe(0);
@@ -83,46 +99,74 @@ describe("buildRow", () => {
       {},
       "Default",
       0,
+      {},
+      CTX,
     );
     expect(row.emptyFields).toEqual(["quantity", "min_stock", "price"]);
     expect(row.error).toBeUndefined();
   });
 
   it("does not auto-generate or alter the SKU from the sheet", () => {
-    const blank = buildRow(HEADERS, ["A", "B", "", "C", 1, 1, 1], {}, "D", 0);
+    const blank = buildRow(
+      HEADERS,
+      ["A", "B", "", "C", 1, 1, 1],
+      {},
+      "D",
+      0,
+      {},
+      CTX,
+    );
     expect(blank.sku).toBe("");
   });
 
   it("flags invalid numbers as errors with the original text", () => {
-    const row = buildRow(HEADERS, ["A", "B", "", "C", "N/A", 1, 1], {}, "D", 0);
+    const row = buildRow(
+      HEADERS,
+      ["A", "B", "", "C", "N/A", 1, 1],
+      {},
+      "D",
+      0,
+      {},
+      CTX,
+    );
     expect(row.invalidFields).toEqual({ quantity: "N/A" });
     expect(row.error).toBe("Fix qty");
   });
 
   it("requires name and size", () => {
-    expect(buildRow(HEADERS, ["", "B"], {}, "D", 0).error).toBe(
+    expect(buildRow(HEADERS, ["", "B"], {}, "D", 0, {}, CTX).error).toBe(
       "Name required",
     );
-    expect(buildRow(HEADERS, ["A", ""], {}, "D", 0).error).toBe(
+    expect(buildRow(HEADERS, ["A", ""], {}, "D", 0, {}, CTX).error).toBe(
       "Size required",
     );
   });
 
   it("falls back to the default category only when the sheet's is blank", () => {
     expect(
-      buildRow(HEADERS, ["A", "B", "", "", 1, 1, 1], {}, "Def", 0).category,
+      buildRow(HEADERS, ["A", "B", "", "", 1, 1, 1], {}, "Def", 0, {}, CTX)
+        .category,
     ).toBe("Def");
     expect(
-      buildRow(HEADERS, ["A", "B", "", "Tire", 1, 1, 1], {}, "Def", 0).category,
+      buildRow(HEADERS, ["A", "B", "", "Tire", 1, 1, 1], {}, "Def", 0, {}, CTX)
+        .category,
     ).toBe("Tire");
   });
 
   it("user edits override sheet values and clear their flags", () => {
     const cells = ["A", "B", "", "C", "", "N/A", 1];
-    const row = buildRow(HEADERS, cells, {}, "D", 0, {
-      quantity: 7,
-      min_stock: 2,
-    });
+    const row = buildRow(
+      HEADERS,
+      cells,
+      {},
+      "D",
+      0,
+      {
+        quantity: 7,
+        min_stock: 2,
+      },
+      CTX,
+    );
     expect(row.quantity).toBe(7);
     expect(row.min_stock).toBe(2);
     expect(row.emptyFields).toBeUndefined();
@@ -131,9 +175,15 @@ describe("buildRow", () => {
   });
 
   it("an explicit edit to 0 is a confirmed value (no longer flagged)", () => {
-    const row = buildRow(HEADERS, ["A", "B", "", "C", "", 1, 1], {}, "D", 0, {
-      quantity: 0,
-    });
+    const row = buildRow(
+      HEADERS,
+      ["A", "B", "", "C", "", 1, 1],
+      {},
+      "D",
+      0,
+      { quantity: 0 },
+      CTX,
+    );
     expect(row.emptyFields).toBeUndefined();
   });
 
@@ -144,10 +194,117 @@ describe("buildRow", () => {
       { quantity: 2, price: 3 },
       "D",
       0,
+      {},
+      CTX,
     );
     expect(row.name).toBe("Tyre");
     expect(row.quantity).toBe(9);
     expect(row.price).toBe(1200);
+  });
+
+  it("resolves a location column against shop rooms and flags unknown ones", () => {
+    const withLoc = ["Name", "Size", "Location", "Qty", "Price"];
+    const matched = buildRow(
+      withLoc,
+      ["A", "B", "  warehouse ", 4, 100],
+      {},
+      "D",
+      0,
+      {},
+      CTX,
+    );
+    expect(matched.room_id).toBe("r2");
+    expect(matched.error).toBeUndefined();
+
+    const unknown = buildRow(
+      withLoc,
+      ["A", "B", "Back Alley", 4, 100],
+      {},
+      "D",
+      1,
+      {},
+      CTX,
+    );
+    expect(unknown.room_id).toBe("");
+    expect(unknown.error).toBe('Unknown location "Back Alley"');
+
+    const fixed = buildRow(
+      withLoc,
+      ["A", "B", "Back Alley", 4, 100],
+      {},
+      "D",
+      1,
+      { room_id: "r1" },
+      CTX,
+    );
+    expect(fixed.room_id).toBe("r1");
+    expect(fixed.error).toBeUndefined();
+  });
+});
+
+describe("matchRoom & ignoredColumns", () => {
+  it("matches room names case- and space-insensitively", () => {
+    expect(matchRoom("main   store", CTX.rooms)?.id).toBe("r1");
+    expect(matchRoom("Nope", CTX.rooms)).toBeNull();
+  });
+
+  it("lists columns that do not map to any product field", () => {
+    const headers = ["Name", "Size", "Supplier", "Notes", "Left"];
+    expect(ignoredColumns(headers, {})).toEqual(["Supplier", "Notes", "Left"]);
+    expect(ignoredColumns(headers, { quantity: 4 })).toEqual([
+      "Supplier",
+      "Notes",
+    ]);
+  });
+});
+
+describe("markDuplicates", () => {
+  const existing = [
+    {
+      id: "p1",
+      name: "Pilot Sport",
+      size: "205/55R16",
+      sku: "MPS-1",
+      quantity: 8,
+      price: 4500,
+    },
+  ];
+
+  it("marks rows matching an existing product by SKU or Name+Size without blocking", () => {
+    const r1 = buildRow(
+      HEADERS,
+      ["Different Name", "999", "mps-1", "Tire", 5, 1, 4500],
+      {},
+      "D",
+      0,
+      {},
+      CTX,
+    );
+    const r2 = buildRow(
+      HEADERS,
+      ["pilot sport", "205/55r16", "", "Tire", 3, 1, 5000],
+      {},
+      "D",
+      1,
+      {},
+      CTX,
+    );
+    const r3 = buildRow(
+      HEADERS,
+      ["Brand New", "195/65R15", "", "Tire", 2, 1, 3000],
+      {},
+      "D",
+      2,
+      {},
+      CTX,
+    );
+    const marked = markDuplicates([r1, r2, r3], existing);
+    expect(marked[0].existing?.id).toBe("p1");
+    expect(marked[0].error).toBeUndefined();
+    expect(marked[1].existing?.id).toBe("p1");
+    expect(marked[1].error).toBe("Same product as row 1");
+    expect(marked[2].existing).toBeUndefined();
+    expect(marked[2].error).toBeUndefined();
   });
 });
 
@@ -155,6 +312,13 @@ describe("header detection", () => {
   it("does not treat a serial-number column as quantity", () => {
     const found = detectFields(["No.", "Name", "Size"]);
     expect(found.has("quantity")).toBe(false);
+  });
+
+  it("detects location aliases", () => {
+    expect(detectFields(["Name", "Size", "Store"]).has("location")).toBe(true);
+    expect(detectFields(["Name", "Size", "Warehouse"]).has("location")).toBe(
+      true,
+    );
   });
 
   it("finds the header row below title rows", () => {

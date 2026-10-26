@@ -8,23 +8,35 @@ import {
   TEMPLATE_CSV,
   buildRow,
   detectFields,
+  ignoredColumns,
   isIntegerField,
+  markDuplicates,
   parseEditedNumber,
   parseFile,
   type ColumnOverrides,
+  type ExistingProduct,
   type ImportRow,
   type NumField,
   type ParseResult,
+  type RoomRef,
   type RowEdit,
   type SheetField,
 } from "@/lib/import/inventorySheet";
+import { ImportRestockModal, type ImportMode } from "./ImportRestockModal";
 
 export type { ImportRow } from "@/lib/import/inventorySheet";
+export type { ImportMode } from "./ImportRestockModal";
 
 interface Props {
   defaultCategory: string;
   existingCategories: string[];
-  onImport: (rows: ImportRow[]) => void;
+  rooms: RoomRef[];
+  /** Products already in the shop — used to offer a restock instead of a duplicate. */
+  existingProducts: ExistingProduct[];
+  onImport: (
+    rows: ImportRow[],
+    options: { mode: ImportMode; updatePrice: boolean },
+  ) => void;
   onCancel: () => void;
 }
 
@@ -32,11 +44,22 @@ interface Props {
 const MAPPABLE_FIELDS: SheetField[] = [
   "name",
   "size",
+  "sku",
+  "category",
+  "location",
   "quantity",
   "min_stock",
   "price",
 ];
 const REQUIRED_FIELDS = new Set<SheetField>(["name", "size"]);
+
+function unmappedOptionLabel(field: SheetField): string {
+  if (REQUIRED_FIELDS.has(field)) return "— select column —";
+  if (field === "location") return "— not in my file (use default location) —";
+  if (field === "category") return "— not in my file (use default category) —";
+  if (field === "sku") return "— not in my file (auto-generate) —";
+  return "— not in my file (use 0) —";
+}
 
 function downloadTemplate() {
   const a = document.createElement("a");
@@ -112,6 +135,8 @@ function NumCell({
 export function ImportSheet({
   defaultCategory,
   existingCategories,
+  rooms,
+  existingProducts,
   onImport,
   onCancel,
 }: Props) {
@@ -127,12 +152,19 @@ export function ImportSheet({
   const [edits, setEdits] = useState<Record<string, RowEdit>>({});
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
 
+  // Location used for rows whose sheet has no location (or a blank cell).
+  const [chosenRoomId, setChosenRoomId] = useState("");
+  const defaultRoomId =
+    rooms.find((r) => r.id === chosenRoomId)?.id ?? rooms[0]?.id ?? "";
+  const [showRestockModal, setShowRestockModal] = useState(false);
+
   const rows = useMemo<ImportRow[]>(() => {
     if (!result) return [];
-    const out: ImportRow[] = [];
+    const ctx = { rooms, defaultRoomId };
+    const built: ImportRow[] = [];
     result.rawData.forEach((cells, i) => {
       if (removed.has(`import-${i}`)) return;
-      out.push(
+      built.push(
         buildRow(
           result.rawHeaders,
           cells,
@@ -140,11 +172,21 @@ export function ImportSheet({
           defaultCategory,
           i,
           edits[`import-${i}`],
+          ctx,
         ),
       );
     });
-    return out;
-  }, [result, overrides, edits, removed, defaultCategory]);
+    return markDuplicates(built, existingProducts);
+  }, [
+    result,
+    overrides,
+    edits,
+    removed,
+    defaultCategory,
+    rooms,
+    defaultRoomId,
+    existingProducts,
+  ]);
 
   function resetAll() {
     setResult(null);
@@ -209,6 +251,23 @@ export function ImportSheet({
   const validRows = rows.filter((r) => !r.error);
   const errorCount = rows.length - validRows.length;
   const hasRows = rows.length > 0;
+  const restockRows = validRows.filter((r) => r.existing);
+  const newRows = validRows.filter((r) => !r.existing);
+  const notImported = result
+    ? ignoredColumns(result.rawHeaders, overrides)
+    : [];
+  const sheetHasLocation = result
+    ? detectFields(result.rawHeaders).has("location") ||
+      overrides.location !== undefined
+    : false;
+
+  function startImport() {
+    if (restockRows.length > 0) {
+      setShowRestockModal(true);
+      return;
+    }
+    onImport(validRows, { mode: "restock", updatePrice: false });
+  }
 
   // Empty numeric cells that will be saved as 0 (per column + totals).
   const emptyByField = NUM_FIELDS.map((f) => ({
@@ -274,8 +333,8 @@ export function ImportSheet({
             className="text-xs"
             style={{ color: "var(--color-ink-tertiary)", lineHeight: 1.6 }}
           >
-            <strong>name</strong> · <strong>size</strong> · quantity · price ·
-            sku (optional) · category · min_stock
+            <strong>name</strong> · <strong>size</strong> · location · quantity
+            · price · sku (optional) · category · min_stock
           </p>
           <p
             className="text-xs mt-1"
@@ -283,7 +342,9 @@ export function ImportSheet({
           >
             Your sheet is imported exactly as written. Empty quantity, min stock
             or price cells are set to <strong>0</strong> and highlighted, and
-            you can edit anything in the preview before saving.
+            you can edit anything in the preview before saving. Add a{" "}
+            <strong>location</strong> column (matching one of your location
+            names) to put each product in its own location.
           </p>
           <button
             type="button"
@@ -448,11 +509,7 @@ export function ImportSheet({
                     setOverrides((prev) => ({ ...prev, [field]: idx }));
                   }}
                 >
-                  <option value="">
-                    {REQUIRED_FIELDS.has(field)
-                      ? "— select column —"
-                      : "— not in my file (use 0) —"}
-                  </option>
+                  <option value="">{unmappedOptionLabel(field)}</option>
                   {result.rawHeaders.map((h, i) => (
                     <option key={i} value={i}>
                       {h || `(column ${i + 1})`}
@@ -503,6 +560,98 @@ export function ImportSheet({
               Change file
             </button>
           </div>
+
+          {/* Default location + columns we did not import */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 12,
+              marginBottom: 14,
+            }}
+          >
+            <label
+              className="text-xs font-semibold"
+              style={{ color: "var(--color-ink-primary)" }}
+            >
+              {sheetHasLocation
+                ? "Location for rows with a blank location"
+                : "Location for all products (no location column in file)"}
+            </label>
+            <select
+              className="input"
+              aria-label="Default location"
+              style={{ fontSize: "0.8125rem", minWidth: 160, width: "auto" }}
+              value={defaultRoomId}
+              onChange={(e) => setChosenRoomId(e.target.value)}
+            >
+              {rooms.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {notImported.length > 0 && (
+            <div
+              role="status"
+              style={{
+                background: "var(--color-surface-1)",
+                border: "1px solid var(--color-border-input)",
+                borderRadius: 10,
+                padding: "10px 14px",
+                marginBottom: 14,
+                fontSize: "0.8125rem",
+                lineHeight: 1.6,
+                color: "var(--color-ink-secondary)",
+              }}
+            >
+              <strong>Not imported</strong> (AutoShop has no field for{" "}
+              {notImported.length === 1 ? "this column" : "these columns"}
+              ):{" "}
+              {notImported.map((h) => (
+                <code
+                  key={h}
+                  style={{
+                    background: "var(--color-surface-2)",
+                    padding: "1px 5px",
+                    borderRadius: 4,
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.75rem",
+                    marginRight: 4,
+                  }}
+                >
+                  {h}
+                </code>
+              ))}
+              <br />
+              If one of them is quantity, price, location etc. under a different
+              name, map it in the box at the top.
+            </div>
+          )}
+
+          {restockRows.length > 0 && (
+            <div
+              role="status"
+              style={{
+                background: "rgba(37, 99, 235, 0.07)",
+                border: "1px solid rgba(37, 99, 235, 0.25)",
+                borderRadius: 10,
+                padding: "10px 14px",
+                marginBottom: 14,
+                fontSize: "0.8125rem",
+                lineHeight: 1.5,
+                color: "var(--color-ink-secondary)",
+              }}
+            >
+              📦 <strong>{restockRows.length}</strong> product
+              {restockRows.length !== 1 ? "s are" : " is"} already in your store
+              and <strong>{newRows.length}</strong> new. You will be asked
+              whether to restock the existing ones before anything is saved.
+            </div>
+          )}
 
           {/* Empty cells → 0 notice */}
           {emptyCellCount > 0 && (
@@ -584,6 +733,7 @@ export function ImportSheet({
                     "Size *",
                     "SKU",
                     "Category",
+                    "Location *",
                     "Qty",
                     "Min",
                     "Price",
@@ -677,6 +827,46 @@ export function ImportSheet({
                         />
                       </td>
                       <td style={{ padding: "6px 8px" }}>
+                        <select
+                          className="input"
+                          aria-label="Location"
+                          title={
+                            row.room_id === "" && row.location
+                              ? `"${row.location}" in your sheet doesn't match any of your locations. Pick one.`
+                              : undefined
+                          }
+                          aria-invalid={row.room_id === "" || undefined}
+                          style={{
+                            ...textInputStyle(120),
+                            borderColor:
+                              row.room_id === ""
+                                ? "var(--color-danger)"
+                                : undefined,
+                            background:
+                              row.room_id === ""
+                                ? "var(--color-danger-light)"
+                                : undefined,
+                          }}
+                          value={row.room_id}
+                          onChange={(e) =>
+                            updateRow(row._key, { room_id: e.target.value })
+                          }
+                        >
+                          {row.room_id === "" && (
+                            <option value="">
+                              {row.location
+                                ? `? ${row.location}`
+                                : "Select location"}
+                            </option>
+                          )}
+                          {rooms.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td style={{ padding: "6px 8px" }}>
                         <NumCell
                           field="quantity"
                           row={row}
@@ -708,6 +898,21 @@ export function ImportSheet({
                           whiteSpace: "nowrap",
                         }}
                       >
+                        {row.existing && !row.error && (
+                          <span
+                            title={`Already in your store as "${row.existing.name}"${
+                              row.existing.size ? ` (${row.existing.size})` : ""
+                            }, SKU ${row.existing.sku}. Importing will offer to restock it.`}
+                            style={{
+                              color: "var(--color-brand-600, #2563eb)",
+                              fontSize: "0.75rem",
+                              fontWeight: 600,
+                              marginRight: 6,
+                            }}
+                          >
+                            In store · {row.existing.quantity}
+                          </span>
+                        )}
                         {row.error && (
                           <span
                             style={{
@@ -824,7 +1029,7 @@ export function ImportSheet({
               type="button"
               className="btn btn-primary"
               disabled={validRows.length === 0}
-              onClick={() => onImport(validRows)}
+              onClick={startImport}
             >
               Import {validRows.length} product
               {validRows.length !== 1 ? "s" : ""}
@@ -845,6 +1050,17 @@ export function ImportSheet({
           </div>
         </>
       )}
+
+      <ImportRestockModal
+        isOpen={showRestockModal}
+        restockRows={restockRows}
+        newCount={newRows.length}
+        onClose={() => setShowRestockModal(false)}
+        onConfirm={(options) => {
+          setShowRestockModal(false);
+          onImport(validRows, options);
+        }}
+      />
     </div>
   );
 }

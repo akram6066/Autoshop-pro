@@ -6,12 +6,15 @@
  *   - empty / missing numeric cells become 0 and are FLAGGED (`emptyFields`)
  *   - unreadable numeric cells (text, negatives, decimal quantities) are
  *     flagged as `invalid` so the user fixes them instead of us guessing
+ *   - a location that matches no room is flagged, never silently re-assigned
  *   - rows are only dropped when every cell is blank
  */
 
+import { generateSku } from "@/lib/sku";
+
 export type NumField = "quantity" | "min_stock" | "price";
 export type TextField = "name" | "size" | "sku" | "category";
-export type SheetField = TextField | NumField;
+export type SheetField = TextField | NumField | "location";
 
 export const NUM_FIELDS: readonly NumField[] = [
   "quantity",
@@ -24,6 +27,7 @@ export const FIELD_LABEL: Record<SheetField, string> = {
   size: "Size",
   sku: "SKU",
   category: "Category",
+  location: "Location",
   quantity: "Qty",
   min_stock: "Min stock",
   price: "Price",
@@ -35,12 +39,31 @@ const INTEGER_FIELDS: ReadonlySet<NumField> = new Set([
   "min_stock",
 ]);
 
+export interface RoomRef {
+  id: string;
+  name: string;
+}
+
+/** Minimal shape of a product already in the shop (Product satisfies it). */
+export interface ExistingProduct {
+  id: string;
+  name: string;
+  size: string | null;
+  sku: string;
+  quantity: number;
+  price: number;
+}
+
 export interface ImportRow {
   _key: string;
   name: string;
   size: string;
   sku: string;
   category: string;
+  /** Location text exactly as written in the sheet ("" if none). */
+  location: string;
+  /** Resolved room id; "" when the sheet's location matches no room. */
+  room_id: string;
   quantity: number;
   min_stock: number;
   price: number;
@@ -49,12 +72,22 @@ export interface ImportRow {
   emptyFields?: NumField[];
   /** Numeric cells that could not be read (field → text found in the sheet). */
   invalidFields?: Partial<Record<NumField, string>>;
+  /** Product already in the shop that this row matches (restock candidate). */
+  existing?: ExistingProduct;
 }
 
 /** User edits layered on top of the sheet values (never mutates the sheet). */
-export type RowEdit = Partial<Pick<ImportRow, TextField | NumField>>;
+export type RowEdit = Partial<
+  Pick<ImportRow, TextField | NumField | "room_id">
+>;
 
 export type ColumnOverrides = Partial<Record<SheetField, number>>;
+
+export interface BuildContext {
+  rooms: RoomRef[];
+  /** Used when the sheet has no location, or the cell is blank. */
+  defaultRoomId: string;
+}
 
 export interface ParseResult {
   rawHeaders: string[];
@@ -123,6 +156,24 @@ const FIELD_ALIASES: Record<SheetField, string[]> = {
     "group",
     "department",
     "section",
+  ],
+  location: [
+    "location",
+    "locations",
+    "room",
+    "rooms",
+    "store",
+    "storage",
+    "warehouse",
+    "branch",
+    "shelf",
+    "bin",
+    "godown",
+    "stock_location",
+    "storage_location",
+    "store_room",
+    "storeroom",
+    "initial_location",
   ],
   quantity: [
     "quantity",
@@ -194,6 +245,23 @@ export function detectFields(rawHeaders: string[]): Set<SheetField> {
   return found;
 }
 
+/**
+ * Sheet columns that will NOT be imported: non-empty headers that match no
+ * product field and were not mapped by hand. Shown to the user so a column
+ * is never dropped silently.
+ */
+export function ignoredColumns(
+  rawHeaders: string[],
+  overrides: ColumnOverrides,
+): string[] {
+  const mapped = new Set(
+    Object.values(overrides).filter((i): i is number => i !== undefined),
+  );
+  return rawHeaders.filter(
+    (h, i) => h.trim() !== "" && canonicalField(h) === null && !mapped.has(i),
+  );
+}
+
 // ── Number reading ───────────────────────────────────────────────────────────
 
 export function isBlank(v: unknown): boolean {
@@ -233,6 +301,19 @@ export function readNumber(v: unknown, integer: boolean): NumberReading {
   return { value: n };
 }
 
+// ── Location matching ────────────────────────────────────────────────────────
+
+function normName(s: string): string {
+  return s.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/** Match a sheet's location text to a room (case/spacing-insensitive). */
+export function matchRoom(text: string, rooms: RoomRef[]): RoomRef | null {
+  const wanted = normName(text);
+  if (!wanted) return null;
+  return rooms.find((r) => normName(r.name) === wanted) ?? null;
+}
+
 // ── Row building ─────────────────────────────────────────────────────────────
 
 export function buildRow(
@@ -242,6 +323,7 @@ export function buildRow(
   defaultCategory: string,
   idx: number,
   edit: RowEdit = {},
+  ctx: BuildContext = { rooms: [], defaultRoomId: "" },
 ): ImportRow {
   const get = (field: SheetField): unknown => {
     const forced = overrides[field];
@@ -257,6 +339,21 @@ export function buildRow(
   const sku = edit.sku ?? String(get("sku")).trim();
   const category =
     edit.category ?? (String(get("category")).trim() || defaultCategory);
+
+  // Location: user pick > sheet text matched to a room > default location.
+  // Sheet text that matches nothing is an error — we never guess a room.
+  const location = String(get("location")).trim();
+  let room_id: string;
+  let locationUnknown = false;
+  if (edit.room_id !== undefined) {
+    room_id = edit.room_id;
+  } else if (location === "") {
+    room_id = ctx.defaultRoomId;
+  } else {
+    const room = matchRoom(location, ctx.rooms);
+    room_id = room?.id ?? "";
+    locationUnknown = room === null;
+  }
 
   const emptyFields: NumField[] = [];
   const invalidFields: Partial<Record<NumField, string>> = {};
@@ -284,9 +381,13 @@ export function buildRow(
     ? "Name required"
     : !size.trim()
       ? "Size required"
-      : invalidLabels.length > 0
-        ? `Fix ${invalidLabels.join(", ")}`
-        : undefined;
+      : room_id === ""
+        ? locationUnknown
+          ? `Unknown location "${location}"`
+          : "Location required"
+        : invalidLabels.length > 0
+          ? `Fix ${invalidLabels.join(", ")}`
+          : undefined;
 
   return {
     _key: `import-${idx}`,
@@ -294,6 +395,8 @@ export function buildRow(
     size,
     sku,
     category,
+    location,
+    room_id,
     quantity,
     min_stock,
     price,
@@ -302,6 +405,64 @@ export function buildRow(
     invalidFields:
       Object.keys(invalidFields).length > 0 ? invalidFields : undefined,
   };
+}
+
+// ── Duplicate detection ──────────────────────────────────────────────────────
+
+function effectiveSku(row: ImportRow): string {
+  return (row.sku.trim() || generateSku(row.name, row.size)).toLowerCase();
+}
+
+function nameSizeKey(row: ImportRow): string | null {
+  const name = normName(row.name);
+  const size = normName(row.size);
+  return name && size ? `${name}|${size}` : null;
+}
+
+/**
+ * Annotate rows against the shop's catalogue and against each other.
+ *  - matches a product already in the shop (same SKU, or same name + size)
+ *      → `existing` is set (a restock candidate, not an error)
+ *  - repeats an earlier row of the same sheet (same SKU, or name + size)
+ *      → blocking error, so the same product is never inserted twice
+ */
+export function markDuplicates(
+  rows: ImportRow[],
+  existing: ExistingProduct[],
+): ImportRow[] {
+  const bySku = new Map<string, ExistingProduct>();
+  const byNameSize = new Map<string, ExistingProduct>();
+  for (const p of existing) {
+    const sku = p.sku.trim().toLowerCase();
+    if (sku && !bySku.has(sku)) bySku.set(sku, p);
+    const key = `${normName(p.name)}|${normName(p.size ?? "")}`;
+    if (!byNameSize.has(key)) byNameSize.set(key, p);
+  }
+
+  const firstBySku = new Map<string, number>();
+  const firstByNameSize = new Map<string, number>();
+  const firstByExistingId = new Map<string, number>();
+
+  return rows.map((row, i) => {
+    const sku = effectiveSku(row);
+    const ns = nameSizeKey(row);
+
+    const hit = bySku.get(sku) ?? (ns ? byNameSize.get(ns) : undefined);
+    const firstIdx =
+      firstBySku.get(sku) ??
+      (ns ? firstByNameSize.get(ns) : undefined) ??
+      (hit ? firstByExistingId.get(hit.id) : undefined);
+
+    if (!firstBySku.has(sku)) firstBySku.set(sku, i);
+    if (ns && !firstByNameSize.has(ns)) firstByNameSize.set(ns, i);
+    if (hit && !firstByExistingId.has(hit.id)) firstByExistingId.set(hit.id, i);
+
+    const next: ImportRow = { ...row, existing: hit };
+    if (firstIdx !== undefined && !next.error) {
+      next.error = `Same product as row ${firstIdx + 1}`;
+    }
+    return next;
+  });
 }
 
 /** Parse number typed by the user while editing a preview cell. */
@@ -423,7 +584,7 @@ export async function parseFile(file: File): Promise<ParseResult> {
 // ── Template ─────────────────────────────────────────────────────────────────
 
 export const TEMPLATE_CSV = [
-  "name,size,sku,category,quantity,min_stock,price",
-  "Michelin Pilot Sport 4S,205/55R16,MPS-20555R16,Tire,10,3,4500",
-  "Amaron Hi-Life,MF55B24L,AMR-55B24L,Battery,5,2,8500",
+  "name,size,sku,category,location,quantity,min_stock,price",
+  "Michelin Pilot Sport 4S,205/55R16,MPS-20555R16,Tire,Main Store,10,3,4500",
+  "Amaron Hi-Life,MF55B24L,AMR-55B24L,Battery,Main Store,5,2,8500",
 ].join("\n");
