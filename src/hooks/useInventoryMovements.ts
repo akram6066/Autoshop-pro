@@ -10,6 +10,7 @@ import { getDb } from "@/lib/db/instance";
 import { enqueue } from "@/lib/sync/queue";
 import { productKeys } from "@/hooks/useProducts";
 import { inventoryLevelKeys } from "@/hooks/useInventoryLevels";
+import { normalizeError } from "@/lib/api/errors";
 import type { InventoryMovement } from "@/types/app";
 import type { MutationResult } from "@/types/mutations";
 import type { Json } from "@/types/database";
@@ -268,10 +269,7 @@ export function useRecordInventoryMovement() {
         if (!isNetworkFailure(err)) {
           return {
             status: "error",
-            error:
-              err instanceof Error
-                ? err
-                : new Error("Failed to record inventory movement"),
+            error: normalizeError(err, "Failed to record inventory movement"),
           };
         }
 
@@ -321,10 +319,7 @@ export function useRecordInventoryMovement() {
         } catch (queueErr) {
           return {
             status: "error",
-            error:
-              queueErr instanceof Error
-                ? queueErr
-                : new Error("Failed to save offline movement"),
+            error: normalizeError(queueErr, "Failed to save offline movement"),
           };
         }
       }
@@ -373,8 +368,7 @@ export function useArchiveProduct() {
       } catch (err) {
         return {
           status: "error",
-          error:
-            err instanceof Error ? err : new Error("Failed to archive product"),
+          error: normalizeError(err, "Failed to archive product"),
         };
       }
     },
@@ -412,8 +406,7 @@ export function useRestoreProduct() {
       } catch (err) {
         return {
           status: "error",
-          error:
-            err instanceof Error ? err : new Error("Failed to restore product"),
+          error: normalizeError(err, "Failed to restore product"),
         };
       }
     },

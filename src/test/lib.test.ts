@@ -59,24 +59,30 @@ describe("getDeviceId", () => {
   });
 });
 
-// ─── sanitizeError ────────────────────────────────────────────────────────────
+// ─── sanitizeError, friendlyError & normalizeError ───────────────────────────
 
-import { sanitizeError } from "@/lib/api/errors";
+import { sanitizeError, friendlyError, normalizeError } from "@/lib/api/errors";
 
 describe("sanitizeError", () => {
   it("returns a safe fallback for unknown errors", () => {
-    const { message, status } = sanitizeError(new Error("relation 'secrets' does not exist"));
+    const { message, status } = sanitizeError(
+      new Error("relation 'secrets' does not exist"),
+    );
     expect(message).toBe("Something went wrong. Please try again.");
     expect(status).toBe(500);
   });
 
   it("maps duplicate key errors to 409", () => {
-    const { status } = sanitizeError(new Error("duplicate key value violates unique constraint"));
+    const { status } = sanitizeError(
+      new Error("duplicate key value violates unique constraint"),
+    );
     expect(status).toBe(409);
   });
 
   it("maps insufficient stock to 409", () => {
-    const { message, status } = sanitizeError(new Error("Insufficient stock for product abc-123"));
+    const { message, status } = sanitizeError(
+      new Error("Insufficient stock for product abc-123"),
+    );
     expect(message).toBe("Not enough stock for this sale");
     expect(status).toBe(409);
   });
@@ -87,7 +93,9 @@ describe("sanitizeError", () => {
   });
 
   it("maps permission denied to 403", () => {
-    const { status } = sanitizeError(new Error("permission denied for table products"));
+    const { status } = sanitizeError(
+      new Error("permission denied for table products"),
+    );
     expect(status).toBe(403);
   });
 
@@ -101,5 +109,44 @@ describe("sanitizeError", () => {
     const { message } = sanitizeError("a string error");
     // String errors match fallback since no known pattern matches
     expect(typeof message).toBe("string");
+  });
+});
+
+describe("friendlyError & normalizeError", () => {
+  it("normalizes PostgrestError objects preserving properties", () => {
+    const postgrestObj = {
+      message: "product_limit_reached: free plan allows 50 products per shop",
+      code: "P0001",
+      details: "Shop has reached limit",
+    };
+    const err = normalizeError(postgrestObj, "Failed to create product");
+    expect(err instanceof Error).toBe(true);
+    expect(err.message).toBe(
+      "product_limit_reached: free plan allows 50 products per shop",
+    );
+    expect((err as unknown as { code: string }).code).toBe("P0001");
+  });
+
+  it("maps product_limit_reached to clear user-facing message", () => {
+    const msg = friendlyError(
+      "product_limit_reached: free plan allows 50 products per shop",
+    );
+    expect(msg).toBe("Product limit reached. Free plan allows 50 products.");
+  });
+
+  it("maps products_room_id_fkey to clear location error message", () => {
+    const msg = friendlyError(
+      "insert or update on table 'products' violates foreign key constraint 'products_room_id_fkey'",
+    );
+    expect(msg).toBe(
+      "The selected storage location is invalid or does not exist.",
+    );
+  });
+
+  it("maps duplicate key with products to product SKU/name message", () => {
+    const msg = friendlyError(
+      "duplicate key value violates unique constraint 'products_shop_id_sku_key'",
+    );
+    expect(msg).toBe("A product with this SKU or Name already exists.");
   });
 });

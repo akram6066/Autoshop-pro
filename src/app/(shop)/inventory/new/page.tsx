@@ -86,7 +86,8 @@ export default function NewProductPage() {
       supabase
         .from("products")
         .select("id", { count: "exact", head: true })
-        .eq("shop_id", shopId),
+        .eq("shop_id", shopId)
+        .eq("is_archived", false),
     ]).then(([subData, productsRes]) => {
       if (!subData.error) {
         setProductLimit({
@@ -209,9 +210,19 @@ export default function NewProductPage() {
     );
     saved = importResults.filter((r) => r.status !== "error").length;
     setImporting(false);
-    toast.success(
-      `${saved} of ${rows.length} product${rows.length !== 1 ? "s" : ""} imported.`,
-    );
+    const firstFailure = importResults.find((r) => r.status === "error");
+    if (saved < rows.length && firstFailure?.status === "error") {
+      toast.error(
+        `${saved} of ${rows.length} imported. ${friendlyError(
+          firstFailure.error,
+          "Some products could not be saved.",
+        )}`,
+      );
+    } else {
+      toast.success(
+        `${saved} of ${rows.length} product${rows.length !== 1 ? "s" : ""} imported.`,
+      );
+    }
     router.push("/inventory");
   }
 
@@ -520,21 +531,30 @@ export default function NewProductPage() {
 
     if (result.status === "error") {
       // Check if error was due to duplicate SKU/name that occurred concurrently
-      if (
+      const isDuplicate =
         /duplicate key|unique.*constraint|23505/i.test(
           result.error?.message || "",
-        )
-      ) {
+        ) || (result.error as { code?: string })?.code === "23505";
+
+      if (isDuplicate) {
         const supabase = createClient();
-        const { data: found } = await supabase
+        const { data: foundList } = await supabase
           .from("products")
           .select("*")
           .eq("shop_id", shopId)
-          .or(`sku.eq.${effectiveSku},name.eq.${name.trim()}`)
-          .maybeSingle();
+          .eq("sku", effectiveSku)
+          .limit(1);
+
+        const found = foundList?.[0] as Product | undefined;
 
         if (found) {
-          setDuplicateProduct(found as Product);
+          if (found.is_archived) {
+            setError(
+              `A deleted/archived product with SKU "${effectiveSku}" already exists. Please restore it or use a different SKU.`,
+            );
+            return;
+          }
+          setDuplicateProduct(found);
           setDuplicateMatches([]);
           setIsDuplicateModalOpen(true);
           return;

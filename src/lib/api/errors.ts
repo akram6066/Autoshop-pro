@@ -56,6 +56,11 @@ const KNOWN_PATTERNS: Array<{
     status: 409,
   },
   {
+    pattern: /products_room_id_fkey/i,
+    message: "The selected storage location is invalid or does not exist.",
+    status: 400,
+  },
+  {
     pattern: /violates foreign key constraint|foreign key/i,
     message:
       "Cannot remove this item because it is referenced in past sales or activity history.",
@@ -89,22 +94,22 @@ const KNOWN_PATTERNS: Array<{
     status: 403,
   },
   {
-    pattern: /product limit/i,
+    pattern: /product[ _-]limit/i,
     message: "Product limit reached. Free plan allows 50 products.",
     status: 403,
   },
   {
-    pattern: /room limit/i,
+    pattern: /room[ _-]limit/i,
     message: "Room limit reached. Free plan allows 5 rooms.",
     status: 403,
   },
   {
-    pattern: /category limit/i,
+    pattern: /category[ _-]limit/i,
     message: "Category limit reached. Free plan allows 10 categories.",
     status: 403,
   },
   {
-    pattern: /staff limit/i,
+    pattern: /staff[ _-]limit/i,
     message: "Staff limit reached. Free plan allows 3 staff members.",
     status: 403,
   },
@@ -173,13 +178,27 @@ export function sanitizeError(
   return { message: fallback, status: 500 };
 }
 
-function extractMessage(err: unknown): string | null {
+export function extractMessage(err: unknown): string | null {
   if (!err) return null;
   if (typeof err === "string") return err;
   if (typeof err === "object" && err !== null) {
-    const e = err as { message?: unknown; error?: unknown };
-    if (typeof e.message === "string") return e.message;
-    if (typeof e.error === "string") return e.error;
+    const e = err as { message?: unknown; error?: unknown; details?: unknown };
+    if (typeof e.message === "string" && e.message.trim()) return e.message;
+    if (typeof e.error === "string" && e.error.trim()) return e.error;
+    if (typeof e.details === "string" && e.details.trim()) return e.details;
   }
   return null;
+}
+
+export function normalizeError(
+  err: unknown,
+  fallback = "Something went wrong. Please try again.",
+): Error {
+  if (err instanceof Error) return err;
+  const msg = extractMessage(err);
+  const error = new Error(msg || fallback);
+  if (typeof err === "object" && err !== null) {
+    Object.assign(error, err);
+  }
+  return error;
 }

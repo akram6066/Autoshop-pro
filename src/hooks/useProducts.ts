@@ -16,6 +16,7 @@ import type { Product } from "@/types/app";
 import type { Json } from "@/types/database";
 import type { MutationResult } from "@/types/mutations";
 import { inventoryLevelKeys } from "@/hooks/useInventoryLevels";
+import { normalizeError } from "@/lib/api/errors";
 import {
   transferPreviewSchema,
   transferStockSchema,
@@ -165,8 +166,7 @@ export function useCreateProduct() {
       } catch (err) {
         return {
           status: "error",
-          error:
-            err instanceof Error ? err : new Error("Failed to create product"),
+          error: normalizeError(err, "Failed to create product"),
         };
       }
     },
@@ -287,8 +287,7 @@ export function useUpdateProduct() {
       } catch (err) {
         return {
           status: "error",
-          error:
-            err instanceof Error ? err : new Error("Failed to update product"),
+          error: normalizeError(err, "Failed to update product"),
         };
       }
     },
@@ -409,8 +408,7 @@ export function useRestockProduct() {
       } catch (err) {
         return {
           status: "error",
-          error:
-            err instanceof Error ? err : new Error("Failed to restock product"),
+          error: normalizeError(err, "Failed to restock product"),
         };
       }
     },
@@ -511,8 +509,7 @@ export function useDeleteProduct() {
       } catch (err) {
         return {
           status: "error",
-          error:
-            err instanceof Error ? err : new Error("Failed to delete product"),
+          error: normalizeError(err, "Failed to delete product"),
         };
       }
     },
@@ -634,8 +631,7 @@ export function useBulkDeleteProducts() {
       } catch (err) {
         return {
           status: "error",
-          error:
-            err instanceof Error ? err : new Error("Failed to delete products"),
+          error: normalizeError(err, "Failed to delete products"),
         };
       }
     },
@@ -708,10 +704,7 @@ export function useTransferStock() {
         if (!currentShopId || !isNetworkFailure(err)) {
           return {
             status: "error",
-            error:
-              err instanceof Error
-                ? err
-                : new Error("Failed to transfer stock"),
+            error: normalizeError(err, "Failed to transfer stock"),
           };
         }
         try {
@@ -722,10 +715,10 @@ export function useTransferStock() {
         } catch (queueErr) {
           return {
             status: "error",
-            error:
-              queueErr instanceof Error
-                ? queueErr
-                : new Error("Could not save the transfer for later"),
+            error: normalizeError(
+              queueErr,
+              "Could not save the transfer for later",
+            ),
           };
         }
       }

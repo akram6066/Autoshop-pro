@@ -2,18 +2,24 @@
 
 import { useState, useRef, useMemo } from "react";
 import { generateSku } from "@/lib/sku";
+import {
+  FIELD_LABEL,
+  NUM_FIELDS,
+  TEMPLATE_CSV,
+  buildRow,
+  detectFields,
+  isIntegerField,
+  parseEditedNumber,
+  parseFile,
+  type ColumnOverrides,
+  type ImportRow,
+  type NumField,
+  type ParseResult,
+  type RowEdit,
+  type SheetField,
+} from "@/lib/import/inventorySheet";
 
-export interface ImportRow {
-  _key: string;
-  name: string;
-  size: string;
-  sku: string;
-  category: string;
-  quantity: number;
-  min_stock: number;
-  price: number;
-  error?: string;
-}
+export type { ImportRow } from "@/lib/import/inventorySheet";
 
 interface Props {
   defaultCategory: string;
@@ -22,309 +28,83 @@ interface Props {
   onCancel: () => void;
 }
 
-// ── Normalisation ────────────────────────────────────────────────────────────
-
-function normalizeHeader(h: string): string {
-  return h
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .replace(/[\s_\-./]+/g, "_")
-    .replace(/[^a-z0-9_]/g, "");
-}
-
-const FIELD_ALIASES: Record<string, string[]> = {
-  name: [
-    "name",
-    "product_name",
-    "product",
-    "item",
-    "item_name",
-    "description",
-    "title",
-    "part_name",
-    "article",
-    "goods",
-    "commodity",
-  ],
-  size: [
-    "size",
-    "dimension",
-    "dimensions",
-    "dim",
-    "spec",
-    "specs",
-    "measurement",
-    "variant",
-    "model",
-    "fitment",
-  ],
-  sku: [
-    "sku",
-    "code",
-    "product_code",
-    "item_code",
-    "barcode",
-    "part_number",
-    "part_no",
-    "ref",
-    "reference",
-    "product_id",
-    "serial",
-  ],
-  category: [
-    "category",
-    "cat",
-    "type",
-    "product_type",
-    "group",
-    "department",
-    "section",
-  ],
-  quantity: [
-    "quantity",
-    "qty",
-    "stock",
-    "count",
-    "units",
-    "in_stock",
-    "inventory",
-    "available",
-    "on_hand",
-    "nos",
-    "no",
-    "pcs",
-    "pieces",
-    "stock_count",
-    "stock_qty",
-    "current_stock",
-    "balance",
-    "bal",
-    "number",
-  ],
-  min_stock: [
-    "min_stock",
-    "min",
-    "minimum",
-    "reorder",
-    "reorder_point",
-    "min_qty",
-    "minimum_stock",
-    "safety_stock",
-    "low_stock",
-    "min_level",
-  ],
-  price: [
-    "price",
-    "unit_price",
-    "selling_price",
-    "sale_price",
-    "retail_price",
-    "cost",
-    "rate",
-    "value",
-    "amount",
-    "unit_cost",
-    "selling",
-    "sell_price",
-    "retail",
-    "ksh",
-    "kes",
-  ],
-};
-
-const KNOWN_FIELDS = new Set(Object.keys(FIELD_ALIASES));
-
-function canonicalField(rawHeader: string): string {
-  const norm = normalizeHeader(rawHeader);
-  for (const [field, aliases] of Object.entries(FIELD_ALIASES)) {
-    if (aliases.includes(norm)) return field;
-  }
-  return norm;
-}
-
-function parseNumber(v: unknown): number {
-  if (typeof v === "number") return isNaN(v) ? 0 : Math.max(0, v);
-  const n = Number(String(v).replace(/[^0-9.-]/g, ""));
-  return isNaN(n) ? 0 : Math.max(0, n);
-}
-
-// ── Header-row detection ─────────────────────────────────────────────────────
-
-function findHeaderRow(rows: string[][]): number {
-  let bestRow = 0;
-  let bestScore = 0;
-  for (let i = 0; i < Math.min(6, rows.length - 1); i++) {
-    const score = rows[i].filter((h) =>
-      KNOWN_FIELDS.has(canonicalField(h)),
-    ).length;
-    if (score > bestScore) {
-      bestScore = score;
-      bestRow = i;
-    }
-  }
-  return bestRow;
-}
-
-// ── Numeric-column guesser ───────────────────────────────────────────────────
-// When a required field (quantity / price) wasn't matched by header name,
-// scan the remaining unmatched columns for numeric values and guess:
-//   – the column with the SMALLER average  →  quantity (counts are small)
-//   – the column with the LARGER  average  →  price    (prices are large)
-// The result pre-fills the override map so the user sees correct values
-// immediately without any manual mapping step.
-
-function guessNumericColumns(
-  rawHeaders: string[],
-  rawData: unknown[][],
-  missingFields: string[], // e.g. ["quantity", "price"]
-): Partial<Record<string, number>> {
-  if (missingFields.length === 0 || rawData.length === 0) return {};
-
-  // Build a set of column indices already claimed by auto-detected fields
-  const claimedCols = new Set(
-    rawHeaders
-      .map((h, i) => (KNOWN_FIELDS.has(canonicalField(h)) ? i : -1))
-      .filter((i) => i >= 0),
-  );
-
-  // Score every unclaimed column: compute the fraction of rows that are
-  // positive numbers and the average of those numbers.
-  const candidates: Array<{ idx: number; avg: number; numericRate: number }> =
-    [];
-  for (let col = 0; col < rawHeaders.length; col++) {
-    if (claimedCols.has(col)) continue;
-    const nums = rawData
-      .map((row) => parseNumber(row[col]))
-      .filter((v) => v > 0);
-    const rate = nums.length / rawData.length;
-    if (rate < 0.4) continue; // less than 40 % numeric → skip (probably text)
-    const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
-    candidates.push({ idx: col, avg, numericRate: rate });
-  }
-
-  if (candidates.length === 0) return {};
-
-  // Sort ascending by average value
-  candidates.sort((a, b) => a.avg - b.avg);
-
-  const result: Partial<Record<string, number>> = {};
-  if (missingFields.includes("quantity") && missingFields.includes("price")) {
-    if (candidates.length >= 2) {
-      result.quantity = candidates[0].idx; // smallest avg
-      result.price = candidates[candidates.length - 1].idx; // largest avg
-    } else if (candidates.length === 1) {
-      // Only one numeric column — assign to price if avg looks like a price,
-      // otherwise quantity.
-      if (candidates[0].avg >= 100) result.price = candidates[0].idx;
-      else result.quantity = candidates[0].idx;
-    }
-  } else if (missingFields.includes("quantity")) {
-    result.quantity = candidates[0].idx;
-  } else if (missingFields.includes("price")) {
-    result.price = candidates[candidates.length - 1].idx;
-  }
-
-  return result;
-}
-
-// ── Parse result ─────────────────────────────────────────────────────────────
-
-interface ParseResult {
-  rows: ImportRow[];
-  rawHeaders: string[]; // original column labels from file
-  rawData: unknown[][]; // raw cell values, parallel to rows
-}
-
-function buildRow(
-  rawHeaders: string[],
-  rawData: unknown[],
-  overrideIdx: Partial<Record<string, number>>,
-  defaultCategory: string,
-  idx: number,
-): ImportRow {
-  const get = (field: string): unknown => {
-    if (overrideIdx[field] !== undefined)
-      return rawData[overrideIdx[field]!] ?? "";
-    const col = rawHeaders.findIndex((h) => canonicalField(h) === field);
-    return col >= 0 ? (rawData[col] ?? "") : "";
-  };
-  const name = String(get("name")).trim();
-  const size = String(get("size")).trim();
-  const rawSku = String(get("sku")).trim();
-  return {
-    _key: `import-${idx}`,
-    name,
-    size,
-    sku: rawSku || generateSku(name, size),
-    category: String(get("category")).trim() || defaultCategory,
-    quantity: parseNumber(get("quantity")),
-    min_stock: parseNumber(get("min_stock")),
-    price: parseNumber(get("price")),
-    error: !name ? "Name required" : !size ? "Size required" : undefined,
-  };
-}
-
-async function parseFile(
-  file: File,
-  defaultCategory: string,
-): Promise<ParseResult> {
-  const isCSV = file.name.toLowerCase().endsWith(".csv");
-
-  if (isCSV) {
-    const text = (await file.text()).replace(/^﻿/, ""); // strip BOM
-    const allLines = text.split(/\r?\n/).filter((l) => l.trim());
-    if (allLines.length < 2) return { rows: [], rawHeaders: [], rawData: [] };
-    const allCols = allLines.map((l) =>
-      l.split(",").map((c) => c.trim().replace(/^"|"$/g, "")),
-    );
-    const headerIdx = findHeaderRow(allCols);
-    const rawHeaders = allCols[headerIdx];
-    const rawData = allCols.slice(headerIdx + 1);
-    const rows = rawData
-      .map((cols, i) => buildRow(rawHeaders, cols, {}, defaultCategory, i))
-      .filter((r) => r.name || r.size);
-    return {
-      rows,
-      rawHeaders,
-      rawData: rawData.filter((_, i) => rows[i] !== undefined),
-    };
-  }
-
-  if (file.size > 10 * 1024 * 1024)
-    throw new Error("File too large (max 10 MB)");
-  const { readSheet } = await import("read-excel-file/browser");
-  const xlsxRows = await readSheet(file as Parameters<typeof readSheet>[0]);
-  if (xlsxRows.length < 2) return { rows: [], rawHeaders: [], rawData: [] };
-  const stringRows = xlsxRows.map((r: unknown[]) =>
-    r.map((c) => String(c ?? "")),
-  );
-  const headerIdx = findHeaderRow(stringRows);
-  const rawHeaders = xlsxRows[headerIdx].map((h: unknown) => String(h ?? ""));
-  const dataRows = xlsxRows.slice(headerIdx + 1) as unknown[][];
-  const rows = dataRows
-    .map((cols, i) => buildRow(rawHeaders, cols, {}, defaultCategory, i))
-    .filter((r) => r.name || r.size);
-  const filteredData = dataRows.filter(
-    (_, i) =>
-      buildRow(rawHeaders, dataRows[i], {}, defaultCategory, i).name ||
-      buildRow(rawHeaders, dataRows[i], {}, defaultCategory, i).size,
-  );
-  return { rows, rawHeaders, rawData: filteredData };
-}
-
-// ── Template download ────────────────────────────────────────────────────────
+// Columns the user may map by hand when the header wasn't recognised.
+const MAPPABLE_FIELDS: SheetField[] = [
+  "name",
+  "size",
+  "quantity",
+  "min_stock",
+  "price",
+];
+const REQUIRED_FIELDS = new Set<SheetField>(["name", "size"]);
 
 function downloadTemplate() {
-  const csv = [
-    "name,size,sku,category,quantity,min_stock,price",
-    "Michelin Pilot Sport 4S,205/55R16,MPS-20555R16,Tire,10,3,4500",
-    "Amaron Hi-Life,MF55B24L,AMR-55B24L,Battery,5,2,8500",
-  ].join("\n");
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.href = URL.createObjectURL(new Blob([TEMPLATE_CSV], { type: "text/csv" }));
   a.download = "inventory-template.csv";
   a.click();
+}
+
+// ── Numeric preview cell ─────────────────────────────────────────────────────
+
+const AMBER_BORDER = "#fbbf24";
+const AMBER_BG = "#fffbeb";
+
+function NumCell({
+  field,
+  row,
+  width,
+  onChange,
+}: {
+  field: NumField;
+  row: ImportRow;
+  width: number;
+  onChange: (value: number) => void;
+}) {
+  const invalidText = row.invalidFields?.[field];
+  const isInvalid = invalidText !== undefined;
+  const isEmpty = !!row.emptyFields?.includes(field);
+
+  const title = isInvalid
+    ? `"${invalidText}" in your sheet is not a valid ${
+        isIntegerField(field) ? "whole number" : "number"
+      }. Enter the correct value.`
+    : isEmpty
+      ? "Empty in your sheet — will be saved as 0. Edit if needed."
+      : undefined;
+
+  return (
+    <input
+      className="input"
+      type="number"
+      min={0}
+      step={isIntegerField(field) ? 1 : "any"}
+      title={title}
+      aria-label={FIELD_LABEL[field]}
+      aria-invalid={isInvalid || undefined}
+      value={isInvalid ? "" : row[field]}
+      placeholder={isInvalid ? "?" : "0"}
+      onFocus={(e) => e.currentTarget.select()}
+      onChange={(e) =>
+        onChange(parseEditedNumber(e.target.value, isIntegerField(field)))
+      }
+      style={{
+        width,
+        fontSize: "0.8125rem",
+        padding: "5px 8px",
+        borderColor: isInvalid
+          ? "var(--color-danger)"
+          : isEmpty
+            ? AMBER_BORDER
+            : undefined,
+        background: isInvalid
+          ? "var(--color-danger-light)"
+          : isEmpty
+            ? AMBER_BG
+            : undefined,
+      }}
+    />
+  );
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -335,112 +115,87 @@ export function ImportSheet({
   onImport,
   onCancel,
 }: Props) {
+  // `result` is the sheet exactly as read and is never mutated. Everything the
+  // user changes lives in `edits` / `removed` / `overrides`, and the preview
+  // rows are derived from all of them — so edits can't be lost on re-render.
   const [result, setResult] = useState<ParseResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [fileError, setFileError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Manual column override: field → column index in rawHeaders
-  const [overrideIdx, setOverrideIdx] = useState<
-    Partial<Record<string, number>>
-  >({});
+  const [overrides, setOverrides] = useState<ColumnOverrides>({});
+  const [edits, setEdits] = useState<Record<string, RowEdit>>({});
+  const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
 
-  // Rows with overrides applied
   const rows = useMemo<ImportRow[]>(() => {
     if (!result) return [];
-    return result.rawData
-      .map((cols, i) =>
-        buildRow(result.rawHeaders, cols, overrideIdx, defaultCategory, i),
-      )
-      .filter((r) => r.name || r.size);
-  }, [result, overrideIdx, defaultCategory]);
+    const out: ImportRow[] = [];
+    result.rawData.forEach((cells, i) => {
+      if (removed.has(`import-${i}`)) return;
+      out.push(
+        buildRow(
+          result.rawHeaders,
+          cells,
+          overrides,
+          defaultCategory,
+          i,
+          edits[`import-${i}`],
+        ),
+      );
+    });
+    return out;
+  }, [result, overrides, edits, removed, defaultCategory]);
+
+  function resetAll() {
+    setResult(null);
+    setOverrides({});
+    setEdits({});
+    setRemoved(new Set());
+    setFileError("");
+    if (fileRef.current) fileRef.current.value = "";
+  }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setLoading(true);
-    setFileError("");
-    setResult(null);
-    setOverrideIdx({});
+    resetAll();
     try {
-      const parsed = await parseFile(file, defaultCategory);
-      if (parsed.rows.length === 0) {
+      const parsed = await parseFile(file);
+      if (parsed.rawData.length === 0) {
         setFileError(
           "No data found. Make sure your file has Name and Size columns.",
         );
       } else {
         setResult(parsed);
-        // Auto-guess quantity/price from numeric columns when headers didn't match
-        const detected = new Set(
-          parsed.rawHeaders
-            .map(canonicalField)
-            .filter((f) => KNOWN_FIELDS.has(f)),
-        );
-        const missing = ["quantity", "price"].filter((f) => !detected.has(f));
-        if (missing.length > 0) {
-          const guesses = guessNumericColumns(
-            parsed.rawHeaders,
-            parsed.rawData,
-            missing,
-          );
-          if (Object.keys(guesses).length > 0) setOverrideIdx(guesses);
-        }
       }
-    } catch {
-      setFileError("Could not read file. Use .xlsx or .csv format.");
+    } catch (err) {
+      setFileError(
+        err instanceof Error && /too large/i.test(err.message)
+          ? err.message
+          : "Could not read file. Use .xlsx or .csv format.",
+      );
     } finally {
       setLoading(false);
     }
   }
 
-  function updateRow(key: string, patch: Partial<ImportRow>) {
-    if (!result) return;
-    // Patch is applied by mutating a synthetic override on the result
-    // (simpler: just update result.rows directly via a separate edits map)
-    setResult((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        rows: prev.rows.map((r) => {
-          if (r._key !== key) return r;
-          const updated = { ...r, ...patch };
-          updated.error = !updated.name.trim()
-            ? "Name required"
-            : !updated.size.trim()
-              ? "Size required"
-              : undefined;
-          return updated;
-        }),
-      };
-    });
+  function updateRow(key: string, patch: RowEdit) {
+    setEdits((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
   }
 
   function removeRow(key: string) {
-    if (!result) return;
-    setResult((prev) =>
-      prev
-        ? {
-            ...prev,
-            rows: prev.rows.filter((r) => r._key !== key),
-            rawData: prev.rawData,
-          }
-        : prev,
-    );
+    setRemoved((prev) => new Set(prev).add(key));
   }
 
-  // Detect which fields weren't auto-detected
-  const detectedFields = useMemo(() => {
-    if (!result) return new Set<string>();
-    return new Set(
-      result.rawHeaders.map(canonicalField).filter((f) => KNOWN_FIELDS.has(f)),
-    );
-  }, [result]);
-
-  // Only show manual mapping when a field is still unresolved after auto-guess
-  const needsMapping =
-    result &&
-    ((!detectedFields.has("quantity") && overrideIdx.quantity === undefined) ||
-      (!detectedFields.has("price") && overrideIdx.price === undefined));
+  // Columns whose header wasn't recognised and haven't been mapped by hand.
+  const detectedFields = useMemo(
+    () => (result ? detectFields(result.rawHeaders) : new Set<SheetField>()),
+    [result],
+  );
+  const undetectedFields = MAPPABLE_FIELDS.filter(
+    (f) => !detectedFields.has(f),
+  );
 
   const existingLower = existingCategories.map((c) => c.toLowerCase());
   const newCategories = [
@@ -450,9 +205,23 @@ export function ImportSheet({
         .filter((c) => c && !existingLower.includes(c.toLowerCase())),
     ),
   ];
+
   const validRows = rows.filter((r) => !r.error);
   const errorCount = rows.length - validRows.length;
   const hasRows = rows.length > 0;
+
+  // Empty numeric cells that will be saved as 0 (per column + totals).
+  const emptyByField = NUM_FIELDS.map((f) => ({
+    field: f,
+    count: rows.filter((r) => r.emptyFields?.includes(f)).length,
+  })).filter((x) => x.count > 0);
+  const emptyCellCount = emptyByField.reduce((n, x) => n + x.count, 0);
+
+  const textInputStyle = (minWidth: number): React.CSSProperties => ({
+    minWidth,
+    fontSize: "0.8125rem",
+    padding: "5px 8px",
+  });
 
   return (
     <div style={{ width: "100%" }}>
@@ -505,16 +274,16 @@ export function ImportSheet({
             className="text-xs"
             style={{ color: "var(--color-ink-tertiary)", lineHeight: 1.6 }}
           >
-            <strong>name</strong> · <strong>size</strong> ·{" "}
-            <strong>quantity</strong> · <strong>price</strong> · sku (optional)
-            · category · min_stock
+            <strong>name</strong> · <strong>size</strong> · quantity · price ·
+            sku (optional) · category · min_stock
           </p>
           <p
             className="text-xs mt-1"
             style={{ color: "var(--color-ink-tertiary)" }}
           >
-            Accepts common synonyms — Qty, Stock, Unit Price, Cost, etc. If your
-            columns are not recognised, you can map them manually after upload.
+            Your sheet is imported exactly as written. Empty quantity, min stock
+            or price cells are set to <strong>0</strong> and highlighted, and
+            you can edit anything in the preview before saving.
           </p>
           <button
             type="button"
@@ -612,8 +381,8 @@ export function ImportSheet({
         </p>
       )}
 
-      {/* ── Column mapping (shown when qty/price weren't auto-detected) ── */}
-      {result && needsMapping && (
+      {/* ── Column mapping (only for columns we could not recognise) ── */}
+      {result && undetectedFields.length > 0 && (
         <div
           style={{
             background: "#fff7ed",
@@ -627,17 +396,16 @@ export function ImportSheet({
             className="text-sm font-semibold"
             style={{ color: "#9a3412", marginBottom: 4 }}
           >
-            Could not detect all required columns
+            Some columns were not recognised
           </p>
           <p
             className="text-xs"
             style={{ color: "#c2410c", marginBottom: 14, lineHeight: 1.6 }}
           >
-            Columns in your file — select which one is Quantity and which is
-            Price. Your file has:{" "}
-            {result.rawHeaders.map((h) => (
+            Your file has:{" "}
+            {result.rawHeaders.map((h, i) => (
               <code
-                key={h}
+                key={i}
                 style={{
                   background: "#ffedd5",
                   padding: "1px 5px",
@@ -647,51 +415,52 @@ export function ImportSheet({
                   marginRight: 4,
                 }}
               >
-                {h}
+                {h || "(blank)"}
               </code>
             ))}
             <br />
-            Select which column contains each field below.
+            Pick the matching column below. Quantity, min stock and price are
+            optional — if your file doesn&apos;t have them, they are saved as 0.
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
-            {(["quantity", "price"] as const).map((field) => {
-              if (detectedFields.has(field)) return null;
-              return (
-                <div key={field}>
-                  <label
-                    className="text-xs font-semibold"
-                    style={{
-                      display: "block",
-                      marginBottom: 4,
-                      color: "var(--color-ink-primary)",
-                      textTransform: "capitalize",
-                    }}
-                  >
-                    {field === "quantity" ? "Quantity column" : "Price column"}{" "}
-                    *
-                  </label>
-                  <select
-                    className="input"
-                    style={{ fontSize: "0.8125rem", minWidth: 180 }}
-                    value={overrideIdx[field] ?? ""}
-                    onChange={(e) => {
-                      const idx =
-                        e.target.value === ""
-                          ? undefined
-                          : Number(e.target.value);
-                      setOverrideIdx((prev) => ({ ...prev, [field]: idx }));
-                    }}
-                  >
-                    <option value="">— select column —</option>
-                    {result.rawHeaders.map((h, i) => (
-                      <option key={i} value={i}>
-                        {h}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              );
-            })}
+            {undetectedFields.map((field) => (
+              <div key={field}>
+                <label
+                  className="text-xs font-semibold"
+                  style={{
+                    display: "block",
+                    marginBottom: 4,
+                    color: "var(--color-ink-primary)",
+                  }}
+                >
+                  {FIELD_LABEL[field]} column
+                  {REQUIRED_FIELDS.has(field) ? " *" : ""}
+                </label>
+                <select
+                  className="input"
+                  style={{ fontSize: "0.8125rem", minWidth: 180 }}
+                  value={overrides[field] ?? ""}
+                  onChange={(e) => {
+                    const idx =
+                      e.target.value === ""
+                        ? undefined
+                        : Number(e.target.value);
+                    setOverrides((prev) => ({ ...prev, [field]: idx }));
+                  }}
+                >
+                  <option value="">
+                    {REQUIRED_FIELDS.has(field)
+                      ? "— select column —"
+                      : "— not in my file (use 0) —"}
+                  </option>
+                  {result.rawHeaders.map((h, i) => (
+                    <option key={i} value={i}>
+                      {h || `(column ${i + 1})`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -729,15 +498,68 @@ export function ImportSheet({
             <button
               type="button"
               className="btn btn-ghost btn-sm"
-              onClick={() => {
-                setResult(null);
-                setOverrideIdx({});
-                if (fileRef.current) fileRef.current.value = "";
-              }}
+              onClick={resetAll}
             >
               Change file
             </button>
           </div>
+
+          {/* Empty cells → 0 notice */}
+          {emptyCellCount > 0 && (
+            <div
+              role="status"
+              style={{
+                display: "flex",
+                gap: 10,
+                background: AMBER_BG,
+                border: "1px solid #fde68a",
+                borderRadius: 10,
+                padding: "12px 14px",
+                marginBottom: 14,
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                fill="none"
+                viewBox="0 0 24 24"
+                style={{ flexShrink: 0, marginTop: 1, color: "#d97706" }}
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                />
+                <path
+                  d="M12 8v4m0 4h.01"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <p
+                style={{
+                  fontSize: "0.8125rem",
+                  color: "#92400e",
+                  margin: 0,
+                  lineHeight: 1.5,
+                }}
+              >
+                <strong>
+                  {emptyCellCount} empty cell{emptyCellCount !== 1 ? "s" : ""}{" "}
+                  will be saved as 0
+                </strong>{" "}
+                (
+                {emptyByField
+                  .map((x) => `${FIELD_LABEL[x.field]}: ${x.count}`)
+                  .join(" · ")}
+                ). They are highlighted below — edit them now if you know the
+                real value, or import as-is.
+              </p>
+            </div>
+          )}
 
           <div
             style={{
@@ -766,9 +588,9 @@ export function ImportSheet({
                     "Min",
                     "Price",
                     "",
-                  ].map((h) => (
+                  ].map((h, i) => (
                     <th
-                      key={h}
+                      key={i}
                       style={{
                         padding: "9px 12px",
                         textAlign: "left",
@@ -785,153 +607,119 @@ export function ImportSheet({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
-                  <tr
-                    key={row._key}
-                    style={{
-                      borderBottom: "1px solid var(--color-surface-2)",
-                      background: row.error
-                        ? "var(--color-danger-light)"
-                        : "var(--color-surface-0)",
-                    }}
-                  >
-                    <td style={{ padding: "6px 8px" }}>
-                      <input
-                        className="input"
-                        style={{
-                          minWidth: 150,
-                          fontSize: "0.8125rem",
-                          padding: "5px 8px",
-                        }}
-                        value={row.name}
-                        onChange={(e) =>
-                          updateRow(row._key, { name: e.target.value })
-                        }
-                      />
-                    </td>
-                    <td style={{ padding: "6px 8px" }}>
-                      <input
-                        className="input"
-                        style={{
-                          minWidth: 110,
-                          fontSize: "0.8125rem",
-                          padding: "5px 8px",
-                        }}
-                        value={row.size}
-                        onChange={(e) =>
-                          updateRow(row._key, { size: e.target.value })
-                        }
-                      />
-                    </td>
-                    <td style={{ padding: "6px 8px" }}>
-                      <input
-                        className="input"
-                        style={{
-                          minWidth: 110,
-                          fontSize: "0.75rem",
-                          padding: "5px 8px",
-                          fontFamily: "var(--font-mono)",
-                        }}
-                        value={row.sku}
-                        placeholder={generateSku(row.name, row.size)}
-                        onChange={(e) =>
-                          updateRow(row._key, { sku: e.target.value })
-                        }
-                      />
-                    </td>
-                    <td style={{ padding: "6px 8px" }}>
-                      <input
-                        className="input"
-                        style={{
-                          minWidth: 100,
-                          fontSize: "0.8125rem",
-                          padding: "5px 8px",
-                          borderColor: !existingLower.includes(
-                            row.category.trim().toLowerCase(),
-                          )
-                            ? "#fbbf24"
-                            : undefined,
-                          background: !existingLower.includes(
-                            row.category.trim().toLowerCase(),
-                          )
-                            ? "#fffbeb"
-                            : undefined,
-                        }}
-                        value={row.category}
-                        onChange={(e) =>
-                          updateRow(row._key, { category: e.target.value })
-                        }
-                      />
-                    </td>
-                    <td style={{ padding: "6px 8px" }}>
-                      <input
-                        className="input"
-                        type="number"
-                        min={0}
-                        style={{
-                          width: 70,
-                          fontSize: "0.8125rem",
-                          padding: "5px 8px",
-                        }}
-                        value={row.quantity || ""}
-                        placeholder="0"
-                        onChange={(e) =>
-                          updateRow(row._key, {
-                            quantity: parseNumber(e.target.value),
-                          })
-                        }
-                      />
-                    </td>
-                    <td style={{ padding: "6px 8px" }}>
-                      <input
-                        className="input"
-                        type="number"
-                        min={0}
-                        style={{
-                          width: 60,
-                          fontSize: "0.8125rem",
-                          padding: "5px 8px",
-                        }}
-                        value={row.min_stock || ""}
-                        placeholder="0"
-                        onChange={(e) =>
-                          updateRow(row._key, {
-                            min_stock: parseNumber(e.target.value),
-                          })
-                        }
-                      />
-                    </td>
-                    <td style={{ padding: "6px 8px" }}>
-                      <input
-                        className="input"
-                        type="number"
-                        min={0}
-                        style={{
-                          width: 90,
-                          fontSize: "0.8125rem",
-                          padding: "5px 8px",
-                        }}
-                        value={row.price || ""}
-                        placeholder="0"
-                        onChange={(e) =>
-                          updateRow(row._key, {
-                            price: parseNumber(e.target.value),
-                          })
-                        }
-                      />
-                    </td>
-                    <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>
-                      {row.error ? (
-                        <span
+                {rows.map((row) => {
+                  const categoryIsNew = !existingLower.includes(
+                    row.category.trim().toLowerCase(),
+                  );
+                  return (
+                    <tr
+                      key={row._key}
+                      style={{
+                        borderBottom: "1px solid var(--color-surface-2)",
+                        background: row.error
+                          ? "var(--color-danger-light)"
+                          : "var(--color-surface-0)",
+                      }}
+                    >
+                      <td style={{ padding: "6px 8px" }}>
+                        <input
+                          className="input"
+                          aria-label="Name"
+                          style={textInputStyle(150)}
+                          value={row.name}
+                          onChange={(e) =>
+                            updateRow(row._key, { name: e.target.value })
+                          }
+                        />
+                      </td>
+                      <td style={{ padding: "6px 8px" }}>
+                        <input
+                          className="input"
+                          aria-label="Size"
+                          style={textInputStyle(110)}
+                          value={row.size}
+                          onChange={(e) =>
+                            updateRow(row._key, { size: e.target.value })
+                          }
+                        />
+                      </td>
+                      <td style={{ padding: "6px 8px" }}>
+                        <input
+                          className="input"
+                          aria-label="SKU"
                           style={{
-                            color: "var(--color-danger)",
+                            ...textInputStyle(110),
                             fontSize: "0.75rem",
-                            fontWeight: 600,
+                            fontFamily: "var(--font-mono)",
                           }}
-                        >
-                          ⚠ {row.error}
-                        </span>
-                      ) : (
+                          value={row.sku}
+                          placeholder={generateSku(row.name, row.size)}
+                          onChange={(e) =>
+                            updateRow(row._key, { sku: e.target.value })
+                          }
+                        />
+                      </td>
+                      <td style={{ padding: "6px 8px" }}>
+                        <input
+                          className="input"
+                          aria-label="Category"
+                          style={{
+                            ...textInputStyle(100),
+                            borderColor: categoryIsNew
+                              ? AMBER_BORDER
+                              : undefined,
+                            background: categoryIsNew ? AMBER_BG : undefined,
+                          }}
+                          value={row.category}
+                          onChange={(e) =>
+                            updateRow(row._key, { category: e.target.value })
+                          }
+                        />
+                      </td>
+                      <td style={{ padding: "6px 8px" }}>
+                        <NumCell
+                          field="quantity"
+                          row={row}
+                          width={70}
+                          onChange={(v) => updateRow(row._key, { quantity: v })}
+                        />
+                      </td>
+                      <td style={{ padding: "6px 8px" }}>
+                        <NumCell
+                          field="min_stock"
+                          row={row}
+                          width={60}
+                          onChange={(v) =>
+                            updateRow(row._key, { min_stock: v })
+                          }
+                        />
+                      </td>
+                      <td style={{ padding: "6px 8px" }}>
+                        <NumCell
+                          field="price"
+                          row={row}
+                          width={90}
+                          onChange={(v) => updateRow(row._key, { price: v })}
+                        />
+                      </td>
+                      <td
+                        style={{
+                          padding: "6px 8px",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {row.error && (
+                          <span
+                            style={{
+                              color: "var(--color-danger)",
+                              fontSize: "0.75rem",
+                              fontWeight: 600,
+                              marginRight: 6,
+                            }}
+                          >
+                            ⚠ {row.error}
+                          </span>
+                        )}
                         <button
                           type="button"
                           onClick={() => removeRow(row._key)}
@@ -943,6 +731,7 @@ export function ImportSheet({
                             padding: 4,
                           }}
                           title="Remove row"
+                          aria-label="Remove row"
                         >
                           <svg
                             width="13"
@@ -958,10 +747,10 @@ export function ImportSheet({
                             />
                           </svg>
                         </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -972,7 +761,7 @@ export function ImportSheet({
               style={{
                 display: "flex",
                 gap: 10,
-                background: "#fffbeb",
+                background: AMBER_BG,
                 border: "1px solid #fde68a",
                 borderRadius: 10,
                 padding: "12px 14px",
@@ -1050,7 +839,7 @@ export function ImportSheet({
             {errorCount > 0 && (
               <p className="text-xs" style={{ color: "var(--color-danger)" }}>
                 {errorCount} row{errorCount !== 1 ? "s" : ""} with errors will
-                be skipped
+                be skipped — fix or remove them
               </p>
             )}
           </div>
@@ -1059,5 +848,3 @@ export function ImportSheet({
     </div>
   );
 }
-
-
