@@ -116,7 +116,7 @@ function LandingNav() {
             <Link href="/" className="flex-shrink-0 relative group">
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 blur-xl bg-brand-500/30 transition-opacity duration-500"></div>
               <Image
-                src="/logo.svg"
+                src="/logo-dark.svg"
                 alt="AutoShop Pro"
                 width={140}
                 height={36}

@@ -110,7 +110,17 @@ export default function UpdatePasswordPage() {
             alt="AutoShop Pro"
             width={260}
             height={60}
-            className="h-9 w-auto mx-auto dark:brightness-0 dark:invert"
+            className="h-9 w-auto mx-auto dark:hidden"
+            style={{ width: "auto", height: "auto" }}
+            priority
+            loading="eager"
+          />
+          <Image
+            src="/logo-dark.svg"
+            alt="AutoShop Pro"
+            width={260}
+            height={60}
+            className="h-9 w-auto mx-auto hidden dark:block"
             style={{ width: "auto", height: "auto" }}
             priority
             loading="eager"
