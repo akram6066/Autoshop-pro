@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/authStore";
 import { useRestockProduct } from "@/hooks/useProducts";
+import { useRooms } from "@/hooks/useRooms";
 import { friendlyError } from "@/lib/api/errors";
 
 export function RestockModal({
@@ -16,11 +17,16 @@ export function RestockModal({
     size?: string | null;
     sku?: string | null;
     currentQty: number;
+    room_id?: string | null;
   };
   onClose: () => void;
 }) {
   const shopId = useAuthStore((s) => s.shopId);
+  const { data: rooms = [] } = useRooms(shopId);
   const [quantity, setQuantity] = useState<number | "">("");
+  const [locationId, setLocationId] = useState<string>(
+    product.room_id || rooms[0]?.id || "",
+  );
   const { mutateAsync: restockProduct, isPending } = useRestockProduct();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -37,6 +43,7 @@ export function RestockModal({
       shopId,
       productId: product.id,
       quantityAdded: qty,
+      locationId: locationId || product.room_id || rooms[0]?.id || null,
       reason: "restock",
     });
 
@@ -85,6 +92,23 @@ export function RestockModal({
         </p>
 
         <form onSubmit={handleSubmit}>
+          {rooms.length > 1 && (
+            <div className="mb-3">
+              <label className="block text-sm font-medium mb-1">Location</label>
+              <select
+                className="input w-full"
+                value={locationId || product.room_id || rooms[0]?.id || ""}
+                onChange={(e) => setLocationId(e.target.value)}
+              >
+                {rooms.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">
               Quantity to add

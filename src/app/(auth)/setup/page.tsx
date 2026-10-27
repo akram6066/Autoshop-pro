@@ -214,12 +214,44 @@ function SetupContent() {
         return;
       }
 
-      // "Main Store" is auto-created by the RPC — only insert extra rooms the user added
-      const extraRooms = rooms.filter((name) => name !== "Main Store");
-      if (extraRooms.length > 0) {
+      // Fetch existing rooms (the RPC auto-creates "Main Store")
+      const { data: existingDbRooms } = await supabase
+        .from("rooms")
+        .select("*")
+        .eq("shop_id", createdShop.id);
+      const mainStoreRow = (existingDbRooms as Room[] | null)?.find(
+        (r) => r.name === "Main Store",
+      );
+
+      let remainingToInsert = [...rooms];
+
+      if (mainStoreRow) {
+        if (rooms.includes("Main Store")) {
+          remainingToInsert = rooms.filter((name) => name !== "Main Store");
+        } else if (rooms.length > 0) {
+          // User renamed or replaced "Main Store" — update the auto-created row
+          const { error: updateErr } = await supabase
+            .from("rooms")
+            .update({ name: rooms[0] })
+            .eq("id", mainStoreRow.id)
+            .eq("shop_id", createdShop.id);
+          if (updateErr) {
+            setRoomsError(updateErr.message);
+            return;
+          }
+          remainingToInsert = rooms.slice(1);
+        }
+      }
+
+      if (remainingToInsert.length > 0) {
         const { error } = await supabase
           .from("rooms")
-          .insert(extraRooms.map((name) => ({ shop_id: createdShop.id, name })))
+          .insert(
+            remainingToInsert.map((name) => ({
+              shop_id: createdShop.id,
+              name,
+            })),
+          )
           .select();
         if (error) {
           setRoomsError(error.message);
@@ -227,7 +259,7 @@ function SetupContent() {
         }
       }
 
-      // Fetch all rooms (including the auto-created Main Store) for the local cache
+      // Fetch all rooms for the local cache
       const { data: allRooms } = await supabase
         .from("rooms")
         .select("*")
@@ -337,11 +369,25 @@ function SetupContent() {
   function addRoom() {
     const name = newRoom.trim();
     if (!name) return;
-    if (rooms.includes(name)) {
+    if (rooms.some((r) => r.toLowerCase() === name.toLowerCase())) {
       setRoomsError("Location already exists");
       return;
     }
     setRooms((prev) => [...prev, name]);
+    setNewRoom("");
+    setRoomsError("");
+  }
+
+  function editRoom(oldName: string, updatedName: string) {
+    const name = updatedName.trim();
+    if (!name) return;
+    if (
+      rooms.some((r) => r !== oldName && r.toLowerCase() === name.toLowerCase())
+    ) {
+      setRoomsError("Location already exists");
+      return;
+    }
+    setRooms((prev) => prev.map((r) => (r === oldName ? name : r)));
     setNewRoom("");
     setRoomsError("");
   }
@@ -433,6 +479,7 @@ function SetupContent() {
               mounted={mounted}
               onNewRoomChange={setNewRoom}
               onAddRoom={addRoom}
+              onEditRoom={editRoom}
               onRemoveRoom={(name) =>
                 setRooms((p) => p.filter((r) => r !== name))
               }

@@ -10,6 +10,7 @@ import { StockBadge, VariantStockBadge } from "./StockBadges";
 interface InventoryTableProps {
   paginated: Product[];
   variantsByProduct: Map<string, ProductVariant[]>;
+  roomMap?: Map<string, string>;
   /** Stock held in the selected location per product; null when viewing all. */
   locationQty: Map<string, number> | null;
   page: number;
@@ -41,6 +42,7 @@ interface InventoryTableProps {
     size?: string | null;
     sku?: string | null;
     currentQty: number;
+    room_id?: string | null;
   }) => void;
   onShowCustomer?: (product: Product) => void;
 }
@@ -48,6 +50,7 @@ interface InventoryTableProps {
 export function InventoryTable({
   paginated,
   variantsByProduct,
+  roomMap,
   locationQty,
   page,
   totalPages,
@@ -92,6 +95,7 @@ export function InventoryTable({
             <th>Product</th>
             <th>SKU</th>
             <th>Size</th>
+            <th>Location</th>
             <th>Category</th>
             <th style={{ textAlign: "right" }}>Price</th>
             <th style={{ textAlign: "right" }}>Qty</th>
@@ -169,6 +173,16 @@ export function InventoryTable({
                     )
                   )}
                 </td>
+                <td
+                  style={{
+                    color: "var(--color-ink-secondary)",
+                    fontSize: 13,
+                  }}
+                >
+                  {(product.room_id && roomMap?.get(product.room_id)) || (
+                    <span style={{ color: "var(--color-ink-ghost)" }}>—</span>
+                  )}
+                </td>
                 <td>
                   <span className="badge badge-neutral">
                     {CATEGORY_LABELS[product.category]}
@@ -231,6 +245,7 @@ export function InventoryTable({
                           size: product.size,
                           sku: product.sku,
                           currentQty: totalQty,
+                          room_id: product.room_id,
                         })
                       }
                       className="btn btn-ghost btn-sm btn-icon"

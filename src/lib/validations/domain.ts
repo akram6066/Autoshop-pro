@@ -95,6 +95,10 @@ export const categorySchema = z.object({
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Invalid color format"),
 });
 
+export const roomSchema = z.object({
+  name: reqStr(100, "Location name"),
+});
+
 export const paymentSchema = z.object({
   amount: z
     .number()
@@ -112,6 +116,7 @@ export type ProfileInput = z.infer<typeof profileSchema>;
 export type CustomerInput = z.infer<typeof customerSchema>;
 export type VariantInput = z.infer<typeof variantSchema>;
 export type CategoryInput = z.infer<typeof categorySchema>;
+export type RoomInput = z.infer<typeof roomSchema>;
 export type PaymentInput = z.infer<typeof paymentSchema>;
 
 // ─── Helper ───────────────────────────────────────────────────────────────────

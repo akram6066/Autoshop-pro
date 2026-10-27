@@ -75,7 +75,10 @@ export default function InventoryPage() {
   const [restockingProduct, setRestockingProduct] = useState<{
     id: string;
     name: string;
+    size?: string | null;
+    sku?: string | null;
     currentQty: number;
+    room_id?: string | null;
   } | null>(null);
 
   const PAGE_SIZE = 100;
@@ -90,18 +93,22 @@ export default function InventoryPage() {
     return map;
   }, [allVariants]);
 
+  const roomMap = useMemo(
+    () => new Map<string, string>(rooms.map((r) => [r.id, r.name])),
+    [rooms],
+  );
+
   const filtered = useMemo(() => {
     const q = debouncedSearch.toLowerCase().trim();
     let result = products.filter((p) => {
       // Exclude archived products from active catalog
       if (p.is_archived) return false;
 
-      // A product belongs to a location when it holds stock there. Products with
-      // no stock anywhere still show under their primary (legacy) location.
+      // A product belongs to a location when its primary location matches or it holds stock there.
       const matchRoom =
         roomFilter === "all" ||
-        levelIndex.hasStockInRoom(p.id, roomFilter) ||
-        (!levelIndex.hasAnyStock(p.id) && p.room_id === roomFilter);
+        p.room_id === roomFilter ||
+        levelIndex.hasStockInRoom(p.id, roomFilter);
       const matchCat =
         categoryFilter === "all" || p.category === categoryFilter;
       const matchQ =
@@ -131,7 +138,14 @@ export default function InventoryPage() {
   const locationQty = useMemo(() => {
     if (roomFilter === "all") return null;
     return new Map(
-      products.map((p) => [p.id, levelIndex.quantityInRoom(p.id, roomFilter)]),
+      products.map((p) => [
+        p.id,
+        levelIndex.hasAnyStock(p.id)
+          ? levelIndex.quantityInRoom(p.id, roomFilter)
+          : p.room_id === roomFilter
+            ? p.quantity
+            : 0,
+      ]),
     );
   }, [products, roomFilter, levelIndex]);
 
@@ -478,6 +492,7 @@ export default function InventoryPage() {
           <InventoryMobileList
             paginated={paginated}
             variantsByProduct={variantsByProduct}
+            roomMap={roomMap}
             locationQty={locationQty}
             page={page}
             totalPages={totalPages}
@@ -494,6 +509,7 @@ export default function InventoryPage() {
           <InventoryTable
             paginated={paginated}
             variantsByProduct={variantsByProduct}
+            roomMap={roomMap}
             locationQty={locationQty}
             page={page}
             totalPages={totalPages}

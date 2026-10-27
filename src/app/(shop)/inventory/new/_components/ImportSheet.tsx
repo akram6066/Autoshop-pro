@@ -248,6 +248,16 @@ export function ImportSheet({
     ),
   ];
 
+  const existingRoomNamesLower = rooms.map((r) => r.name.trim().toLowerCase());
+  const newLocations = [
+    ...new Set(
+      rows
+        .filter((r) => r.room_id === "" && r.location.trim() !== "")
+        .map((r) => r.location.trim())
+        .filter((loc) => !existingRoomNamesLower.includes(loc.toLowerCase())),
+    ),
+  ];
+
   const validRows = rows.filter((r) => !r.error);
   const errorCount = rows.length - validRows.length;
   const hasRows = rows.length > 0;
@@ -576,7 +586,7 @@ export function ImportSheet({
               style={{ color: "var(--color-ink-primary)" }}
             >
               {sheetHasLocation
-                ? "Location for rows with a blank location"
+                ? "Location (change to apply to all rows)"
                 : "Location for all products (no location column in file)"}
             </label>
             <select
@@ -584,7 +594,20 @@ export function ImportSheet({
               aria-label="Default location"
               style={{ fontSize: "0.8125rem", minWidth: 160, width: "auto" }}
               value={defaultRoomId}
-              onChange={(e) => setChosenRoomId(e.target.value)}
+              onChange={(e) => {
+                const nextRoomId = e.target.value;
+                setChosenRoomId(nextRoomId);
+                if (result) {
+                  setEdits((prev) => {
+                    const next = { ...prev };
+                    result.rawData.forEach((_, i) => {
+                      const key = `import-${i}`;
+                      next[key] = { ...next[key], room_id: nextRoomId };
+                    });
+                    return next;
+                  });
+                }
+              }}
             >
               {rooms.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -761,6 +784,10 @@ export function ImportSheet({
                   const categoryIsNew = !existingLower.includes(
                     row.category.trim().toLowerCase(),
                   );
+                  const locationIsNew =
+                    row.room_id === "" && row.location.trim() !== "";
+                  const locationMissing =
+                    row.room_id === "" && row.location.trim() === "";
                   return (
                     <tr
                       key={row._key}
@@ -831,20 +858,22 @@ export function ImportSheet({
                           className="input"
                           aria-label="Location"
                           title={
-                            row.room_id === "" && row.location
-                              ? `"${row.location}" in your sheet doesn't match any of your locations. Pick one.`
+                            locationIsNew
+                              ? `New location "${row.location}" will be created on import, or pick an existing location.`
                               : undefined
                           }
-                          aria-invalid={row.room_id === "" || undefined}
+                          aria-invalid={locationMissing || undefined}
                           style={{
                             ...textInputStyle(120),
-                            borderColor:
-                              row.room_id === ""
-                                ? "var(--color-danger)"
+                            borderColor: locationMissing
+                              ? "var(--color-danger)"
+                              : locationIsNew
+                                ? AMBER_BORDER
                                 : undefined,
-                            background:
-                              row.room_id === ""
-                                ? "var(--color-danger-light)"
+                            background: locationMissing
+                              ? "var(--color-danger-light)"
+                              : locationIsNew
+                                ? AMBER_BG
                                 : undefined,
                           }}
                           value={row.room_id}
@@ -855,7 +884,7 @@ export function ImportSheet({
                           {row.room_id === "" && (
                             <option value="">
                               {row.location
-                                ? `? ${row.location}`
+                                ? `+ New: ${row.location}`
                                 : "Select location"}
                             </option>
                           )}
@@ -959,6 +988,62 @@ export function ImportSheet({
               </tbody>
             </table>
           </div>
+
+          {/* New-location notice */}
+          {newLocations.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                background: AMBER_BG,
+                border: "1px solid #fde68a",
+                borderRadius: 10,
+                padding: "12px 14px",
+                marginBottom: 14,
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                fill="none"
+                viewBox="0 0 24 24"
+                style={{ flexShrink: 0, marginTop: 1, color: "#d97706" }}
+              >
+                <path
+                  d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <p
+                style={{
+                  fontSize: "0.8125rem",
+                  color: "#92400e",
+                  margin: 0,
+                  lineHeight: 1.5,
+                }}
+              >
+                <strong>New locations will be created:</strong>{" "}
+                {newLocations.map((loc, i) => (
+                  <span key={loc}>
+                    <code
+                      style={{
+                        background: "#fef3c7",
+                        padding: "1px 5px",
+                        borderRadius: 4,
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "0.75rem",
+                      }}
+                    >
+                      {loc}
+                    </code>
+                    {i < newLocations.length - 1 ? " · " : ""}
+                  </span>
+                ))}
+              </p>
+            </div>
+          )}
 
           {/* New-category warning */}
           {newCategories.length > 0 && (

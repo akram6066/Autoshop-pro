@@ -180,6 +180,7 @@ export function useCreateProduct() {
           queryKey: productKeys.all(shopId),
           refetchType: "none",
         });
+        qc.invalidateQueries({ queryKey: ["inventory_levels", shopId] });
       }
     },
   });
@@ -307,6 +308,7 @@ export function useUpdateProduct() {
           queryKey: productKeys.all(shopId),
           refetchType: "none",
         });
+        qc.invalidateQueries({ queryKey: ["inventory_levels", shopId] });
       }
     },
   });
@@ -316,6 +318,7 @@ export type RestockProductInput = {
   shopId: string;
   productId: string;
   quantityAdded: number;
+  locationId?: string | null;
   reason?: "restock" | "adjustment";
 };
 
@@ -329,6 +332,7 @@ export function useRestockProduct() {
       shopId,
       productId,
       quantityAdded,
+      locationId,
       reason = "restock",
     }: RestockProductInput): Promise<MutationResult<{ shopId: string }>> => {
       if (quantityAdded <= 0) {
@@ -343,6 +347,7 @@ export function useRestockProduct() {
         id: crypto.randomUUID(),
         shop_id: shopId,
         product_id: productId,
+        location_id: locationId ?? null,
         type: "IN",
         delta: quantityAdded,
         snapshot_qty: 0,
@@ -426,6 +431,7 @@ export function useRestockProduct() {
           queryKey: productKeys.all(shopId),
           refetchType: "none",
         });
+        qc.invalidateQueries({ queryKey: ["inventory_levels", shopId] });
         qc.invalidateQueries({ queryKey: ["inventory-levels", shopId] });
         qc.invalidateQueries({ queryKey: ["inventory-movements", productId] });
         qc.invalidateQueries({ queryKey: ["product-timeline", productId] });

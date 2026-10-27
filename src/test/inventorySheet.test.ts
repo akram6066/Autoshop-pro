@@ -202,7 +202,7 @@ describe("buildRow", () => {
     expect(row.price).toBe(1200);
   });
 
-  it("resolves a location column against shop rooms and flags unknown ones", () => {
+  it("resolves a location column against shop rooms and accepts new locations for auto-creation", () => {
     const withLoc = ["Name", "Size", "Location", "Qty", "Price"];
     const matched = buildRow(
       withLoc,
@@ -216,7 +216,7 @@ describe("buildRow", () => {
     expect(matched.room_id).toBe("r2");
     expect(matched.error).toBeUndefined();
 
-    const unknown = buildRow(
+    const newLoc = buildRow(
       withLoc,
       ["A", "B", "Back Alley", 4, 100],
       {},
@@ -225,8 +225,9 @@ describe("buildRow", () => {
       {},
       CTX,
     );
-    expect(unknown.room_id).toBe("");
-    expect(unknown.error).toBe('Unknown location "Back Alley"');
+    expect(newLoc.room_id).toBe("");
+    expect(newLoc.location).toBe("Back Alley");
+    expect(newLoc.error).toBeUndefined();
 
     const fixed = buildRow(
       withLoc,
@@ -305,6 +306,32 @@ describe("markDuplicates", () => {
     expect(marked[1].error).toBe("Same product as row 1");
     expect(marked[2].existing).toBeUndefined();
     expect(marked[2].error).toBeUndefined();
+  });
+
+  it("treats the same product in a different location as a separate new product", () => {
+    const existingInR1 = [
+      {
+        id: "p1",
+        name: "Pilot Sport",
+        size: "205/55R16",
+        sku: "MPS-1",
+        quantity: 8,
+        price: 4500,
+        room_id: "r1",
+      },
+    ];
+    const rowInR2 = buildRow(
+      HEADERS,
+      ["Pilot Sport", "205/55R16", "MPS-1", "Tire", 5, 1, 4500],
+      {},
+      "D",
+      0,
+      { room_id: "r2" },
+      CTX,
+    );
+    const marked = markDuplicates([rowInR2], existingInR1);
+    expect(marked[0].existing).toBeUndefined();
+    expect(marked[0].error).toBeUndefined();
   });
 });
 

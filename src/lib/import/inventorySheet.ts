@@ -52,6 +52,7 @@ export interface ExistingProduct {
   sku: string;
   quantity: number;
   price: number;
+  room_id?: string | null;
 }
 
 export interface ImportRow {
@@ -62,7 +63,7 @@ export interface ImportRow {
   category: string;
   /** Location text exactly as written in the sheet ("" if none). */
   location: string;
-  /** Resolved room id; "" when the sheet's location matches no room. */
+  /** Resolved room id; "" when the sheet's location is new (will be created on import) or missing. */
   room_id: string;
   quantity: number;
   min_stock: number;
@@ -78,7 +79,7 @@ export interface ImportRow {
 
 /** User edits layered on top of the sheet values (never mutates the sheet). */
 export type RowEdit = Partial<
-  Pick<ImportRow, TextField | NumField | "room_id">
+  Pick<ImportRow, TextField | NumField | "room_id" | "location">
 >;
 
 export type ColumnOverrides = Partial<Record<SheetField, number>>;
@@ -340,11 +341,9 @@ export function buildRow(
   const category =
     edit.category ?? (String(get("category")).trim() || defaultCategory);
 
-  // Location: user pick > sheet text matched to a room > default location.
-  // Sheet text that matches nothing is an error — we never guess a room.
-  const location = String(get("location")).trim();
+  // Location: user pick > sheet text matched to a room > new location from sheet > default location.
+  const location = (edit.location ?? String(get("location"))).trim();
   let room_id: string;
-  let locationUnknown = false;
   if (edit.room_id !== undefined) {
     room_id = edit.room_id;
   } else if (location === "") {
@@ -352,7 +351,6 @@ export function buildRow(
   } else {
     const room = matchRoom(location, ctx.rooms);
     room_id = room?.id ?? "";
-    locationUnknown = room === null;
   }
 
   const emptyFields: NumField[] = [];
@@ -381,10 +379,8 @@ export function buildRow(
     ? "Name required"
     : !size.trim()
       ? "Size required"
-      : room_id === ""
-        ? locationUnknown
-          ? `Unknown location "${location}"`
-          : "Location required"
+      : room_id === "" && location === ""
+        ? "Location required"
         : invalidLabels.length > 0
           ? `Fix ${invalidLabels.join(", ")}`
           : undefined;
@@ -419,42 +415,62 @@ function nameSizeKey(row: ImportRow): string | null {
   return name && size ? `${name}|${size}` : null;
 }
 
+function rowLocationKey(row: ImportRow): string {
+  if (row.room_id) return `room:${row.room_id}`;
+  if (row.location.trim()) return `new:${normName(row.location)}`;
+  return "default";
+}
+
 /**
- * Annotate rows against the shop's catalogue and against each other.
- *  - matches a product already in the shop (same SKU, or same name + size)
+ * Annotate rows against the shop's catalogue and against each other, scoped per location.
+ *  - matches a product already in the SAME location (same SKU, or same name + size)
  *      → `existing` is set (a restock candidate, not an error)
- *  - repeats an earlier row of the same sheet (same SKU, or name + size)
- *      → blocking error, so the same product is never inserted twice
+ *  - if the row targets a DIFFERENT location than the existing product, it is
+ *      accepted as a separate new product for that location (`existing` is undefined)
+ *  - repeats an earlier row of the same sheet in the SAME location
+ *      → blocking error, so the same product+location is never inserted twice
  */
 export function markDuplicates(
   rows: ImportRow[],
   existing: ExistingProduct[],
 ): ImportRow[] {
-  const bySku = new Map<string, ExistingProduct>();
-  const byNameSize = new Map<string, ExistingProduct>();
-  for (const p of existing) {
-    const sku = p.sku.trim().toLowerCase();
-    if (sku && !bySku.has(sku)) bySku.set(sku, p);
-    const key = `${normName(p.name)}|${normName(p.size ?? "")}`;
-    if (!byNameSize.has(key)) byNameSize.set(key, p);
-  }
-
-  const firstBySku = new Map<string, number>();
-  const firstByNameSize = new Map<string, number>();
+  const firstBySkuLoc = new Map<string, number>();
+  const firstByNameSizeLoc = new Map<string, number>();
   const firstByExistingId = new Map<string, number>();
 
   return rows.map((row, i) => {
     const sku = effectiveSku(row);
     const ns = nameSizeKey(row);
+    const locKey = rowLocationKey(row);
 
-    const hit = bySku.get(sku) ?? (ns ? byNameSize.get(ns) : undefined);
+    const hit = existing.find((p) => {
+      // Only match existing products in the SAME location (or when p.room_id is omitted in unit tests)
+      const sameRoom =
+        p.room_id === undefined ||
+        (row.room_id !== "" && (p.room_id ?? "") === row.room_id);
+      if (!sameRoom) return false;
+
+      const pSku = p.sku.trim().toLowerCase();
+      if (pSku && pSku === sku) return true;
+      if (ns) {
+        const pNs = `${normName(p.name)}|${normName(p.size ?? "")}`;
+        if (pNs === ns) return true;
+      }
+      return false;
+    });
+
+    const skuLocKey = `${locKey}::${sku}`;
+    const nsLocKey = ns ? `${locKey}::${ns}` : null;
+
     const firstIdx =
-      firstBySku.get(sku) ??
-      (ns ? firstByNameSize.get(ns) : undefined) ??
+      firstBySkuLoc.get(skuLocKey) ??
+      (nsLocKey ? firstByNameSizeLoc.get(nsLocKey) : undefined) ??
       (hit ? firstByExistingId.get(hit.id) : undefined);
 
-    if (!firstBySku.has(sku)) firstBySku.set(sku, i);
-    if (ns && !firstByNameSize.has(ns)) firstByNameSize.set(ns, i);
+    if (!firstBySkuLoc.has(skuLocKey)) firstBySkuLoc.set(skuLocKey, i);
+    if (nsLocKey && !firstByNameSizeLoc.has(nsLocKey)) {
+      firstByNameSizeLoc.set(nsLocKey, i);
+    }
     if (hit && !firstByExistingId.has(hit.id)) firstByExistingId.set(hit.id, i);
 
     const next: ImportRow = { ...row, existing: hit };

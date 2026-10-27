@@ -11,7 +11,7 @@ import {
   useRestockProduct,
   useUpdateProduct,
 } from "@/hooks/useProducts";
-import { useRooms } from "@/hooks/useRooms";
+import { useRooms, useCreateRoom } from "@/hooks/useRooms";
 import { useCategories } from "@/hooks/useCategories";
 import { productSchema, variantSchema } from "@/lib/validations/domain";
 import { friendlyError } from "@/lib/api/errors";
@@ -53,8 +53,10 @@ export default function NewProductPage() {
 
   const categoriesRes = useCategories(shopId);
   const roomsRes = useRooms(shopId);
+  const { mutateAsync: createRoom } = useCreateRoom(shopId);
   const categories = categoriesRes.data ?? [];
   const rooms = roomsRes.data ?? [];
+  const activeExistingProducts = existingProducts.filter((p) => !p.is_archived);
 
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"single" | "import">("single");
@@ -114,6 +116,7 @@ export default function NewProductPage() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [roomId, setRoomId] = useState("");
+  const [newRoomName, setNewRoomName] = useState("");
 
   // ── Simple (no-variant) fields ──
   const [sku, setSku] = useState("");
@@ -196,6 +199,36 @@ export default function NewProductPage() {
       );
     }
 
+    // Auto-create any new locations from the sheet that don't exist in this shop yet.
+    const roomByNameLower = new Map<string, string>(
+      rooms.map((r) => [r.name.trim().toLowerCase(), r.id]),
+    );
+    const newLocNames = [
+      ...new Set(
+        rows
+          .filter((r) => !r.room_id && r.location.trim() !== "")
+          .map((r) => r.location.trim())
+          .filter((loc) => !roomByNameLower.has(loc.toLowerCase())),
+      ),
+    ];
+    for (const locName of newLocNames) {
+      try {
+        const createdRoom = await createRoom({ name: locName });
+        roomByNameLower.set(locName.toLowerCase(), createdRoom.id);
+      } catch {
+        // Fallback if already created concurrently
+      }
+    }
+
+    const resolveRowRoomId = (row: ImportRow): string => {
+      if (row.room_id) return row.room_id;
+      if (row.location.trim()) {
+        const mapped = roomByNameLower.get(row.location.trim().toLowerCase());
+        if (mapped) return mapped;
+      }
+      return effectiveRoomId;
+    };
+
     const [createResults, restockResults] = await Promise.all([
       Promise.all(
         newRows.map(async (row) => {
@@ -203,7 +236,7 @@ export default function NewProductPage() {
           return createProduct({
             shopId,
             data: {
-              room_id: row.room_id || effectiveRoomId,
+              room_id: resolveRowRoomId(row),
               name: row.name.trim(),
               sku: finalSku,
               category: row.category || effectiveCategory,
@@ -218,12 +251,14 @@ export default function NewProductPage() {
       Promise.all(
         restockRows.map(async (row) => {
           const existing = row.existing!;
+          const targetRoomId = resolveRowRoomId(row);
           let res: { status: string; error?: Error } = { status: "success" };
           if (row.quantity > 0) {
             res = await restockProduct({
               shopId,
               productId: existing.id,
               quantityAdded: row.quantity,
+              locationId: targetRoomId,
               reason: "restock",
             });
             if (res.status === "error") return res;
@@ -312,6 +347,7 @@ export default function NewProductPage() {
           shopId,
           productId: duplicateProduct.id,
           quantityAdded: quantity,
+          locationId: effectiveRoomId,
           reason: "restock",
         });
         if (restockRes.status === "error") {
@@ -359,6 +395,7 @@ export default function NewProductPage() {
               shopId,
               productId: m.existingProduct.id,
               quantityAdded: m.enteredQuantity,
+              locationId: effectiveRoomId,
               reason: "restock",
             }),
           ),
@@ -398,7 +435,36 @@ export default function NewProductPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!shopId || !effectiveRoomId || !effectiveCategory) return;
+    if (!shopId || !effectiveCategory) return;
+
+    let targetRoomId = effectiveRoomId;
+    if (roomId === "__new__") {
+      const trimmedRoom = newRoomName.trim();
+      if (!trimmedRoom) {
+        setError("Please enter a name for the new location.");
+        return;
+      }
+      const existingRoom = rooms.find(
+        (r) => r.name.trim().toLowerCase() === trimmedRoom.toLowerCase(),
+      );
+      if (existingRoom) {
+        targetRoomId = existingRoom.id;
+        setRoomId(existingRoom.id);
+        setNewRoomName("");
+      } else {
+        try {
+          const created = await createRoom({ name: trimmedRoom });
+          targetRoomId = created.id;
+          setRoomId(created.id);
+          setNewRoomName("");
+        } catch (err) {
+          setError(friendlyError(err, "Failed to create new location."));
+          return;
+        }
+      }
+    }
+
+    if (!targetRoomId) return;
 
     if (useVariants) {
       const filled = variants.filter((v) => v.size.trim());
@@ -447,7 +513,7 @@ export default function NewProductPage() {
 
     setError("");
 
-    // ── Variant Mode Duplicate & Restock Check ──
+    // ── Variant Mode Duplicate & Restock Check (scoped to targetRoomId) ──
     if (useVariants) {
       const filled = variants.filter((v) => v.size.trim());
       const cleanName = name.trim().toLowerCase();
@@ -457,7 +523,8 @@ export default function NewProductPage() {
       for (const v of filled) {
         const vSku = (v.sku.trim() || generateSku(name, v.size)).toLowerCase();
         const vSize = v.size.trim().toLowerCase();
-        const existing = existingProducts.find((p) => {
+        const existing = activeExistingProducts.find((p) => {
+          if ((p.room_id || "") !== targetRoomId) return false;
           const pSku = p.sku.trim().toLowerCase();
           const pName = p.name.trim().toLowerCase();
           const pSize = (p.size || "").trim().toLowerCase();
@@ -477,7 +544,7 @@ export default function NewProductPage() {
         }
       }
 
-      // If existing sizes were detected, offer conversational restock!
+      // If existing sizes were detected in the same location, offer conversational restock!
       if (matches.length > 0) {
         setDuplicateMatches(matches);
         setNewVariantsQueue(newItems);
@@ -486,9 +553,9 @@ export default function NewProductPage() {
         return;
       }
 
-      // All sizes are new: save normally in parallel
-      const roomObj = rooms.find((r) => r.id === effectiveRoomId);
-      const roomName = roomObj?.name || "Main Floor";
+      // All sizes are new in this location: save normally in parallel
+      const roomObj = rooms.find((r) => r.id === targetRoomId);
+      const roomName = roomObj?.name || newRoomName.trim() || "Main Floor";
 
       const createdItems: Product[] = [];
       let hasOffline = false;
@@ -499,7 +566,7 @@ export default function NewProductPage() {
           const result = await createProduct({
             shopId,
             data: {
-              room_id: effectiveRoomId,
+              room_id: targetRoomId,
               name: name.trim(),
               sku: finalSku,
               category: effectiveCategory,
@@ -548,20 +615,21 @@ export default function NewProductPage() {
       return;
     }
 
-    // ── Single Product Mode Duplicate & Restock Check ──
+    // ── Single Product Mode Duplicate & Restock Check (scoped to targetRoomId) ──
     const effectiveSku = sku.trim() || generateSku(name, size);
     const cleanName = name.trim().toLowerCase();
     const cleanSize = size.trim().toLowerCase();
     const cleanSku = effectiveSku.trim().toLowerCase();
 
-    const existingMatch = existingProducts.find((p) => {
+    const existingMatch = activeExistingProducts.find((p) => {
+      if ((p.room_id || "") !== targetRoomId) return false;
       const pSku = p.sku.trim().toLowerCase();
       const pName = p.name.trim().toLowerCase();
       const pSize = (p.size || "").trim().toLowerCase();
       return pSku === cleanSku || (pName === cleanName && pSize === cleanSize);
     });
 
-    // If product/size already exists in shop, ask user to restock!
+    // If product/size already exists in this location, ask user to restock!
     if (existingMatch) {
       setDuplicateProduct(existingMatch);
       setDuplicateMatches([]);
@@ -573,7 +641,7 @@ export default function NewProductPage() {
     const result = await createProduct({
       shopId,
       data: {
-        room_id: effectiveRoomId,
+        room_id: targetRoomId,
         name: name.trim(),
         sku: effectiveSku,
         category: effectiveCategory,
@@ -585,7 +653,7 @@ export default function NewProductPage() {
     });
 
     if (result.status === "error") {
-      // Check if error was due to duplicate SKU/name that occurred concurrently
+      // Check if error was due to duplicate SKU/name in this location that occurred concurrently
       const isDuplicate =
         /duplicate key|unique.*constraint|23505/i.test(
           result.error?.message || "",
@@ -597,18 +665,14 @@ export default function NewProductPage() {
           .from("products")
           .select("*")
           .eq("shop_id", shopId)
+          .eq("room_id", targetRoomId)
           .eq("sku", effectiveSku)
+          .eq("is_archived", false)
           .limit(1);
 
         const found = foundList?.[0] as Product | undefined;
 
         if (found) {
-          if (found.is_archived) {
-            setError(
-              `A deleted/archived product with SKU "${effectiveSku}" already exists. Please restore it or use a different SKU.`,
-            );
-            return;
-          }
           setDuplicateProduct(found);
           setDuplicateMatches([]);
           setIsDuplicateModalOpen(true);
@@ -625,8 +689,8 @@ export default function NewProductPage() {
       return;
     }
 
-    const roomObj = rooms.find((r) => r.id === effectiveRoomId);
-    const roomName = roomObj?.name || "Main Floor";
+    const roomObj = rooms.find((r) => r.id === targetRoomId);
+    const roomName = roomObj?.name || newRoomName.trim() || "Main Floor";
 
     if (result.status === "offline") {
       toast.warning("Saved offline — will sync when reconnected.");
@@ -702,7 +766,7 @@ export default function NewProductPage() {
           defaultCategory={effectiveCategory}
           existingCategories={categories.map((c) => c.name)}
           rooms={rooms}
-          existingProducts={existingProducts}
+          existingProducts={activeExistingProducts}
           onImport={handleImport}
           onCancel={() => setTab("single")}
         />
@@ -733,7 +797,7 @@ export default function NewProductPage() {
                 </label>
                 <select
                   className="input"
-                  value={category}
+                  value={category || effectiveCategory}
                   onChange={(e) => setCategory(e.target.value)}
                   required
                 >
@@ -755,7 +819,7 @@ export default function NewProductPage() {
                 </label>
                 <select
                   className="input"
-                  value={roomId}
+                  value={roomId || effectiveRoomId}
                   onChange={(e) => setRoomId(e.target.value)}
                   required
                 >
@@ -767,7 +831,19 @@ export default function NewProductPage() {
                       {r.name}
                     </option>
                   ))}
+                  <option value="__new__">+ Add new location…</option>
                 </select>
+                {roomId === "__new__" && (
+                  <input
+                    className="input mt-2"
+                    type="text"
+                    placeholder="Enter new location name (e.g. Warehouse 2)"
+                    value={newRoomName}
+                    onChange={(e) => setNewRoomName(e.target.value)}
+                    autoFocus
+                    required
+                  />
+                )}
               </div>
             </div>
 

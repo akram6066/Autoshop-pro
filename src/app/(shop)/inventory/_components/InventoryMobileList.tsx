@@ -32,14 +32,18 @@ interface InventoryMobileListProps {
     size?: string | null;
     sku?: string | null;
     currentQty: number;
+    room_id?: string | null;
   }) => void;
   onShowCustomer?: (product: Product) => void;
+  roomMap?: Map<string, string>;
   locationQty?: Map<string, number> | null;
 }
 
 export function InventoryMobileList({
   paginated,
   variantsByProduct,
+  roomMap,
+  locationQty,
   page,
   totalPages,
   filtered,
@@ -58,9 +62,14 @@ export function InventoryMobileList({
         const isSelected = selectedIds?.has(product.id) ?? false;
         const pVariants = variantsByProduct.get(product.id);
         const hasVariants = !!pVariants?.length;
-        const totalQty = hasVariants
-          ? pVariants!.reduce((s, v) => s + v.quantity, 0)
-          : product.quantity;
+        const totalQty = locationQty
+          ? (locationQty.get(product.id) ?? 0)
+          : hasVariants
+            ? pVariants!.reduce((s, v) => s + v.quantity, 0)
+            : product.quantity;
+        const roomName = product.room_id
+          ? roomMap?.get(product.room_id)
+          : undefined;
         return (
           <div
             key={product.id}
@@ -120,6 +129,17 @@ export function InventoryMobileList({
                           {product.size}
                         </span>
                       )}
+                      {roomName && (
+                        <span
+                          className="text-xs px-1.5 py-0.5 rounded"
+                          style={{
+                            background: "var(--color-surface-2)",
+                            color: "var(--color-ink-secondary)",
+                          }}
+                        >
+                          {roomName}
+                        </span>
+                      )}
                     </>
                   )}
                 </div>
@@ -127,10 +147,7 @@ export function InventoryMobileList({
               {hasVariants ? (
                 <VariantStockBadge variants={pVariants!} />
               ) : (
-                <StockBadge
-                  qty={product.quantity}
-                  minStock={product.min_stock}
-                />
+                <StockBadge qty={totalQty} minStock={product.min_stock} />
               )}
             </div>
             <div className="flex items-center justify-between mt-2 pt-2 border-t border-[var(--color-border-subtle)]">
@@ -180,6 +197,7 @@ export function InventoryMobileList({
                       size: product.size,
                       sku: product.sku,
                       currentQty: totalQty,
+                      room_id: product.room_id,
                     })
                   }
                   className="btn btn-ghost btn-sm btn-icon"
