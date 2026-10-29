@@ -374,8 +374,15 @@ export function useArchiveProduct() {
     },
     onSuccess: (result, { shopId, productId }) => {
       if (result.status !== "error") {
+        qc.setQueryData(
+          ["dashboard-low-stock", shopId],
+          (old?: Array<{ id: string }>) =>
+            old ? old.filter((item) => item.id !== productId) : [],
+        );
         qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
         qc.invalidateQueries({ queryKey: movementKeys.audit(productId) });
+        qc.invalidateQueries({ queryKey: ["dashboard-low-stock", shopId] });
+        qc.invalidateQueries({ queryKey: ["dashboard-product-counts"] });
       }
     },
   });
@@ -414,6 +421,8 @@ export function useRestoreProduct() {
       if (result.status !== "error") {
         qc.invalidateQueries({ queryKey: productKeys.all(shopId) });
         qc.invalidateQueries({ queryKey: movementKeys.audit(productId) });
+        qc.invalidateQueries({ queryKey: ["dashboard-low-stock", shopId] });
+        qc.invalidateQueries({ queryKey: ["dashboard-product-counts"] });
       }
     },
   });

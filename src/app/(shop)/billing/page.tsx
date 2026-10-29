@@ -68,6 +68,7 @@ export default async function BillingPage({
           .from("products")
           .select("id", { count: "exact", head: true })
           .eq("shop_id", shopId)
+          .eq("is_archived", false)
       : Promise.resolve({ count: 0 }),
     shopId
       ? db

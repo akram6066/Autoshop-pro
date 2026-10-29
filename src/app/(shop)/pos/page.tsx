@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { useAuthStore, selectShopId, selectUser } from "@/stores/authStore";
 import { useProducts } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
+import { useRooms } from "@/hooks/useRooms";
+import { useInventoryLevels } from "@/hooks/useInventoryLevels";
 import { useRecordSale } from "@/hooks/useSales";
 import { useCustomers, useCreateCustomer } from "@/hooks/useCustomers";
 import { useCart } from "@/hooks/useCart";
@@ -176,6 +178,8 @@ export default function POSPage() {
       });
   }, [shopId]);
   const { data: categories = [] } = useCategories(shopId);
+  const { data: rooms = [] } = useRooms(shopId);
+  const { data: levels = [] } = useInventoryLevels(shopId);
   const { data: customers = [] } = useCustomers(shopId);
   const { data: allVariants = [] } = useShopVariants(shopId);
   const { mutateAsync: recordSale, isPending: isSaving } = useRecordSale();
@@ -325,6 +329,8 @@ export default function POSPage() {
           products={products}
           isLoading={isLoading}
           categories={categories}
+          rooms={rooms}
+          levels={levels}
           variantsByProduct={variantsByProduct}
           onAdd={add}
         />

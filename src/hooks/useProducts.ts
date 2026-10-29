@@ -181,6 +181,8 @@ export function useCreateProduct() {
           refetchType: "none",
         });
         qc.invalidateQueries({ queryKey: ["inventory_levels", shopId] });
+        qc.invalidateQueries({ queryKey: ["dashboard-low-stock", shopId] });
+        qc.invalidateQueries({ queryKey: ["dashboard-product-counts"] });
       }
     },
   });
@@ -309,6 +311,8 @@ export function useUpdateProduct() {
           refetchType: "none",
         });
         qc.invalidateQueries({ queryKey: ["inventory_levels", shopId] });
+        qc.invalidateQueries({ queryKey: ["dashboard-low-stock", shopId] });
+        qc.invalidateQueries({ queryKey: ["dashboard-product-counts"] });
       }
     },
   });
@@ -435,6 +439,8 @@ export function useRestockProduct() {
         qc.invalidateQueries({ queryKey: ["inventory-levels", shopId] });
         qc.invalidateQueries({ queryKey: ["inventory-movements", productId] });
         qc.invalidateQueries({ queryKey: ["product-timeline", productId] });
+        qc.invalidateQueries({ queryKey: ["dashboard-low-stock", shopId] });
+        qc.invalidateQueries({ queryKey: ["dashboard-product-counts"] });
       }
     },
   });
@@ -524,12 +530,22 @@ export function useDeleteProduct() {
         qc.setQueryData(productKeys.all(shopId), (old?: Product[]) =>
           old ? old.filter((p) => p.id !== productId) : [],
         );
+        qc.setQueryData(
+          ["dashboard-low-stock", shopId],
+          (old?: Array<{ id: string }>) =>
+            old ? old.filter((item) => item.id !== productId) : [],
+        );
+        qc.removeQueries({ queryKey: productKeys.detail(shopId, productId) });
         qc.invalidateQueries({
           queryKey: productKeys.all(shopId),
           refetchType: "none",
         });
         qc.invalidateQueries({ queryKey: ["inventory-levels", shopId] });
+        qc.invalidateQueries({ queryKey: ["inventory_levels", shopId] });
         qc.invalidateQueries({ queryKey: ["shop-variants", shopId] });
+        qc.invalidateQueries({ queryKey: ["dashboard-low-stock", shopId] });
+        qc.invalidateQueries({ queryKey: ["dashboard-product-counts"] });
+        qc.invalidateQueries({ queryKey: ["shop-notifications", shopId] });
       }
     },
   });
@@ -647,12 +663,24 @@ export function useBulkDeleteProducts() {
         qc.setQueryData(productKeys.all(shopId), (old?: Product[]) =>
           old ? old.filter((p) => !idSet.has(p.id)) : [],
         );
+        qc.setQueryData(
+          ["dashboard-low-stock", shopId],
+          (old?: Array<{ id: string }>) =>
+            old ? old.filter((item) => !idSet.has(item.id)) : [],
+        );
+        for (const pid of productIds) {
+          qc.removeQueries({ queryKey: productKeys.detail(shopId, pid) });
+        }
         qc.invalidateQueries({
           queryKey: productKeys.all(shopId),
           refetchType: "none",
         });
         qc.invalidateQueries({ queryKey: ["inventory-levels", shopId] });
+        qc.invalidateQueries({ queryKey: ["inventory_levels", shopId] });
         qc.invalidateQueries({ queryKey: ["shop-variants", shopId] });
+        qc.invalidateQueries({ queryKey: ["dashboard-low-stock", shopId] });
+        qc.invalidateQueries({ queryKey: ["dashboard-product-counts"] });
+        qc.invalidateQueries({ queryKey: ["shop-notifications", shopId] });
       }
     },
   });

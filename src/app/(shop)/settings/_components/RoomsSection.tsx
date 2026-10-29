@@ -64,7 +64,8 @@ export function RoomsSection() {
     const { count } = await supabase
       .from("products")
       .select("id", { count: "exact", head: true })
-      .eq("room_id", roomId);
+      .eq("room_id", roomId)
+      .eq("is_archived", false);
     if ((count ?? 0) > 0) {
       setMsg(
         `Cannot delete — ${count} product(s) in this location. Move them first.`,

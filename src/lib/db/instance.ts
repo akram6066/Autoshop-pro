@@ -151,19 +151,29 @@ export async function seedProducts(
     .toArray();
 
   const unsyncedProductIds = new Set<string>();
+  const pendingDeleteProductIds = new Set<string>();
   for (const cmd of unsyncedCommands) {
     if (cmd.command === "MANAGE_PRODUCT") {
       const prod = cmd.payload?.product as Record<string, unknown> | undefined;
+      const op = cmd.payload?.op as string | undefined;
       if (prod?.id) {
-        unsyncedProductIds.add(prod.id as string);
+        const pid = prod.id as string;
+        if (op === "DELETE" || op === "ARCHIVE") {
+          pendingDeleteProductIds.add(pid);
+          unsyncedProductIds.delete(pid);
+        } else {
+          unsyncedProductIds.add(pid);
+        }
       }
     }
   }
 
   const pendingStockDeductions = await getPendingDeductions(shopId, "product");
 
-  // Filter out any archived products and apply pending deductions
-  const activeIncoming = products.filter((p) => !p.is_archived);
+  // Filter out any archived or pending-deleted products and apply pending deductions
+  const activeIncoming = products.filter(
+    (p) => !p.is_archived && !pendingDeleteProductIds.has(p.id),
+  );
   const adjustedProducts = activeIncoming.map((p) => {
     const deduction = pendingStockDeductions.get(p.id) || 0;
     if (deduction !== 0) {
@@ -179,7 +189,11 @@ export async function seedProducts(
     .toArray();
 
   const staleIds = localProducts
-    .filter((p) => !remoteIds.has(p.id) && !unsyncedProductIds.has(p.id))
+    .filter(
+      (p) =>
+        pendingDeleteProductIds.has(p.id) ||
+        (!remoteIds.has(p.id) && !unsyncedProductIds.has(p.id)),
+    )
     .map((p) => p.id);
 
   await db.transaction("rw", db.products, async () => {

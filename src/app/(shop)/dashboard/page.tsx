@@ -125,16 +125,22 @@ function DashboardContent() {
     staleTime: 30000,
   });
 
-  // React Query: Supabase low stock products
+  // React Query: Supabase low stock products (filtered against active non-archived products)
   const { data: onlineLowStock, isLoading: lowStockLoading } = useQuery({
     queryKey: ["dashboard-low-stock", activeShopId],
     queryFn: async () => {
       const supabase = createClient();
-      const { data, error } = await supabase.rpc("get_low_stock_products", {
-        p_shop_id: activeShopId!,
-      });
-      if (error) throw error;
-      return data as LowStockProduct[];
+      const [rpcRes, activeProducts] = await Promise.all([
+        supabase.rpc("get_low_stock_products", {
+          p_shop_id: activeShopId!,
+        }),
+        fetchAllProducts(supabase, activeShopId!),
+      ]);
+      if (rpcRes.error) throw rpcRes.error;
+      const activeIds = new Set(activeProducts.map((p) => p.id));
+      return ((rpcRes.data ?? []) as LowStockProduct[]).filter((item) =>
+        activeIds.has(item.id),
+      );
     },
     enabled: isOnline && !!activeShopId,
     staleTime: 60000,
@@ -238,7 +244,7 @@ function DashboardContent() {
     return db.products
       .where("shop_id")
       .equals(activeShopId)
-      .filter((p) => p.quantity <= p.min_stock)
+      .filter((p) => !p.is_archived && p.quantity <= p.min_stock)
       .toArray();
   }, [activeShopId]);
 
@@ -271,10 +277,9 @@ function DashboardContent() {
     const db = getDb();
     const counts = await Promise.all(
       shopIds.map(async (id) => {
-        const products = await db.products
-          .where("shop_id")
-          .equals(id)
-          .toArray();
+        const products = (
+          await db.products.where("shop_id").equals(id).toArray()
+        ).filter((p) => !p.is_archived);
         const productIds = new Set(products.map((p) => p.id));
         const variants = (await db.product_variants.toArray()).filter((v) =>
           productIds.has(v.product_id),

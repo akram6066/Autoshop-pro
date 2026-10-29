@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { formatCurrency } from "@/lib/utils";
+import type { ProductLocation } from "@/hooks/useInventoryLevels";
 import type { Product } from "@/types/app";
 
 const DEFAULT_CATEGORY_COLORS: Record<string, string> = {
@@ -19,11 +20,13 @@ function getCategoryColor(category: string): string {
 export function ProductCard({
   product,
   hasVariants = false,
+  locations = [],
   onAdd,
   onShowCustomer,
 }: {
   product: Product;
   hasVariants?: boolean;
+  locations?: ProductLocation[];
   onAdd: () => void;
   onShowCustomer?: () => void;
 }) {
@@ -42,36 +45,45 @@ export function ProductCard({
     onAdd();
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleClick();
+    }
+  };
+
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={outOfStock ? -1 : 0}
+      aria-disabled={outOfStock}
+      data-testid="product-card"
       onClick={handleClick}
-      disabled={outOfStock}
-      className={`card w-full h-full text-left rounded-xl transition-all duration-150 flex flex-col overflow-hidden relative active:scale-[0.97] cursor-pointer ${
+      onKeyDown={handleKeyDown}
+      className={`card w-full h-full text-left rounded-xl transition-all duration-150 flex flex-col overflow-hidden relative select-none active:scale-[0.97] ${
+        outOfStock ? "cursor-not-allowed" : "cursor-pointer"
+      } ${
         justAdded
           ? "ring-2 ring-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/10"
           : ""
       }`}
       style={{
         opacity: outOfStock ? 0.55 : 1,
-        cursor: outOfStock ? "not-allowed" : "pointer",
         borderTop: `3px solid ${getCategoryColor(product.category)}`,
       }}
       onMouseEnter={(e) => {
         if (!outOfStock && !justAdded) {
-          (e.currentTarget as HTMLButtonElement).style.borderColor =
-            "var(--color-brand-400)";
-          (e.currentTarget as HTMLButtonElement).style.boxShadow =
-            "0 0 0 3px var(--color-brand-50)";
-          (e.currentTarget as HTMLButtonElement).style.transform =
-            "translateY(-1px)";
+          e.currentTarget.style.borderColor = "var(--color-brand-400)";
+          e.currentTarget.style.boxShadow = "0 0 0 3px var(--color-brand-50)";
+          e.currentTarget.style.transform = "translateY(-1px)";
         }
       }}
       onMouseLeave={(e) => {
         if (!justAdded) {
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "";
-          (e.currentTarget as HTMLButtonElement).style.boxShadow = "";
-          (e.currentTarget as HTMLButtonElement).style.transform = "";
+          e.currentTarget.style.borderColor = "";
+          e.currentTarget.style.boxShadow = "";
+          e.currentTarget.style.transform = "";
         }
       }}
     >
@@ -157,7 +169,7 @@ export function ProductCard({
 
         {/* SKU */}
         <p
-          className="text-xs mb-3"
+          className={`text-xs ${locations.length > 0 ? "mb-2" : "mb-3"}`}
           style={{
             color: "var(--color-ink-ghost)",
             fontFamily: "var(--font-mono)",
@@ -165,6 +177,75 @@ export function ProductCard({
         >
           {product.sku}
         </p>
+
+        {/* Location badge(s) */}
+        {locations.length > 0 && (
+          <div
+            className="flex flex-wrap items-center gap-1 mb-3"
+            title={locations
+              .map((l) =>
+                locations.length > 1
+                  ? `${l.roomName}: ${l.quantity}`
+                  : l.roomName,
+              )
+              .join(" • ")}
+            data-testid="product-card-locations"
+          >
+            {locations.map((loc) => {
+              const isMulti = locations.length > 1;
+              const showLocationQty =
+                isMulti || (hasVariants && loc.quantity > 0);
+              return (
+                <span
+                  key={loc.roomId}
+                  className="inline-flex items-center gap-1 max-w-full px-2 py-0.5 rounded-md text-[11px] font-medium leading-tight"
+                  style={{
+                    background: isMulti
+                      ? "var(--color-badge-blue-bg)"
+                      : "var(--color-badge-neutral-bg)",
+                    color: isMulti
+                      ? "var(--color-badge-blue-text)"
+                      : "var(--color-badge-neutral-text)",
+                    border: `1px solid ${
+                      isMulti
+                        ? "var(--color-badge-blue-border)"
+                        : "var(--color-badge-neutral-border)"
+                    }`,
+                  }}
+                >
+                  <svg
+                    width="11"
+                    height="11"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    className="shrink-0"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                  <span className="truncate">{loc.roomName}</span>
+                  {showLocationQty && (
+                    <span className="shrink-0 font-bold opacity-90">
+                      · {loc.quantity}
+                    </span>
+                  )}
+                </span>
+              );
+            })}
+          </div>
+        )}
 
         {/* Price + qty */}
         <div className="flex items-center justify-between">
@@ -209,6 +290,6 @@ export function ProductCard({
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 }

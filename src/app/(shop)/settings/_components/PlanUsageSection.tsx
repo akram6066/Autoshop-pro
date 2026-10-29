@@ -39,7 +39,11 @@ export function PlanUsageSection({
     ).toISOString();
 
     Promise.all([
-      supabase.from("products").select("id, quantity").eq("shop_id", shopId),
+      supabase
+        .from("products")
+        .select("id, quantity")
+        .eq("shop_id", shopId)
+        .eq("is_archived", false),
       supabase
         .from("shop_members")
         .select("id", { count: "exact", head: true })
@@ -286,5 +290,3 @@ export function PlanUsageSection({
     </Section>
   );
 }
-
-

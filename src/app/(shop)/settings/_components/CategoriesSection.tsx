@@ -62,7 +62,8 @@ export function CategoriesSection() {
       .from("products")
       .select("id", { count: "exact", head: true })
       .eq("shop_id", shopId)
-      .eq("category", catName);
+      .eq("category", catName)
+      .eq("is_archived", false);
     if ((count ?? 0) > 0) {
       setMsg(`Cannot delete — ${count} product(s) use this category.`);
       return;

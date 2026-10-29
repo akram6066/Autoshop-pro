@@ -8,7 +8,11 @@ import {
   CustomerDisplayModal,
   type CustomerDisplayItem,
 } from "@/components/shop/CustomerDisplayModal";
-import type { Product, ProductVariant } from "@/types/app";
+import {
+  useProductLocationsMap,
+  type LevelRow,
+} from "@/hooks/useInventoryLevels";
+import type { Product, ProductVariant, Room } from "@/types/app";
 
 // Only shown when a multi-size product is tapped — defer from initial POS bundle.
 const VariantPickerModal = dynamic(
@@ -23,6 +27,8 @@ interface Props {
   products: Product[];
   isLoading: boolean;
   categories: { name: string }[];
+  rooms?: Room[];
+  levels?: LevelRow[];
   variantsByProduct: Map<string, ProductVariant[]>;
   onAdd: (product: Product, variant?: ProductVariant) => void;
 }
@@ -34,6 +40,8 @@ export function ProductGrid({
   products,
   isLoading,
   categories,
+  rooms = [],
+  levels = [],
   variantsByProduct,
   onAdd,
 }: Props) {
@@ -43,6 +51,8 @@ export function ProductGrid({
   const [customerDisplayItem, setCustomerDisplayItem] =
     useState<CustomerDisplayItem | null>(null);
 
+  const locationsByProduct = useProductLocationsMap(products, levels, rooms);
+
   const { filtered, isLimited, totalMatches } = useMemo(() => {
     const q = search.toLowerCase().trim();
     const hasActiveFilter = q.length >= 2 || categoryFilter !== "all";
@@ -51,10 +61,12 @@ export function ProductGrid({
       if (p.is_archived) return false;
       const matchCat =
         categoryFilter === "all" || p.category === categoryFilter;
+      const pLocations = locationsByProduct.get(p.id) ?? [];
       const matchQ =
         !q ||
         p.name.toLowerCase().includes(q) ||
-        p.sku.toLowerCase().includes(q);
+        p.sku.toLowerCase().includes(q) ||
+        pLocations.some((loc) => loc.roomName.toLowerCase().includes(q));
       return matchCat && matchQ;
     });
 
@@ -64,7 +76,7 @@ export function ProductGrid({
       isLimited: matches.length > limit,
       totalMatches: matches.length,
     };
-  }, [products, search, categoryFilter]);
+  }, [products, search, categoryFilter, locationsByProduct]);
 
   function handleProductClick(product: Product) {
     const variants = variantsByProduct.get(product.id);
@@ -77,6 +89,12 @@ export function ProductGrid({
 
   function handleShowCustomer(product: Product) {
     const variants = variantsByProduct.get(product.id) || [];
+    const pLocations = locationsByProduct.get(product.id) ?? [];
+    const roomName =
+      pLocations.length > 1
+        ? pLocations.map((l) => `${l.roomName} (${l.quantity})`).join(" · ")
+        : (pLocations[0]?.roomName ?? null);
+
     setCustomerDisplayItem({
       id: product.id,
       name: product.name,
@@ -85,6 +103,7 @@ export function ProductGrid({
       price: product.price,
       quantity: product.quantity,
       size: product.size,
+      room_name: roomName,
       variants: variants.map((v) => ({
         id: v.id,
         size: v.size,
@@ -165,6 +184,7 @@ export function ProductGrid({
                     <ProductCard
                       product={product}
                       hasVariants={hasVariants}
+                      locations={locationsByProduct.get(product.id)}
                       onAdd={() => handleProductClick(product)}
                       onShowCustomer={() => handleShowCustomer(product)}
                     />

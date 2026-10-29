@@ -82,7 +82,8 @@ export default function OverviewPage() {
           supabase
             .from("products")
             .select("id", { count: "exact", head: true })
-            .eq("shop_id", shop.id),
+            .eq("shop_id", shop.id)
+            .eq("is_archived", false),
         ]);
 
         const rows =

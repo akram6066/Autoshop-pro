@@ -43,7 +43,11 @@ export default async function ShopPage() {
     const db = adminDb();
     const [shopRes, productsRes, salesRes, membershipsRes] = await Promise.all([
       db.from("shops").select("name").eq("id", shopId).single(),
-      db.from("products").select("id, quantity").eq("shop_id", shopId),
+      db
+        .from("products")
+        .select("id, quantity")
+        .eq("shop_id", shopId)
+        .eq("is_archived", false),
       db
         .from("sales")
         .select("id", { count: "exact", head: true })
