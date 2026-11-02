@@ -28,7 +28,6 @@ export function SaleReceipt({
 }) {
   const shop = useAuthStore((s) => s.shop);
   const profile = useAuthStore((s) => s.profile);
-  const taxRate = shop?.tax_rate ?? 0;
   const staffName = profile?.full_name || "Staff";
   const debt =
     receipt.amountPaid !== undefined ? receipt.total - receipt.amountPaid : 0;
@@ -153,7 +152,6 @@ export function SaleReceipt({
         }}
         items={receiptItems}
         shop={shop}
-        taxRate={taxRate}
       />
     </div>
   );

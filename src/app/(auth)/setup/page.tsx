@@ -182,7 +182,6 @@ function SetupContent() {
           address: shopAddress.trim() || null,
           created_at: new Date().toISOString(),
           plan: "trial",
-          tax_rate: 0,
         };
       }
 

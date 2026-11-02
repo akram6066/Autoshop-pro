@@ -75,7 +75,11 @@ CREATE OR REPLACE FUNCTION public.void_sale(
   p_sale_id uuid,
   p_shop_id uuid
 )
-RETURNS void AS $$
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_status       text;
   v_item         record;
@@ -94,9 +98,9 @@ BEGIN
     SELECT 1 FROM public.shop_members
     WHERE shop_id = p_shop_id
       AND user_id = auth.uid()
-      AND role IN ('owner', 'manager')
+      AND role = 'owner'
   ) THEN
-    RAISE EXCEPTION 'Only shop owners or managers can void sales' USING ERRCODE = '42501';
+    RAISE EXCEPTION 'Only shop owners can void sales' USING ERRCODE = '42501';
   END IF;
 
   SELECT status, customer_id, total_amount, amount_paid
@@ -296,11 +300,8 @@ BEGIN
     WHERE id = v_product_id AND shop_id = v_shop_id;
 
   ELSIF p_op = 'ARCHIVE' THEN
-    IF NOT v_caller_is_admin AND NOT v_caller_is_owner AND NOT EXISTS (
-      SELECT 1 FROM public.shop_members
-      WHERE shop_id = v_shop_id AND user_id = auth.uid() AND role IN ('owner', 'manager')
-    ) THEN
-      RAISE EXCEPTION 'Only owners and managers can archive products' USING ERRCODE = '42501';
+    IF NOT v_caller_is_admin AND NOT v_caller_is_owner THEN
+      RAISE EXCEPTION 'Only owners can archive products' USING ERRCODE = '42501';
     END IF;
 
     UPDATE public.products
@@ -312,11 +313,8 @@ BEGIN
     WHERE id = v_product_id AND shop_id = v_shop_id;
 
   ELSIF p_op = 'RESTORE' THEN
-    IF NOT v_caller_is_admin AND NOT v_caller_is_owner AND NOT EXISTS (
-      SELECT 1 FROM public.shop_members
-      WHERE shop_id = v_shop_id AND user_id = auth.uid() AND role IN ('owner', 'manager')
-    ) THEN
-      RAISE EXCEPTION 'Only owners and managers can restore products' USING ERRCODE = '42501';
+    IF NOT v_caller_is_admin AND NOT v_caller_is_owner THEN
+      RAISE EXCEPTION 'Only owners can restore products' USING ERRCODE = '42501';
     END IF;
 
     UPDATE public.products

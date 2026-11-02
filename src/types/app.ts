@@ -18,7 +18,6 @@ export interface Shop {
   address: string | null;
   created_at: string;
   plan: string;
-  tax_rate: number;
 }
 
 export interface TeamMember {

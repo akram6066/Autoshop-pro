@@ -4,15 +4,39 @@
   "description": "Offline-first automotive parts shop management",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f6f6f3",
+  "background_color": "#ffffff",
   "theme_color": "#3b6ef5",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/logo.svg",
+      "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

@@ -158,17 +158,13 @@ export default function MockPOSDashboard() {
         </div>
 
         <div className="p-5 mt-auto bg-zinc-900/30">
-          <div className="flex justify-between text-sm mb-2 text-zinc-400">
+          <div className="flex justify-between text-sm mb-4 text-zinc-400">
             <span>Subtotal</span>
             <span>$1,100.00</span>
           </div>
-          <div className="flex justify-between text-sm mb-4 text-zinc-400">
-            <span>Tax (8%)</span>
-            <span>$88.00</span>
-          </div>
           <div className="flex justify-between text-lg font-bold mb-6 text-white border-t border-zinc-800 pt-3">
             <span>Total</span>
-            <span>$1,188.00</span>
+            <span>$1,100.00</span>
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-4">

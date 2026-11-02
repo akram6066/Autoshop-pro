@@ -85,7 +85,7 @@ const KNOWN_PATTERNS: Array<{
   },
   {
     pattern: /permission denied|not authorized|42501|unauthenticated/i,
-    message: "You need owner or manager permissions to do this.",
+    message: "You need owner permissions to do this.",
     status: 403,
   },
   {
@@ -145,7 +145,7 @@ export function friendlyError(
 
   // Prevent leaking raw database schemas, table names or SQL fragments
   if (
-    /relation\s+"?\w+"?|column\s+"?\w+"?|syntax error|syntax near|pg_|pgrst|violates|constraint|sqlstate/i.test(
+    /relation\s+"?\w+"?|column\s+"?\w+"?|syntax error|syntax near|pg_|pgrst|violates|constraint|sqlstate|invalid input value for enum/i.test(
       raw,
     )
   ) {

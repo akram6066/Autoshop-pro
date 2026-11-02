@@ -15,6 +15,8 @@ export interface VariantRow {
 interface Props {
   variants: VariantRow[];
   productName: string;
+  category?: string;
+  existingSkus?: string[] | Set<string>;
   onAddRow: () => void;
   onRemoveRow: (key: string) => void;
   onUpdateRow: (key: string, patch: Partial<Omit<VariantRow, "_key">>) => void;
@@ -23,10 +25,26 @@ interface Props {
 export function VariantTable({
   variants,
   productName,
+  category,
+  existingSkus,
   onAddRow,
   onRemoveRow,
   onUpdateRow,
 }: Props) {
+  function getAutoSku(rowKey: string, sizeVal: string) {
+    const currentTableSkus = variants
+      .filter((v) => v._key !== rowKey && v.sku.trim())
+      .map((v) => v.sku.trim());
+    const allKnownSkus = [
+      ...Array.from(existingSkus ?? []),
+      ...currentTableSkus,
+    ];
+    return generateSku(productName, sizeVal, {
+      category,
+      existingSkus: allKnownSkus,
+    });
+  }
+
   return (
     <div className="space-y-3">
       {/* Desktop header */}
@@ -65,7 +83,7 @@ export function VariantTable({
               onBlur={() => {
                 if (!row.sku.trim() && productName.trim() && row.size.trim()) {
                   onUpdateRow(row._key, {
-                    sku: generateSku(productName, row.size),
+                    sku: getAutoSku(row._key, row.size),
                   });
                 }
               }}
@@ -130,7 +148,7 @@ export function VariantTable({
                     row.size.trim()
                   ) {
                     onUpdateRow(row._key, {
-                      sku: generateSku(productName, row.size),
+                      sku: getAutoSku(row._key, row.size),
                     });
                   }
                 }}
@@ -217,5 +235,3 @@ export function VariantTable({
     </div>
   );
 }
-
-

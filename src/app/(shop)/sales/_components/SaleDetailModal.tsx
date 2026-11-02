@@ -47,7 +47,6 @@ export function SaleDetailModal({
 }) {
   const supabase = createClient();
   const shop = useAuthStore((s) => s.shop);
-  const taxRate = shop?.tax_rate ?? 0;
   const { mutateAsync: voidSale, isPending: isVoiding } = useVoidSale();
   const [confirmingVoid, setConfirmingVoid] = useState(false);
   const [voidError, setVoidError] = useState("");
@@ -398,44 +397,7 @@ export function SaleDetailModal({
           >
             {/* Total row */}
             <div className="flex flex-col gap-2 mb-4">
-              {taxRate > 0 && (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span
-                      className="text-sm font-medium"
-                      style={{ color: "var(--color-ink-secondary)" }}
-                    >
-                      Subtotal
-                    </span>
-                    <span
-                      className="text-sm"
-                      style={{ color: "var(--color-ink-primary)" }}
-                    >
-                      {formatCurrency(sale.total_amount / (1 + taxRate))}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span
-                      className="text-sm font-medium"
-                      style={{ color: "var(--color-ink-secondary)" }}
-                    >
-                      Tax ({(taxRate * 100).toFixed(0)}%)
-                    </span>
-                    <span
-                      className="text-sm"
-                      style={{ color: "var(--color-ink-primary)" }}
-                    >
-                      {formatCurrency(
-                        sale.total_amount - sale.total_amount / (1 + taxRate),
-                      )}
-                    </span>
-                  </div>
-                </>
-              )}
-              <div
-                className="flex items-center justify-between mt-1 pt-2 border-t border-dashed"
-                style={{ borderColor: "var(--color-surface-3)" }}
-              >
+              <div className="flex items-center justify-between">
                 <span
                   className="text-base font-bold"
                   style={{ color: "var(--color-ink-primary)" }}
@@ -577,7 +539,7 @@ export function SaleDetailModal({
       </div>
 
       {/* Hidden Printable Receipt */}
-      <ReceiptPrint sale={sale} items={items} shop={shop} taxRate={taxRate} />
+      <ReceiptPrint sale={sale} items={items} shop={shop} />
     </>
   );
 }

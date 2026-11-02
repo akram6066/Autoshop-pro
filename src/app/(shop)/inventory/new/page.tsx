@@ -495,7 +495,17 @@ export default function NewProductPage() {
         setError("Size is required.");
         return;
       }
-      const effectiveSku = sku.trim() || generateSku(name, size);
+      const existingSkusInRoom = new Set(
+        activeExistingProducts
+          .filter((p) => (p.room_id || "") === targetRoomId)
+          .map((p) => p.sku.trim().toLowerCase()),
+      );
+      const effectiveSku =
+        sku.trim() ||
+        generateSku(name, size, {
+          category: effectiveCategory,
+          existingSkus: existingSkusInRoom,
+        });
       const pParsed = productSchema.safeParse({
         name,
         sku: effectiveSku,
@@ -513,6 +523,12 @@ export default function NewProductPage() {
 
     setError("");
 
+    const existingSkusInRoom = new Set(
+      activeExistingProducts
+        .filter((p) => (p.room_id || "") === targetRoomId)
+        .map((p) => p.sku.trim().toLowerCase()),
+    );
+
     // ── Variant Mode Duplicate & Restock Check (scoped to targetRoomId) ──
     if (useVariants) {
       const filled = variants.filter((v) => v.size.trim());
@@ -520,27 +536,57 @@ export default function NewProductPage() {
       const matches: DuplicateMatch[] = [];
       const newItems: VariantRow[] = [];
 
+      const allocatedSkus = new Set(existingSkusInRoom);
+
       for (const v of filled) {
-        const vSku = (v.sku.trim() || generateSku(name, v.size)).toLowerCase();
         const vSize = v.size.trim().toLowerCase();
-        const existing = activeExistingProducts.find((p) => {
+        const userEnteredSku = v.sku.trim();
+
+        // Exact product match (same name + same size in this location) -> Restock candidate
+        const exactExisting = activeExistingProducts.find((p) => {
           if ((p.room_id || "") !== targetRoomId) return false;
-          const pSku = p.sku.trim().toLowerCase();
           const pName = p.name.trim().toLowerCase();
           const pSize = (p.size || "").trim().toLowerCase();
-          return pSku === vSku || (pName === cleanName && pSize === vSize);
+          return pName === cleanName && pSize === vSize;
         });
 
-        if (existing) {
+        if (exactExisting) {
           matches.push({
-            existingProduct: existing,
+            existingProduct: exactExisting,
             enteredQuantity: v.quantity,
             enteredPrice: v.price,
             size: v.size,
-            sku: v.sku.trim() || generateSku(name, v.size),
+            sku: userEnteredSku || exactExisting.sku,
           });
         } else {
-          newItems.push(v);
+          // If the user manually provided an SKU that conflicts with another product
+          if (userEnteredSku) {
+            const conflict = activeExistingProducts.find(
+              (p) =>
+                (p.room_id || "") === targetRoomId &&
+                p.sku.trim().toLowerCase() === userEnteredSku.toLowerCase(),
+            );
+            if (conflict) {
+              setError(
+                `Size "${v.size}": SKU "${userEnteredSku}" is already used by "${conflict.name}". Please choose a unique SKU.`,
+              );
+              return;
+            }
+          }
+
+          // Generate unique non-colliding SKU for this variant
+          const finalSku =
+            userEnteredSku ||
+            generateSku(name, v.size, {
+              category: effectiveCategory,
+              existingSkus: allocatedSkus,
+            });
+          allocatedSkus.add(finalSku.toLowerCase());
+
+          newItems.push({
+            ...v,
+            sku: finalSku,
+          });
         }
       }
 
@@ -561,8 +607,8 @@ export default function NewProductPage() {
       let hasOffline = false;
 
       await Promise.all(
-        filled.map(async (v) => {
-          const finalSku = v.sku.trim() || generateSku(name, v.size);
+        newItems.map(async (v) => {
+          const finalSku = v.sku;
           const result = await createProduct({
             shopId,
             data: {
@@ -585,8 +631,8 @@ export default function NewProductPage() {
         }),
       );
 
-      const totalQuantity = filled.reduce((sum, v) => sum + v.quantity, 0);
-      const minPrice = Math.min(...filled.map((v) => v.price));
+      const totalQuantity = newItems.reduce((sum, v) => sum + v.quantity, 0);
+      const minPrice = Math.min(...newItems.map((v) => v.price));
 
       if (hasOffline) {
         toast.warning("Saved offline — will sync when reconnected.");
@@ -603,7 +649,7 @@ export default function NewProductPage() {
         quantity: totalQuantity,
         sku: createdItems[0]?.sku || "",
         roomName,
-        variantCount: filled.length,
+        variantCount: newItems.length,
         variants: createdItems.map((c) => ({
           id: c.id,
           size: c.size || "",
@@ -616,25 +662,46 @@ export default function NewProductPage() {
     }
 
     // ── Single Product Mode Duplicate & Restock Check (scoped to targetRoomId) ──
-    const effectiveSku = sku.trim() || generateSku(name, size);
     const cleanName = name.trim().toLowerCase();
     const cleanSize = size.trim().toLowerCase();
+    const userEnteredSku = sku.trim();
+
+    const effectiveSku =
+      userEnteredSku ||
+      generateSku(name, size, {
+        category: effectiveCategory,
+        existingSkus: existingSkusInRoom,
+      });
     const cleanSku = effectiveSku.trim().toLowerCase();
 
-    const existingMatch = activeExistingProducts.find((p) => {
+    // 1. Exact product match: same name + same size in this location -> Restock
+    const sameProductMatch = activeExistingProducts.find((p) => {
       if ((p.room_id || "") !== targetRoomId) return false;
-      const pSku = p.sku.trim().toLowerCase();
       const pName = p.name.trim().toLowerCase();
       const pSize = (p.size || "").trim().toLowerCase();
-      return pSku === cleanSku || (pName === cleanName && pSize === cleanSize);
+      return pName === cleanName && pSize === cleanSize;
     });
 
-    // If product/size already exists in this location, ask user to restock!
-    if (existingMatch) {
-      setDuplicateProduct(existingMatch);
+    if (sameProductMatch) {
+      setDuplicateProduct(sameProductMatch);
       setDuplicateMatches([]);
       setIsDuplicateModalOpen(true);
       return;
+    }
+
+    // 2. Check if an explicitly entered SKU conflicts with another product
+    if (userEnteredSku) {
+      const skuConflict = activeExistingProducts.find((p) => {
+        if ((p.room_id || "") !== targetRoomId) return false;
+        return p.sku.trim().toLowerCase() === userEnteredSku.toLowerCase();
+      });
+
+      if (skuConflict) {
+        setError(
+          `SKU "${userEnteredSku}" is already used by "${skuConflict.name}". Please choose a unique SKU.`,
+        );
+        return;
+      }
     }
 
     // Single product creation
@@ -673,10 +740,17 @@ export default function NewProductPage() {
         const found = foundList?.[0] as Product | undefined;
 
         if (found) {
-          setDuplicateProduct(found);
-          setDuplicateMatches([]);
-          setIsDuplicateModalOpen(true);
-          return;
+          if (found.name.trim().toLowerCase() === cleanName) {
+            setDuplicateProduct(found);
+            setDuplicateMatches([]);
+            setIsDuplicateModalOpen(true);
+            return;
+          } else {
+            setError(
+              `SKU "${effectiveSku}" is already used by "${found.name}". Please choose a unique SKU.`,
+            );
+            return;
+          }
         }
       }
 
@@ -888,6 +962,8 @@ export default function NewProductPage() {
               <VariantTable
                 variants={variants}
                 productName={name}
+                category={effectiveCategory}
+                existingSkus={activeExistingProducts.map((p) => p.sku)}
                 onAddRow={addVariantRow}
                 onRemoveRow={removeVariantRow}
                 onUpdateRow={updateVariantRow}
@@ -901,6 +977,8 @@ export default function NewProductPage() {
                 price={price}
                 useVariants={useVariants}
                 productName={name}
+                category={effectiveCategory}
+                existingSkus={activeExistingProducts.map((p) => p.sku)}
                 onSkuChange={setSku}
                 onSizeChange={setSize}
                 onQuantityChange={setQuantity}

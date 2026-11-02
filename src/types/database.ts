@@ -18,7 +18,6 @@ export interface Database {
           address: string | null;
           created_at: string;
           plan: string;
-          tax_rate: number;
         };
         Insert: {
           id?: string;
@@ -26,7 +25,6 @@ export interface Database {
           address?: string | null;
           created_at?: string;
           plan?: string;
-          tax_rate?: number;
         };
         Update: {
           id?: string;
@@ -34,7 +32,6 @@ export interface Database {
           address?: string | null;
           created_at?: string;
           plan?: string;
-          tax_rate?: number;
         };
         Relationships: [];
       };

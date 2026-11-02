@@ -11,6 +11,8 @@ interface Props {
   price: number;
   useVariants: boolean;
   productName: string;
+  category?: string;
+  existingSkus?: string[] | Set<string>;
   onSkuChange: (v: string) => void;
   onSizeChange: (v: string) => void;
   onQuantityChange: (v: number) => void;
@@ -26,6 +28,8 @@ export function SimpleProductFields({
   price,
   useVariants,
   productName,
+  category,
+  existingSkus,
   onSkuChange,
   onSizeChange,
   onQuantityChange,
@@ -34,7 +38,12 @@ export function SimpleProductFields({
 }: Props) {
   function autoFillSku() {
     if (!sku.trim() && productName.trim() && size.trim()) {
-      onSkuChange(generateSku(productName, size));
+      onSkuChange(
+        generateSku(productName, size, {
+          category,
+          existingSkus,
+        }),
+      );
     }
   }
 

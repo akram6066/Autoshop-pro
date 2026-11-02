@@ -15,7 +15,6 @@ interface ReceiptPrintProps {
   sale: SaleSummary;
   items: SaleItem[];
   shop: Shop | null;
-  taxRate: number; // 0 to 1 (e.g. 0.16)
 }
 
 export function ReceiptPrint({ sale, items, shop }: ReceiptPrintProps) {
