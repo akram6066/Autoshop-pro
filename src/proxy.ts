@@ -23,11 +23,46 @@ function isShopRoute(pathname: string): boolean {
   return SHOP_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
+function isAuthRoute(pathname: string): boolean {
+  return pathname === "/login" || pathname === "/signup";
+}
+
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
-  // Fast-path: skip non-shop routes immediately.
-  if (!isShopRoute(pathname)) return NextResponse.next();
+  const isShop = isShopRoute(pathname);
+  const isRoot = pathname === "/";
+  const isAuth = isAuthRoute(pathname);
+
+  // Fast-path: skip routes that need neither protection nor auth-based redirection.
+  if (!isShop && !isRoot && !isAuth) return NextResponse.next();
+
+  // Allow auth callbacks on root (email confirmation, OTP, OAuth) to reach AuthCallbackHandler.
+  if (
+    isRoot &&
+    (request.nextUrl.searchParams.has("code") ||
+      request.nextUrl.searchParams.has("token_hash"))
+  ) {
+    return NextResponse.next();
+  }
+
+  // Check if any Supabase auth cookies exist on the request.
+  const allCookies = request.cookies.getAll();
+  const hasAuthCookie = allCookies.some(
+    (c) => c.name.includes("-auth-token") || c.name.startsWith("sb-"),
+  );
+
+  // Fast-path for guests: unauthenticated visitors hitting root or login/signup
+  // bypass Supabase network calls completely, keeping landing page load instantaneous.
+  if (!hasAuthCookie && (isRoot || isAuth)) {
+    return NextResponse.next();
+  }
+
+  // Fast-path for unauthenticated users hitting a protected shop route: redirect to /login immediately.
+  if (!hasAuthCookie && isShop) {
+    const loginUrl = new URL("/login", request.url);
+    return NextResponse.redirect(loginUrl);
+  }
 
   // Build a mutable response so Supabase can refresh the session cookie.
   const response = NextResponse.next({ request });
@@ -59,18 +94,44 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     },
   });
 
-  // getUser() validates the JWT against the Supabase auth server on every
-  // request — never trusts the client-side session object alone.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    // getUser() validates the JWT against the Supabase auth server on every
+    // request — never trusts the client-side session object alone.
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (!user) {
-    const loginUrl = new URL("/login", request.url);
-    return NextResponse.redirect(loginUrl);
+    if (user) {
+      // Authenticated users visiting root or auth pages (login/signup) are
+      // directed straight to the dashboard so they never see the landing page.
+      if (isRoot || isAuth) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+      return response;
+    }
+
+    // Unauthenticated user trying to access a protected shop route
+    if (isShop) {
+      const loginUrl = new URL("/login", request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    return response;
+  } catch (err) {
+    console.warn("[proxy] Supabase auth check failed:", err);
+    // On network failure:
+    // If shop route with auth cookie, allow through so client-side offline cache
+    // (IndexedDB / Dexie) in ShopLayout can proceed.
+    if (isShop && hasAuthCookie) {
+      return response;
+    }
+    // If root route with auth cookie (e.g. desktop/mobile app opened offline),
+    // redirect to dashboard so the offline app/POS can load.
+    if (isRoot && hasAuthCookie) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+    return response;
   }
-
-  return response;
 }
 
 export const config = {

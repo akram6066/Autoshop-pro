@@ -9,6 +9,7 @@ import StorytellingShowcase from "@/components/landing/StorytellingShowcase";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import EnterpriseTrustSection from "@/components/landing/EnterpriseTrustSection";
 import { AuthCallbackHandler } from "@/components/AuthCallbackHandler";
+import { LandingAuthRedirect } from "@/components/landing/LandingAuthRedirect";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import ContactCTASection from "@/components/landing/ContactCTASection";
 import FooterSection from "@/components/landing/FooterSection";
@@ -46,28 +47,29 @@ export default async function LandingPage() {
           style={{ overflowX: "hidden", cursor: "none" }}
         >
           <LandingNav />
-        <main>
-          <HeroSection />
-          <MetricsSection />
-          <StorytellingShowcase />
-          <HowItWorksSection />
-          <EnterpriseTrustSection />
-          <TestimonialsSection />
-          <Suspense fallback={<div style={{ minHeight: 480 }} />}>
-            <PricingSection plans={plans} />
-          </Suspense>
-          <Suspense fallback={<div style={{ minHeight: 320 }} />}>
-            <FAQSection />
-          </Suspense>
-          <ContactCTASection />
-        </main>
-        <FooterSection />
-        {/* Silently forwards auth tokens to /api/auth/callback when Supabase
+          <main>
+            <HeroSection />
+            <MetricsSection />
+            <StorytellingShowcase />
+            <HowItWorksSection />
+            <EnterpriseTrustSection />
+            <TestimonialsSection />
+            <Suspense fallback={<div style={{ minHeight: 480 }} />}>
+              <PricingSection plans={plans} />
+            </Suspense>
+            <Suspense fallback={<div style={{ minHeight: 320 }} />}>
+              <FAQSection />
+            </Suspense>
+            <ContactCTASection />
+          </main>
+          <FooterSection />
+          {/* Silently forwards auth tokens to /api/auth/callback when Supabase
             falls back to the Site URL (landing page) instead of the intended
             emailRedirectTo URL. Zero visible UI — runs only when params present. */}
-        <AuthCallbackHandler />
-      </div>
-    </SmoothScroll>
+          <AuthCallbackHandler />
+          <LandingAuthRedirect />
+        </div>
+      </SmoothScroll>
     </>
   );
 }
