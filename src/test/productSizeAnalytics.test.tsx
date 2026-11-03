@@ -14,7 +14,7 @@ vi.mock("@/hooks/useSales", async () => {
   };
 });
 
-describe("ProductSizeBreakdown & Walking Sizes Analytics", () => {
+describe("ProductSizeBreakdown & Size Performance Analytics", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -49,7 +49,7 @@ describe("ProductSizeBreakdown & Walking Sizes Analytics", () => {
     },
   ];
 
-  it("renders sizes ranked by units sold with the #1 size marked as 'Most Walking'", () => {
+  it("renders sizes ranked by units sold with the #1 size marked as 'Top Seller'", () => {
     vi.mocked(useSalesModule.useProductSizeAnalytics).mockReturnValue({
       data: mockSizes,
       isLoading: false,
@@ -73,8 +73,8 @@ describe("ProductSizeBreakdown & Walking Sizes Analytics", () => {
     expect(screen.getByText("Michelin Primacy")).toBeInTheDocument();
     expect(screen.getByText("Tire")).toBeInTheDocument();
 
-    // Verify top walking size has the Most Walking badge
-    expect(screen.getAllByText(/Most Walking/i).length).toBeGreaterThan(0);
+    // Verify top selling size has the Top Seller badge
+    expect(screen.getAllByText(/Top Seller/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText("205/55R16").length).toBeGreaterThan(0);
     expect(screen.getByText("48")).toBeInTheDocument();
 
@@ -110,18 +110,18 @@ describe("ProductSizeBreakdown & Walking Sizes Analytics", () => {
     );
 
     // Initially the sizes drawer is not shown
-    expect(screen.queryByText(/Size Performance for/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Size Performance/i)).not.toBeInTheDocument();
 
     // Click on the brand row to expand sizes
     const row = screen.getByText("Bridgestone Turanza");
     fireEvent.click(row);
 
     // The size breakdown drawer is now visible
-    expect(screen.getByText(/Size Performance for/i)).toBeInTheDocument();
+    expect(screen.getByText(/Size Performance/i)).toBeInTheDocument();
     expect(screen.getAllByText("205/55R16").length).toBeGreaterThan(0);
 
     // Clicking again collapses the drawer
     fireEvent.click(row);
-    expect(screen.queryByText(/Size Performance for/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Size Performance/i)).not.toBeInTheDocument();
   });
 });

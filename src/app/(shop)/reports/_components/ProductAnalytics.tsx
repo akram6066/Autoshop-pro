@@ -3,7 +3,7 @@
 import { useMemo, useState, Fragment } from "react";
 import { useProductAnalytics } from "@/hooks/useSales";
 import { formatCurrency } from "@/lib/utils";
-import { ChevronRight, ChevronDown, Layers, Flame } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { ProductSizeBreakdown } from "./ProductSizeBreakdown";
 
 interface Props {
@@ -62,18 +62,11 @@ export function ProductAnalytics({ shopId, from, to }: Props) {
           }}
         >
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="font-medium text-sm text-[var(--color-ink-primary)]">
-                Top selling products &amp; brands
-              </h2>
-              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400">
-                <Flame size={12} className="text-brand-500" />
-                Click brand for size breakdown
-              </span>
-            </div>
+            <h2 className="font-medium text-sm text-[var(--color-ink-primary)]">
+              Top selling products &amp; brands
+            </h2>
             <p className="text-xs text-[var(--color-ink-tertiary)] mt-0.5">
-              Click any brand row to see the fastest-moving (&ldquo;most
-              walking&rdquo;) sizes and stock levels
+              Click any product row to view size variant sales volume and stock
             </p>
           </div>
 
@@ -174,9 +167,7 @@ export function ProductAnalytics({ shopId, from, to }: Props) {
                   <th style={{ textAlign: "right" }}>Units</th>
                   <th style={{ textAlign: "right" }}>Revenue</th>
                   <th style={{ textAlign: "right" }}>Share</th>
-                  <th style={{ textAlign: "center", width: 150 }}>
-                    Sizes Breakdown
-                  </th>
+                  <th style={{ textAlign: "right", width: 110 }}>Variants</th>
                 </tr>
               </thead>
               <tbody>
@@ -189,12 +180,12 @@ export function ProductAnalytics({ shopId, from, to }: Props) {
                     <Fragment key={row.product_id}>
                       <tr
                         onClick={() => toggleExpand(row.product_id)}
-                        className={`cursor-pointer transition-colors hover:bg-[var(--color-surface-2)]/70 ${
+                        className={`group cursor-pointer transition-colors hover:bg-[var(--color-surface-2)]/60 ${
                           isExpanded
-                            ? "bg-brand-500/5 font-medium border-l-2 border-brand-500"
+                            ? "bg-[var(--color-surface-2)]/40 font-medium"
                             : ""
                         }`}
-                        title="Click to view sizes breakdown (most walking sizes)"
+                        title="Click to view size breakdown"
                       >
                         <td
                           style={{
@@ -207,15 +198,12 @@ export function ProductAnalytics({ shopId, from, to }: Props) {
                         </td>
                         <td>
                           <div className="flex items-center gap-2">
-                            <span
-                              className={`p-1 rounded transition-transform duration-200 ${
-                                isExpanded
-                                  ? "rotate-90 text-brand-500 bg-brand-500/10"
-                                  : "text-[var(--color-ink-tertiary)]"
+                            <ChevronRight
+                              size={14}
+                              className={`text-[var(--color-ink-tertiary)] transition-transform duration-150 shrink-0 ${
+                                isExpanded ? "rotate-90 text-brand-500" : ""
                               }`}
-                            >
-                              <ChevronRight size={14} />
-                            </span>
+                            />
                             <span
                               style={{
                                 fontWeight: 600,
@@ -271,31 +259,10 @@ export function ProductAnalytics({ shopId, from, to }: Props) {
                         >
                           {share.toFixed(1)}%
                         </td>
-                        {/* Sizes Action Pill */}
-                        <td style={{ textAlign: "center", paddingRight: 16 }}>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleExpand(row.product_id);
-                            }}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                              isExpanded
-                                ? "bg-brand-500 text-white shadow-xs"
-                                : "bg-[var(--color-surface-2)] text-[var(--color-ink-secondary)] hover:bg-brand-500/10 hover:text-brand-500"
-                            }`}
-                          >
-                            <Layers size={13} />
-                            <span>
-                              {isExpanded ? "Hide Sizes" : "View Sizes"}
-                            </span>
-                            <ChevronDown
-                              size={12}
-                              className={`transition-transform duration-200 ${
-                                isExpanded ? "rotate-180" : ""
-                              }`}
-                            />
-                          </button>
+                        <td style={{ textAlign: "right", paddingRight: 16 }}>
+                          <span className="text-xs font-medium text-[var(--color-ink-tertiary)] group-hover:text-brand-500 transition-colors">
+                            {isExpanded ? "Hide" : "View sizes"}
+                          </span>
                         </td>
                       </tr>
 
