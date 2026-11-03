@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, Fragment } from "react";
 import { useProductAnalytics } from "@/hooks/useSales";
 import { formatCurrency } from "@/lib/utils";
+import { ChevronRight, ChevronDown, Layers, Flame } from "lucide-react";
+import { ProductSizeBreakdown } from "./ProductSizeBreakdown";
 
 interface Props {
   shopId: string;
@@ -11,6 +13,10 @@ interface Props {
 }
 
 export function ProductAnalytics({ shopId, from, to }: Props) {
+  const [expandedProductId, setExpandedProductId] = useState<string | null>(
+    null,
+  );
+
   const {
     data = [],
     isLoading,
@@ -34,8 +40,11 @@ export function ProductAnalytics({ shopId, from, to }: Props) {
   }, [data]);
 
   const totalRevenue = data.reduce((s, r) => s + r.revenue, 0);
-  const maxRevenue = data[0]?.revenue ?? 1;
   const maxCatRevenue = categories[0]?.revenue ?? 1;
+
+  const toggleExpand = (productId: string) => {
+    setExpandedProductId((prev) => (prev === productId ? null : productId));
+  };
 
   return (
     <div className="animate-fade-in-up" style={{ animationDelay: "350ms" }}>
@@ -46,16 +55,28 @@ export function ProductAnalytics({ shopId, from, to }: Props) {
             padding: "16px 20px",
             borderBottom: "1px solid var(--color-border)",
             display: "flex",
+            flexWrap: "wrap",
             alignItems: "center",
             justifyContent: "space-between",
+            gap: "12px",
           }}
         >
-          <h2
-            className="font-medium text-sm"
-            style={{ color: "var(--color-ink-secondary)" }}
-          >
-            Top selling products
-          </h2>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-medium text-sm text-[var(--color-ink-primary)]">
+                Top selling products &amp; brands
+              </h2>
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400">
+                <Flame size={12} className="text-brand-500" />
+                Click brand for size breakdown
+              </span>
+            </div>
+            <p className="text-xs text-[var(--color-ink-tertiary)] mt-0.5">
+              Click any brand row to see the fastest-moving (&ldquo;most
+              walking&rdquo;) sizes and stock levels
+            </p>
+          </div>
+
           <div className="flex items-center gap-4">
             <span
               className="text-xs"
@@ -147,105 +168,156 @@ export function ProductAnalytics({ shopId, from, to }: Props) {
             <table className="table-auto-shop">
               <thead>
                 <tr>
-                  <th style={{ width: 32 }}>#</th>
-                  <th>Product</th>
+                  <th style={{ width: 36 }}>#</th>
+                  <th>Brand / Product</th>
                   <th>Category</th>
                   <th style={{ textAlign: "right" }}>Units</th>
                   <th style={{ textAlign: "right" }}>Revenue</th>
                   <th style={{ textAlign: "right" }}>Share</th>
-                  <th style={{ width: 120 }} />
+                  <th style={{ textAlign: "center", width: 150 }}>
+                    Sizes Breakdown
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {data.map((row, i) => {
+                  const isExpanded = expandedProductId === row.product_id;
                   const share =
                     totalRevenue > 0 ? (row.revenue / totalRevenue) * 100 : 0;
-                  const barPct = (row.revenue / maxRevenue) * 100;
+
                   return (
-                    <tr key={row.product_id}>
-                      <td
-                        style={{
-                          color: "var(--color-ink-ghost)",
-                          fontSize: 12,
-                          fontWeight: 600,
-                        }}
+                    <Fragment key={row.product_id}>
+                      <tr
+                        onClick={() => toggleExpand(row.product_id)}
+                        className={`cursor-pointer transition-colors hover:bg-[var(--color-surface-2)]/70 ${
+                          isExpanded
+                            ? "bg-brand-500/5 font-medium border-l-2 border-brand-500"
+                            : ""
+                        }`}
+                        title="Click to view sizes breakdown (most walking sizes)"
                       >
-                        {i + 1}
-                      </td>
-                      <td>
-                        <span
+                        <td
                           style={{
-                            fontWeight: 500,
+                            color: "var(--color-ink-ghost)",
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {i + 1}
+                        </td>
+                        <td>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`p-1 rounded transition-transform duration-200 ${
+                                isExpanded
+                                  ? "rotate-90 text-brand-500 bg-brand-500/10"
+                                  : "text-[var(--color-ink-tertiary)]"
+                              }`}
+                            >
+                              <ChevronRight size={14} />
+                            </span>
+                            <span
+                              style={{
+                                fontWeight: 600,
+                                color: isExpanded
+                                  ? "var(--color-brand-500)"
+                                  : "var(--color-ink-primary)",
+                                fontSize: 13,
+                              }}
+                            >
+                              {row.product_name}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <span
+                            style={{
+                              fontSize: 12,
+                              padding: "2px 8px",
+                              borderRadius: 999,
+                              background: "var(--color-surface-2)",
+                              color: "var(--color-ink-secondary)",
+                              textTransform: "capitalize",
+                            }}
+                          >
+                            {row.category || "—"}
+                          </span>
+                        </td>
+                        <td
+                          style={{
+                            textAlign: "right",
                             color: "var(--color-ink-primary)",
+                            fontSize: 13,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {row.units_sold.toLocaleString()}
+                        </td>
+                        <td
+                          style={{
+                            textAlign: "right",
+                            fontWeight: 600,
                             fontSize: 13,
                           }}
                         >
-                          {row.product_name}
-                        </span>
-                      </td>
-                      <td>
-                        <span
+                          {formatCurrency(row.revenue)}
+                        </td>
+                        <td
                           style={{
+                            textAlign: "right",
+                            color: "var(--color-ink-tertiary)",
                             fontSize: 12,
-                            padding: "2px 8px",
-                            borderRadius: 999,
-                            background: "var(--color-surface-2)",
-                            color: "var(--color-ink-secondary)",
-                            textTransform: "capitalize",
                           }}
                         >
-                          {row.category || "—"}
-                        </span>
-                      </td>
-                      <td
-                        style={{
-                          textAlign: "right",
-                          color: "var(--color-ink-tertiary)",
-                          fontSize: 13,
-                        }}
-                      >
-                        {row.units_sold.toLocaleString()}
-                      </td>
-                      <td
-                        style={{
-                          textAlign: "right",
-                          fontWeight: 600,
-                          fontSize: 13,
-                        }}
-                      >
-                        {formatCurrency(row.revenue)}
-                      </td>
-                      <td
-                        style={{
-                          textAlign: "right",
-                          color: "var(--color-ink-tertiary)",
-                          fontSize: 12,
-                        }}
-                      >
-                        {share.toFixed(1)}%
-                      </td>
-                      {/* Mini bar */}
-                      <td style={{ paddingLeft: 8, paddingRight: 16 }}>
-                        <div
-                          style={{
-                            height: 6,
-                            borderRadius: 3,
-                            background: "var(--color-surface-2)",
-                            overflow: "hidden",
-                          }}
-                        >
-                          <div
-                            style={{
-                              height: "100%",
-                              width: `${barPct}%`,
-                              borderRadius: 3,
-                              background: "var(--color-brand-500)",
-                              transition: "width 0.4s ease",
+                          {share.toFixed(1)}%
+                        </td>
+                        {/* Sizes Action Pill */}
+                        <td style={{ textAlign: "center", paddingRight: 16 }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleExpand(row.product_id);
                             }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                              isExpanded
+                                ? "bg-brand-500 text-white shadow-xs"
+                                : "bg-[var(--color-surface-2)] text-[var(--color-ink-secondary)] hover:bg-brand-500/10 hover:text-brand-500"
+                            }`}
+                          >
+                            <Layers size={13} />
+                            <span>
+                              {isExpanded ? "Hide Sizes" : "View Sizes"}
+                            </span>
+                            <ChevronDown
+                              size={12}
+                              className={`transition-transform duration-200 ${
+                                isExpanded ? "rotate-180" : ""
+                              }`}
+                            />
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* Expanded Drawer for Size Analytics */}
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan={7} style={{ padding: 0 }}>
+                            <ProductSizeBreakdown
+                              shopId={shopId}
+                              productId={row.product_id}
+                              productName={row.product_name}
+                              category={row.category}
+                              from={from}
+                              to={to}
+                              totalBrandUnits={row.units_sold}
+                              totalBrandRevenue={row.revenue}
+                              onClose={() => setExpandedProductId(null)}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   );
                 })}
               </tbody>
@@ -364,5 +436,3 @@ export function ProductAnalytics({ shopId, from, to }: Props) {
     </div>
   );
 }
-
-

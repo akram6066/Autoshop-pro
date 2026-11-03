@@ -399,6 +399,7 @@ export interface Database {
           id: string;
           sale_id: string;
           product_id: string;
+          variant_id: string | null;
           quantity: number;
           unit_price: number;
           original_price: number | null;
@@ -408,6 +409,7 @@ export interface Database {
           id?: string;
           sale_id: string;
           product_id: string;
+          variant_id?: string | null;
           quantity: number;
           unit_price: number;
           original_price?: number | null;
@@ -417,6 +419,7 @@ export interface Database {
           id?: string;
           sale_id?: string;
           product_id?: string;
+          variant_id?: string | null;
           quantity?: number;
           unit_price?: number;
           original_price?: number | null;
@@ -429,6 +432,7 @@ export interface Database {
           id: string;
           shop_id: string;
           product_id: string;
+          variant_id: string | null;
           type: "IN" | "OUT";
           delta: number;
           snapshot_qty: number;
@@ -444,6 +448,7 @@ export interface Database {
           id?: string;
           shop_id: string;
           product_id: string;
+          variant_id?: string | null;
           type: "IN" | "OUT";
           delta: number;
           snapshot_qty: number;
@@ -459,6 +464,7 @@ export interface Database {
           id?: string;
           shop_id?: string;
           product_id?: string;
+          variant_id?: string | null;
           type?: "IN" | "OUT";
           delta?: number;
           snapshot_qty?: number;
@@ -808,6 +814,23 @@ export interface Database {
           product_id: string;
           product_name: string;
           category: string;
+          units_sold: number;
+          revenue: number;
+        }[];
+      };
+      get_product_size_analytics: {
+        Args: {
+          p_shop_id: string;
+          p_product_id: string;
+          p_from: string;
+          p_to: string;
+        };
+        Returns: {
+          variant_id: string | null;
+          size: string;
+          sku: string | null;
+          current_stock: number;
+          min_stock: number;
           units_sold: number;
           revenue: number;
         }[];

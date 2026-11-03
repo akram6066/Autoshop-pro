@@ -121,6 +121,16 @@ export interface ProductAnalyticsRow {
   revenue: number;
 }
 
+export interface ProductSizeAnalyticsRow {
+  variant_id: string | null;
+  size: string;
+  sku: string | null;
+  current_stock: number;
+  min_stock: number;
+  units_sold: number;
+  revenue: number;
+}
+
 export function useProductAnalytics(
   shopId: string | null,
   from: string,
@@ -143,6 +153,153 @@ export function useProductAnalytics(
       return (data ?? []) as ProductAnalyticsRow[];
     },
     enabled: !!shopId,
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+export function useProductSizeAnalytics(
+  shopId: string | null,
+  productId: string | null,
+  from: string,
+  to: string,
+) {
+  return useQuery({
+    queryKey:
+      shopId && productId
+        ? (["product-size-analytics", shopId, productId, from, to] as const)
+        : ["product-size-analytics-disabled"],
+    queryFn: async (): Promise<ProductSizeAnalyticsRow[]> => {
+      const supabase = createClient();
+
+      // 1. Try PostgreSQL RPC get_product_size_analytics first
+      try {
+        const { data, error } = await supabase.rpc(
+          "get_product_size_analytics",
+          {
+            p_shop_id: shopId!,
+            p_product_id: productId!,
+            p_from: from,
+            p_to: to,
+          },
+        );
+
+        if (!error && Array.isArray(data)) {
+          return (data as ProductSizeAnalyticsRow[]).sort(
+            (a, b) => b.units_sold - a.units_sold || b.revenue - a.revenue,
+          );
+        }
+      } catch {
+        // Fall back to client query if RPC is not available
+      }
+
+      // 2. Client-side aggregation fallback
+      const [variantsRes, productRes, saleItemsRes] = await Promise.all([
+        supabase
+          .from("product_variants")
+          .select("id, size, sku, quantity, min_stock")
+          .eq("product_id", productId!),
+        supabase
+          .from("products")
+          .select("id, name, size, sku, quantity, min_stock")
+          .eq("id", productId!)
+          .single(),
+        supabase
+          .from("sale_items")
+          .select(
+            "quantity, unit_price, variant_id, sales!inner(created_at, status, shop_id)",
+          )
+          .eq("product_id", productId!)
+          .eq("sales.shop_id", shopId!)
+          .gte("sales.created_at", from)
+          .lte("sales.created_at", to)
+          .neq("sales.status", "voided"),
+      ]);
+
+      const variants = (variantsRes.data ?? []) as Array<{
+        id: string;
+        size: string;
+        sku: string | null;
+        quantity: number;
+        min_stock: number;
+      }>;
+      const product = productRes.data as {
+        id: string;
+        name: string;
+        size: string | null;
+        sku: string | null;
+        quantity: number;
+        min_stock: number;
+      } | null;
+
+      const saleItems = (saleItemsRes.data ?? []) as Array<{
+        quantity: number;
+        unit_price: number;
+        variant_id: string | null;
+      }>;
+
+      // Group sales by variant_id
+      const salesByVariant = new Map<
+        string | null,
+        { units_sold: number; revenue: number }
+      >();
+
+      for (const item of saleItems) {
+        const key = item.variant_id;
+        const current = salesByVariant.get(key) ?? {
+          units_sold: 0,
+          revenue: 0,
+        };
+        current.units_sold += Number(item.quantity);
+        current.revenue += Number(item.quantity) * Number(item.unit_price);
+        salesByVariant.set(key, current);
+      }
+
+      const rows: ProductSizeAnalyticsRow[] = [];
+
+      // Add all defined variants
+      for (const v of variants) {
+        const s = salesByVariant.get(v.id) ?? { units_sold: 0, revenue: 0 };
+        rows.push({
+          variant_id: v.id,
+          size: v.size,
+          sku: v.sku,
+          current_stock: v.quantity,
+          min_stock: v.min_stock,
+          units_sold: s.units_sold,
+          revenue: s.revenue,
+        });
+      }
+
+      // Add standard / non-variant sales if any exist, or if product has no variants
+      const noVariantSales = salesByVariant.get(null);
+      if (noVariantSales && noVariantSales.units_sold > 0) {
+        rows.push({
+          variant_id: null,
+          size: product?.size || "Standard",
+          sku: product?.sku || null,
+          current_stock: product?.quantity ?? 0,
+          min_stock: product?.min_stock ?? 0,
+          units_sold: noVariantSales.units_sold,
+          revenue: noVariantSales.revenue,
+        });
+      } else if (variants.length === 0 && product) {
+        rows.push({
+          variant_id: null,
+          size: product.size || "Standard",
+          sku: product.sku || null,
+          current_stock: product.quantity ?? 0,
+          min_stock: product.min_stock ?? 0,
+          units_sold: noVariantSales?.units_sold ?? 0,
+          revenue: noVariantSales?.revenue ?? 0,
+        });
+      }
+
+      // Sort by units sold descending ("most walking" sizes first), then revenue
+      return rows.sort(
+        (a, b) => b.units_sold - a.units_sold || b.revenue - a.revenue,
+      );
+    },
+    enabled: Boolean(shopId && productId),
     staleTime: 1000 * 60 * 2,
   });
 }
