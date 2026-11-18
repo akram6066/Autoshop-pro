@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { withAuthTimeout } from "@/lib/auth/session";
+import { loginSchema } from "@/lib/validations/auth";
 import { isNetworkError, friendlyAuthError } from "./authUtils";
 import ErrorBox from "./ErrorBox";
 
@@ -19,7 +20,13 @@ export default function ForgotPasswordPanel({ initialEmail, onBack }: Props) {
 
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
-    if (!resetEmail.trim()) return;
+    const parsedEmail = loginSchema.shape.email.safeParse(resetEmail);
+    if (!parsedEmail.success) {
+      setResetError(
+        parsedEmail.error.issues[0]?.message ?? "Enter a valid email address",
+      );
+      return;
+    }
 
     // Pre-flight: bail immediately if offline
     if (typeof navigator !== "undefined" && !navigator.onLine) {
@@ -33,31 +40,8 @@ export default function ForgotPasswordPanel({ initialEmail, onBack }: Props) {
     setResetError("");
     try {
       const supabase = createClient();
-
-      // Check if user is an owner
-      const { data: isOwner, error: roleError } = await supabase.rpc(
-        "check_is_owner_by_email",
-        { p_email: resetEmail.trim().toLowerCase() },
-      );
-
-      if (roleError) {
-        setResetError(
-          isNetworkError(roleError)
-            ? "Unable to reach the server. Check your internet and try again."
-            : "Something went wrong verifying your account.",
-        );
-        setResetLoading(false);
-        return;
-      }
-
-      if (isOwner === false) {
-        setResetError("Ask your owner or manager for your password.");
-        setResetLoading(false);
-        return;
-      }
-
       const { error } = await withAuthTimeout(
-        supabase.auth.resetPasswordForEmail(resetEmail.trim().toLowerCase(), {
+        supabase.auth.resetPasswordForEmail(parsedEmail.data, {
           redirectTo: `${window.location.origin}/api/auth/callback?next=/update-password`,
         }),
         "Password reset",
@@ -65,6 +49,7 @@ export default function ForgotPasswordPanel({ initialEmail, onBack }: Props) {
       if (error) {
         setResetError(friendlyAuthError(error.message));
       } else {
+        setResetEmail(parsedEmail.data);
         setResetSent(true);
       }
     } catch (err) {
@@ -180,6 +165,7 @@ export default function ForgotPasswordPanel({ initialEmail, onBack }: Props) {
           </p>
           <form
             onSubmit={handleReset}
+            noValidate
             style={{
               display: "flex",
               flexDirection: "column",
@@ -204,7 +190,10 @@ export default function ForgotPasswordPanel({ initialEmail, onBack }: Props) {
                 className="input"
                 placeholder="you@example.com"
                 value={resetEmail}
-                onChange={(e) => setResetEmail(e.target.value)}
+                onChange={(e) => {
+                  setResetEmail(e.target.value);
+                  if (resetError) setResetError("");
+                }}
                 disabled={resetLoading}
                 autoFocus
               />

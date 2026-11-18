@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 /**
  * Drop this on any public page (landing, root) that Supabase might redirect
@@ -11,50 +10,64 @@ import { useRouter } from "next/navigation";
  *   1. ?code=CODE              — PKCE flow (modern default)
  *   2. ?token_hash=T&type=T    — OTP / email-confirm flow
  *   3. #access_token=T&...     — legacy implicit flow (older projects)
+ * Or error parameters (?error=... / #error=...) when a link is expired/invalid.
  *
- * When any of these appear in the URL, we forward to /api/auth/callback which
- * already knows how to exchange them and set the session cookie correctly.
+ * When any of these appear in the URL, we forward via a single native browser
+ * navigation to /api/auth/callback so cookies and redirects are handled
+ * reliably on the server.
  */
 export function AuthCallbackHandler() {
-  const router = useRouter();
+  const handled = useRef(false);
 
   useEffect(() => {
+    if (handled.current) return;
+
     const url = new URL(window.location.href);
+    const hash = new URLSearchParams(window.location.hash.slice(1));
     const code = url.searchParams.get("code");
     const tokenHash = url.searchParams.get("token_hash");
-    const type = url.searchParams.get("type");
-    // Legacy implicit flow uses the URL hash fragment
-    const hash = new URLSearchParams(window.location.hash.slice(1));
+    const type = url.searchParams.get("type") ?? hash.get("type");
     const accessToken = hash.get("access_token");
+    const errorParam =
+      url.searchParams.get("error") ??
+      hash.get("error") ??
+      url.searchParams.get("error_code") ??
+      hash.get("error_code");
+
+    const defaultNext = type === "recovery" ? "/update-password" : "/setup";
+    const next =
+      url.searchParams.get("next") ?? hash.get("next") ?? defaultNext;
+
+    const forwardToCallback = (params: Record<string, string>) => {
+      handled.current = true;
+      const qs = new URLSearchParams(params);
+      if (type) qs.set("type", type);
+      qs.set("next", next);
+      window.location.replace(`/api/auth/callback?${qs.toString()}`);
+    };
+
+    if (errorParam) {
+      forwardToCallback({ error: errorParam });
+      return;
+    }
 
     if (code) {
-      // PKCE — forward the code; preserve ?next if Supabase echoed it back
-      const next = url.searchParams.get("next") ?? "/setup";
-      router.replace(
-        `/api/auth/callback?code=${encodeURIComponent(code)}&next=${encodeURIComponent(next)}`,
-      );
+      forwardToCallback({ code });
       return;
     }
 
     if (tokenHash && type) {
-      // OTP / email confirmation
-      const next = url.searchParams.get("next") ?? "/setup";
-      router.replace(
-        `/api/auth/callback?token_hash=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(type)}&next=${encodeURIComponent(next)}`,
-      );
+      forwardToCallback({ token_hash: tokenHash });
       return;
     }
 
     if (accessToken) {
-      // Legacy implicit flow — forward the full hash as query params so the
-      // callback can read them (hash is not sent to the server).
-      const refreshToken = hash.get("refresh_token") ?? "";
-      const next = hash.get("next") ?? "/setup";
-      router.replace(
-        `/api/auth/callback?access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}&next=${encodeURIComponent(next)}`,
-      );
+      forwardToCallback({
+        access_token: accessToken,
+        refresh_token: hash.get("refresh_token") ?? "",
+      });
     }
-  }, [router]);
+  }, []);
 
   return null;
 }

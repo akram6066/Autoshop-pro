@@ -33,6 +33,11 @@ const SESSION_BANNERS: Record<
     message: "Your session has expired. Please sign in again to continue.",
     variant: "warning",
   },
+  reset_link_invalid: {
+    message:
+      "This password reset link is invalid or has expired. Use “Forgot password” to request a new one.",
+    variant: "warning",
+  },
   confirmation_failed: {
     message:
       "Your confirmation link has expired or was already used. Log in below — we'll prompt you to send a new one.",

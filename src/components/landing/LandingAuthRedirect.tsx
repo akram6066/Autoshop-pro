@@ -25,12 +25,16 @@ export function LandingAuthRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    // 1. Never intercept auth callback params on the root URL (let AuthCallbackHandler forward them)
+    // 1. Never intercept auth callback params or auth error params on the root URL
+    //    (let AuthCallbackHandler forward them to /api/auth/callback)
     const url = new URL(window.location.href);
     if (
       url.searchParams.has("code") ||
       url.searchParams.has("token_hash") ||
-      window.location.hash.includes("access_token")
+      url.searchParams.has("error") ||
+      url.searchParams.has("error_code") ||
+      window.location.hash.includes("access_token") ||
+      window.location.hash.includes("error")
     ) {
       return;
     }

@@ -35,6 +35,21 @@ describe("Proxy Route Protection and Root Redirects", () => {
     expect(mockGetUser).not.toHaveBeenCalled();
   });
 
+  it("allows auth error redirects on root (?error=access_denied&error_code=otp_expired) to pass through even with an auth cookie", async () => {
+    const req = new NextRequest(
+      "https://autoshop.app/?error=access_denied&error_code=otp_expired",
+      {
+        headers: {
+          cookie: "sb-mockproject-auth-token=valid-jwt-token",
+        },
+      },
+    );
+    const res = await proxy(req);
+
+    expect(res.status).toBe(200);
+    expect(mockGetUser).not.toHaveBeenCalled();
+  });
+
   it("immediately redirects unauthenticated requests on protected shop routes to /login", async () => {
     const req = new NextRequest("https://autoshop.app/dashboard");
     const res = await proxy(req);

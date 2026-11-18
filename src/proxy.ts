@@ -37,11 +37,13 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   // Fast-path: skip routes that need neither protection nor auth-based redirection.
   if (!isShop && !isRoot && !isAuth) return NextResponse.next();
 
-  // Allow auth callbacks on root (email confirmation, OTP, OAuth) to reach AuthCallbackHandler.
+  // Allow auth callbacks and auth errors on root (email confirmation, OTP, OAuth) to reach AuthCallbackHandler.
   if (
     isRoot &&
     (request.nextUrl.searchParams.has("code") ||
-      request.nextUrl.searchParams.has("token_hash"))
+      request.nextUrl.searchParams.has("token_hash") ||
+      request.nextUrl.searchParams.has("error") ||
+      request.nextUrl.searchParams.has("error_code"))
   ) {
     return NextResponse.next();
   }

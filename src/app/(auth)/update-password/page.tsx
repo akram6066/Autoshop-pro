@@ -4,25 +4,14 @@ import { useState } from "react";
 import { useMounted } from "@/hooks/useMounted";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/client";
-import { z } from "zod";
+import {
+  updatePasswordSchema,
+  type ResetResult,
+} from "@/lib/auth/passwordReset";
 import ErrorBox from "../login/components/ErrorBox";
 import FieldError from "../login/components/FieldError";
 import EyeButton from "../login/components/EyeButton";
 import { friendlyError } from "@/lib/api/errors";
-
-const updatePasswordSchema = z
-  .object({
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .max(72, "Password is too long"),
-    confirmPassword: z.string().min(1, "Confirm your password"),
-  })
-  .refine((values) => values.password === values.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
@@ -39,6 +28,7 @@ export default function UpdatePasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const mounted = useMounted();
   const [success, setSuccess] = useState(false);
+  const [warning, setWarning] = useState("");
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
@@ -61,25 +51,47 @@ export default function UpdatePasswordPage() {
     setIsLoading(true);
 
     try {
-      const supabase = createClient();
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: parsed.data.password,
+      // Completed on the server: it re-checks the recovery session, signs
+      // out the other sessions and consumes the reset link.
+      const res = await fetch("/api/auth/complete-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          password: parsed.data.password,
+          confirmPassword: parsed.data.confirmPassword,
+        }),
       });
-
-      if (updateError) {
+      const result = (await res.json().catch(() => null)) as ResetResult | null;
+      if (!result) {
         setError(
-          friendlyError(
-            updateError,
-            "Failed to update password. Please try again.",
-          ),
+          res.status === 429
+            ? "Too many attempts. Please wait a few minutes and try again."
+            : "Something went wrong. Please try again.",
         );
         return;
       }
 
+      if (!result.ok) {
+        if (result.fieldErrors) setFieldErrors(result.fieldErrors);
+        setError(result.error);
+        if (result.code === "no_recovery_session") {
+          // The link expired while the form was open: start over from sign-in.
+          setTimeout(
+            () => router.replace("/login?reason=reset_link_invalid"),
+            2500,
+          );
+        }
+        return;
+      }
+
+      if (result.warning) setWarning(result.warning);
       setSuccess(true);
-      setTimeout(() => {
-        router.replace("/dashboard");
-      }, 2000);
+      setTimeout(
+        () => {
+          router.replace("/dashboard");
+        },
+        result.warning ? 6000 : 2000,
+      );
     } catch (err) {
       setError(friendlyError(err, "Something went wrong."));
     } finally {
@@ -169,6 +181,17 @@ export default function UpdatePasswordPage() {
             >
               Your password has been successfully reset. Redirecting you...
             </p>
+            {warning && (
+              <p
+                style={{
+                  fontSize: "0.8125rem",
+                  color: "var(--color-ink-secondary)",
+                  marginTop: 12,
+                }}
+              >
+                {warning}
+              </p>
+            )}
           </div>
         ) : (
           <>
